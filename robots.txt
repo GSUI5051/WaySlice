@@ -5,3 +5,6 @@ Allow: /
 Allow: /icons/favicon.ico
 Allow: /icons/favicon-48x48.png
 Allow: /site.webmanifest
+
+# Sitemap for search engines.
+Sitemap: https://wayslice.com/sitemap.xml

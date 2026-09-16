@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Slice any track. Analyze any section. WaySlice is the first open-source track analyzer that lets you slice any segment of your GPX/FIT/TCX/KML/KMZ track and analyze it like telemetry — fully local, nothing is uploaded.">
   <title>WaySlice — GPX Sector Analyzer</title>
+  <link rel="canonical" href="https://wayslice.com/">
+  <!-- Search Console / Bing Webmaster: paste your verification meta tag here. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="WaySlice">
+  <meta property="og:title" content="WaySlice — GPX Sector Analyzer">
+  <meta property="og:description" content="Slice any track. Analyze any section. WaySlice is the first open-source track analyzer that lets you slice any segment of your GPX/FIT/TCX/KML/KMZ track and analyze it like telemetry — fully local, nothing is uploaded.">
+  <meta property="og:url" content="https://wayslice.com/">
+  <meta property="og:image" content="https://wayslice.com/screenshots/overview.jpg">
+  <meta property="og:image:width" content="3072">
+  <meta property="og:image:height" content="1920">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WaySlice — GPX Sector Analyzer">
+  <meta name="twitter:description" content="Slice any track. Analyze any section. WaySlice is the first open-source track analyzer that lets you slice any segment of your GPX/FIT/TCX/KML/KMZ track and analyze it like telemetry — fully local, nothing is uploaded.">
+  <meta name="twitter:image" content="https://wayslice.com/screenshots/overview.jpg">
   <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
   <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
@@ -40,13 +54,42 @@
   <link rel="stylesheet" href="css/map.css">
   <link rel="stylesheet" href="css/profile.css">
   <link rel="stylesheet" href="css/story.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "WaySlice",
+    "url": "https://wayslice.com/",
+    "description": "Slice any track. Analyze any section. WaySlice is the first open-source track analyzer that lets you slice any segment of your GPX/FIT/TCX/KML/KMZ track and analyze it like telemetry — fully local, nothing is uploaded.",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web",
+    "browserRequirements": "Requires JavaScript",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "featureList": [
+      "Slice any sector of a GPX/FIT/TCX/KML/KMZ track on the map or elevation profile",
+      "Sector metrics: 3D distance, elevation gain/loss, grades, pace, speed, GAP, VAM/VDM",
+      "Heart-rate zones, auto sector split, dual-variable density analysis",
+      "Export a sector as GPX, csv, txt or md",
+      "Fully local: parsing and analysis run in the browser, nothing is uploaded"
+    ]
+  }
+  </script>
 </head>
 <body>
   <div id="app">
+  <noscript>
+    <p>WaySlice is a local-first analyzer for GPX, FIT, TCX, KML and KMZ activity
+    tracks: slice out any sector on the map or elevation profile and read its
+    metrics — 3D distance, elevation gain/loss, grades, pace, speed, GAP, VAM/VDM,
+    heart rate, cadence, power and temperature — then export the sector as GPX,
+    csv, txt or md. Everything runs in your browser; nothing is uploaded.
+    Enable JavaScript to use it.</p>
+  </noscript>
     <header id="app-header">
       <div class="brand">
         <span class="brand-icon"><img src="icons/favicon.svg" alt="" width="22" height="22"></span>
-        <span class="brand-name">WaySlice</span>
+        <h1 class="brand-name">WaySlice</h1>
       </div>
       <div id="file-chip" class="file-chip num" hidden>
         <span id="file-name"></span>

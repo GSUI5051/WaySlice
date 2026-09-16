@@ -35,6 +35,8 @@
   white-space: nowrap;
 }
 
+.brand-name { font-size: inherit; font-weight: inherit; }
+
 .brand-icon { display: inline-flex; }
 .brand-icon img { width: 22px; height: 22px; display: block; }
 
