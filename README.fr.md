@@ -140,6 +140,8 @@ source.
 
 ## Prise en main
 
+**Try it: https://wayslice.com**
+
 N'importe quel serveur de fichiers statiques convient. Il n'y a rien à construire :
 
 ```bash

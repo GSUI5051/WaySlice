@@ -130,6 +130,8 @@ the source format.
 
 ## Getting started
 
+**Try it: https://wayslice.com**
+
 Any static file server works. There is nothing to build:
 
 ```bash

@@ -141,6 +141,8 @@ stammt.
 
 ## Erste Schritte
 
+**Try it: https://wayslice.com**
+
 Jeder statische Dateiserver taugt. Es gibt nichts zu bauen:
 
 ```bash

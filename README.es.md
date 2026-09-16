@@ -141,6 +141,8 @@ traza, así que las métricas del tramo funcionan igual con independencia del fo
 
 ## Primeros pasos
 
+**Try it: https://wayslice.com**
+
 Cualquier servidor de archivos estáticos sirve. No hay nada que compilar:
 
 ```bash

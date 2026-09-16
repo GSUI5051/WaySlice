@@ -139,6 +139,8 @@ così le metriche del tratto funzionano identicamente a prescindere dal formato 
 
 ## Per iniziare
 
+**Try it: https://wayslice.com**
+
 Va bene qualsiasi server di file statici. Non c'è nulla da compilare:
 
 ```bash

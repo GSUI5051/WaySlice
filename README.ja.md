@@ -99,6 +99,8 @@ FIT のデコードは、同梱の [fit-parser](https://github.com/jimmykane/fit
 
 ## はじめに
 
+**Try it: https://wayslice.com**
+
 静的ファイルサーバーがあれば動作します。ビルドは一切不要です:
 
 ```bash

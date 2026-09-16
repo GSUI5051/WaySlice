@@ -99,6 +99,8 @@ FIT 해석은 번들된 [fit-parser](https://github.com/jimmykane/fit-parser) �
 
 ## 시작하기
 
+**Try it: https://wayslice.com**
+
 정적 파일 서버라면 무엇이든 됩니다. 빌드는 없습니다:
 
 ```bash
