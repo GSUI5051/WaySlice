@@ -1,7 +1,7 @@
 {
   "name": "WaySlice — Track Sector Analyzer",
   "short_name": "WaySlice",
-  "description": "Telemetry for your way. Sliced. An open-source track analyzer which can slice any segment of your GPX/KML/KMZ/TCX/FIT activity record and analyze it like reading telemetry. Fully local, nothing is uploaded.",
+  "description": "Telemetry for your way. Sliced. An open-source analyzer which can slice any section of your GPX/KML/KMZ/TCX/FIT activity record and analyze it like reading telemetry. Fully local, nothing is uploaded.",
   "lang": "en",
   "start_url": "./",
   "scope": "./",
