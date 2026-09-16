@@ -1,0 +1,1126 @@
+/* ==========================================================================
+   Components — buttons, menus/popovers, bottom sheet + settings drawer,
+   metrics panel, state overlay (empty / loading / error), drop target.
+   ========================================================================== */
+
+/* Buttons ------------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+  font-weight: 550;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
+.btn:active:not(:disabled) { background: var(--surface-muted); }
+
+.btn-primary {
+  background: var(--primary);
+  border-color: transparent;
+  color: var(--primary-foreground);
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary); filter: brightness(1.1); }
+.btn-primary:active:not(:disabled) { filter: brightness(0.95); }
+
+.btn-icon { width: 34px; padding: 0; justify-content: center; }
+.btn-small { height: 28px; padding: 0 10px; font-size: 12px; }
+.btn-large { height: 40px; padding: 0 18px; font-size: 14px; }
+
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-hover); border-color: transparent; }
+
+.btn-caret .icon { width: 14px; height: 14px; color: var(--foreground-faint); }
+
+.btn-elevated {
+  background: var(--surface-elevated);
+  border-color: var(--border);
+  box-shadow: var(--shadow-1);
+}
+
+.btn-icon-slot { display: inline-flex; align-items: center; }
+.btn-icon-slot .icon { width: 16px; height: 16px; }
+
+/* Menus / popovers ---------------------------------------------------------- */
+
+.menu { position: relative; display: inline-flex; }
+
+.menu-panel {
+  position: fixed;
+  z-index: var(--z-menu);
+  min-width: 230px;
+  max-height: min(430px, 62vh);
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-2);
+}
+
+.menu-group-label {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--foreground-faint);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: var(--radius-s);
+  text-align: start;
+  font-size: 13.5px;
+}
+
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible { background: var(--surface-hover); }
+
+.menu-item[aria-checked="true"] { font-weight: 600; }
+.menu-item[aria-checked="true"] .menu-item-label { color: var(--foreground); }
+
+.menu-item-icon { display: inline-flex; color: var(--foreground-muted); }
+.menu-item[aria-checked="true"] .menu-item-icon { color: var(--accent); }
+
+.menu-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--dot-color, var(--foreground-muted));
+}
+
+.menu-item-label { flex: 1 1 auto; min-width: 0; }
+
+.menu-item-hint {
+  font-size: 11.5px;
+  color: var(--foreground-faint);
+}
+
+.menu-item-check { display: inline-flex; color: var(--accent); }
+.menu-item-check .icon { width: 15px; height: 15px; }
+
+/* Export menu: three centered action rows — no icons, no checkmarks, the
+   label itself is the whole row and reads centered in every language. */
+.menu-panel-export .menu-item { justify-content: center; }
+.menu-panel-export .menu-item-label { flex: 0 1 auto; text-align: center; }
+
+/* Fit-content menus (the overlays popover): hug the longest item instead of
+   the shared 230px floor. Desktop only — narrow screens restyle the panel
+   into a full-width bottom sheet, where inset-inline must keep controlling
+   the width. Right-edge anchoring to the trigger is in menus.js. */
+@media (min-width: 721px) {
+  .menu-panel.menu-panel-fit {
+    min-width: 0;
+    width: max-content;
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* Submenu group (the overlays menu's speed entry). Wide screens open a
+   flyout beside the panel; below the 1100px layout breakpoint the two
+   variants render inline under the row as an indented group. Which of the
+   two is built is decided in menus.js — these styles only dress the DOM. */
+
+.menu-item-caret {
+  display: inline-flex;
+  color: var(--foreground-faint);
+}
+
+.menu-item-caret .icon { width: 14px; height: 14px; }
+
+.menu-item[aria-expanded="true"] .menu-item-caret { color: var(--foreground); }
+
+/* Inline subtree: a thin guide line drops from under the parent row's label
+   so the variants read as its children (the classic tree look). */
+.menu-sublist {
+  display: flex;
+  flex-direction: column;
+  margin-inline-start: 19px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--border);
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-backdrop);
+  background: var(--backdrop);
+}
+
+/* Narrow screens: menus become bottom sheets. */
+@media (max-width: 720px) {
+  .menu-panel {
+    inset-inline: 0;
+    inset-block: auto 0;
+    max-height: 72vh;
+    border-radius: var(--radius-l) var(--radius-l) 0 0;
+    border-block-start: 1px solid var(--border);
+    padding-block-end: calc(10px + env(safe-area-inset-bottom, 0px));
+    box-shadow: var(--shadow-2);
+  }
+}
+
+/* Sheet dialog --------------------------------------------------------------- */
+
+.sheet {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  padding: 0;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(76vh, 720px);
+  box-shadow: var(--shadow-2);
+}
+
+.sheet::backdrop { background: var(--backdrop); }
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-block-end: 1px solid var(--border);
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--surface-elevated);
+}
+
+.sheet-head h2 { font-size: 15px; }
+.sheet-head .btn { margin-inline-start: auto; }
+
+.sheet-body {
+  padding: 6px 16px 18px;
+  overflow-y: auto;
+  max-height: calc(min(76vh, 720px) - 60px);
+}
+
+.drawer-section { margin-block-start: 16px; }
+.drawer-section:first-child { margin-block-start: 6px; }
+
+.drawer-section-title {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--foreground-faint);
+  margin-block-end: 2px;
+}
+
+/* Settings drawer ------------------------------------------------------------ */
+
+/* The settings surface (map source / theme / language / units) on every
+   viewport: a <dialog> pinned to the inline end and stretched full height.
+   The panel parks off-canvas via transform; [open] plus @starting-style
+   slides it in, and `allow-discrete` on display/overlay keeps it in the
+   top layer while the slide-out runs (without support it just toggles).
+   Logical inset pins it right in LTR, left in RTL; the slide direction
+   itself stays physical until an RTL language ships. */
+.drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline: auto 0;
+  /* The dialog UA sheet sets height: fit-content, which would let the panel
+     grow past the viewport (top/bottom insets alone don't stretch it) —
+     height: auto restores the inset-driven full-height stretch. */
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  width: min(320px, calc(100vw - 56px));
+  max-width: none;
+  max-height: none;
+  border: none;
+  border-inline-start: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  box-shadow: var(--shadow-2);
+  transform: translateX(calc(100% + 24px));
+  transition: transform var(--dur-normal) var(--ease-out),
+    overlay var(--dur-normal) allow-discrete,
+    display var(--dur-normal) allow-discrete;
+}
+
+.drawer[open] { transform: none; }
+
+@starting-style { .drawer[open] { transform: translateX(calc(100% + 24px)); } }
+
+.drawer::backdrop { background: var(--backdrop); }
+
+.drawer-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 12px 10px;
+  padding-inline: 16px 12px;
+  border-block-end: 1px solid var(--border);
+}
+
+.drawer-head h2 { font-size: 15px; }
+.drawer-head .btn { margin-inline-start: auto; }
+
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 720px) {
+  .sheet {
+    inset-inline: 0;
+    inset-block: auto 0;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: var(--radius-l) var(--radius-l) 0 0;
+    padding-block-end: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Auto segments sheet ---------------------------------------------- */
+
+.seg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 12px;
+}
+
+.seg-chip {
+  min-height: 28px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--foreground-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.seg-chip:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
+
+.seg-chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
+.seg-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--foreground-muted);
+}
+
+.seg-custom input {
+  width: 68px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.seg-list { border-block-start: 1px solid var(--border); }
+
+.seg-item { border-block-end: 1px solid var(--border); }
+
+.seg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 4px;
+  text-align: start;
+  font-size: 13px;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.seg-row:hover { background: var(--surface-hover); }
+
+/* Collapsed: chevron-down (can expand); expanded: rotated to chevron-up
+   (can collapse). Expanding rotates counter-clockwise (0 → −180°),
+   collapsing back clockwise; fixed 250 ms (deliberately not a duration
+   token). */
+.seg-chevron {
+  display: inline-flex;
+  color: var(--foreground-faint);
+  transition: transform 250ms var(--ease-out);
+}
+
+.seg-chevron .icon { width: 14px; height: 14px; }
+
+.seg-item.open .seg-chevron { transform: rotate(-180deg); }
+
+.seg-name { font-weight: 600; flex: none; }
+
+/* Type capsule between name and range: icon-only pill classifying the
+   stretch. Climb/descent ride the map handle direction tokens (start green,
+   end red); flat and mixed stay muted. */
+.seg-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.seg-type .icon { width: 12px; height: 12px; }
+
+.seg-type-climb { color: var(--success); }
+.seg-type-descent { color: var(--danger); }
+.seg-type-flat, .seg-type-mixed { color: var(--foreground-muted); }
+
+/* Time/pace/HR ride in one container so the narrow-screen grid can move the
+   cluster to the second line as a block. Wide rows: pinned to the far edge,
+   so the type capsule hugs the range instead of the stats. */
+.seg-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  margin-inline-start: auto;
+}
+
+/* The capsule's text label only exists on narrow (bottom-sheet) screens. */
+.seg-type-label { display: none; }
+
+.seg-range {
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+  color: var(--foreground-muted);
+}
+
+.seg-stat { flex: none; color: var(--foreground-muted); }
+
+/* Row readings mirror the profile overlay series colors (tokens.css) —
+   pace rides the speed series, HR its own red — so list and chart agree. */
+.seg-stat.seg-stat-pace { color: var(--series-speed); }
+.seg-stat.seg-stat-hr { color: var(--series-hr); }
+
+.seg-details { padding: 0 4px 12px 30px; }
+
+/* The Heart Rate Zones group (rendered by the metrics panel's shared
+   builder) below the segment's label/value rows. */
+.seg-details .metric-group { margin-block-start: 10px; }
+
+.seg-details-title {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--foreground-faint);
+  margin-block-end: 2px;
+}
+
+/* Narrow screens (bottom sheet): each row splits into two lines — range and
+   the type capsule (which gains its text label) on the first line, the
+   time/pace/HR cluster on the second, left-aligned with the range's start
+   (the stats share the range's grid column). The chevron + segment name
+   pair spans both lines as one vertically centered unit. */
+@media (max-width: 720px) {
+  .seg-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas:
+      "chev name range type"
+      "chev name stats stats";
+    align-items: center;
+    row-gap: 2px;
+    column-gap: 10px;
+  }
+
+  .seg-chevron { grid-area: chev; align-self: center; }
+  .seg-name { grid-area: name; align-self: center; }
+  .seg-range { grid-area: range; }
+  .seg-type {
+    grid-area: type;
+    justify-self: end;
+    column-gap: 5px;
+    padding-inline: 6px 9px;
+  }
+  .seg-type-label { display: inline; }
+  .seg-stats { grid-area: stats; margin-inline-start: 0; }
+}
+
+/* Metrics panel --------------------------------------------------------------- */
+
+.metrics-root { padding: 14px 16px 20px; }
+
+.metrics-empty {
+  padding: 18px 4px;
+  font-size: 12.5px;
+  color: var(--foreground-faint);
+}
+
+.metrics-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.metrics-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--foreground-muted);
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.badge[hidden] { display: none; }
+
+.sector-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-block-start: 2px;
+  font-size: 12px;
+  color: var(--foreground-faint);
+}
+
+.sector-range-arrow { color: var(--accent); }
+
+.metric-hero {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block: 12px 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface-muted);
+}
+
+.metric-hero-label {
+  font-size: 13px;
+  color: var(--foreground-muted);
+  min-width: 0;
+}
+
+.metric-hero-value {
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.metric-rows { display: flex; flex-direction: column; }
+
+.metric-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 6px 2px;
+  border-block-end: 1px solid var(--border);
+}
+
+.metric-rows .metric-row:last-child { border-block-end: none; }
+
+.metric-label {
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  min-width: 0;
+}
+
+.metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-inline-start: auto;
+}
+
+.metric-value.is-na,
+.metric-na {
+  color: var(--foreground-faint);
+  font-weight: 500;
+}
+
+.metric-na { font-size: 12px; }
+
+.metric-groups { margin-block-start: 16px; }
+
+.metric-group { margin-block-end: 16px; }
+
+.metric-group-title {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--foreground-faint);
+  margin-block-end: 2px;
+}
+
+.metric-group .metric-row:last-of-type { border-block-end: none; }
+
+.metric-group-note {
+  font-size: 11.5px;
+  color: var(--foreground-faint);
+  padding: 4px 2px 0;
+}
+
+/* Hint icon + popover --------------------------------------------------------- */
+
+/* The circled question mark trailing the label on hint rows ("Climb (?)");
+   its click area extends well past the glyph (the JS hit radius adds 30 px
+   around the icon circle). Pulls the flex gap down to a snug label gap. */
+.metric-hint-btn {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin-inline-start: -7px;
+  border: none;
+  background: transparent;
+  color: var(--foreground-faint);
+  cursor: pointer;
+  border-radius: var(--radius-s);
+}
+
+.metric-hint-btn:hover { color: var(--foreground-muted); background: var(--surface-hover); }
+
+.metric-hint-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.metric-hint-btn .icon { width: 13px; height: 13px; display: block; }
+
+/* Same floating surface as .menu-panel: elevated background, hairline
+   border, menu radius and shadow — just text inside. */
+.hint-popover {
+  position: fixed;
+  z-index: var(--z-menu);
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 8px 10px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-2);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--foreground-muted);
+}
+
+/* Heart Rate Zones ----------------------------------------------------------- */
+
+/* The zone editor (settings drawer entry): the shared sheet, a little wider
+   for the zone grid. The compound selector OUT-SPECIFIES the `.sheet` mobile
+   restyle below, so mobile must restore the full-width bottom sheet
+   explicitly. */
+.sheet.hrzones { width: min(620px, calc(100vw - 32px)); }
+
+@media (max-width: 720px) {
+  .sheet.hrzones { width: 100%; }
+}
+
+.hrzones-modes { padding-block: 2px 10px; }
+
+.hrzones-desc {
+  font-size: 11.5px;
+  color: var(--foreground-faint);
+  margin: 0 0 10px;
+}
+
+.hrzones-params { padding-block-end: 8px; }
+
+.hrzones-param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.hrzones-param-label {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  min-width: 0;
+}
+
+.hrzones-input {
+  width: 72px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+  text-align: end;
+}
+
+.hrzones-input:disabled { opacity: 0.55; }
+
+.hrzones-unit {
+  flex: none;
+  font-size: 11px;
+  color: var(--foreground-faint);
+  min-width: 2.2em;
+}
+
+.hrzones-zones { border-block-start: 1px solid var(--border); }
+
+.hrzones-zone {
+  display: grid;
+  grid-template-columns: 4.6em minmax(0, 1fr) auto 72px 2.2em;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 7px 0;
+  border-block-end: 1px solid var(--border);
+}
+
+.hrzones-zone-name { font-weight: 600; font-size: 12.5px; }
+
+.hrzones-zone-range {
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hrzones-zone-pct {
+  font-size: 11.5px;
+  color: var(--foreground-faint);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .hrzones-zone { grid-template-columns: 4.2em minmax(0, 1fr) auto 60px 2em; gap: 4px 6px; }
+  .hrzones-input { width: 60px; }
+}
+
+.hrzones-error {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+/* Zone time distribution in the metrics panel + the details sheet. */
+
+.hrzone-rows { padding: 6px 0 2px; }
+
+.hrzone-row { padding: 4px 0 6px; }
+
+.hrzone-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.hrzone-name { flex: none; font-weight: 600; }
+
+.hrzone-range {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--foreground-muted);
+}
+
+.hrzone-pct {
+  flex: none;
+  min-width: 2.6em;
+  text-align: end;
+  font-weight: 600;
+}
+
+.hrzone-time {
+  flex: none;
+  min-width: 3.6em;
+  text-align: end;
+  color: var(--foreground-muted);
+}
+
+.hrzone-bar {
+  margin-block-start: 4px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+/* Bars wear the per-zone Zepp palette (tokens.css, themed per mode) — one
+   hue per zone so the five rows read as a spectrum, not five equal bars. */
+.hrzone-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.hrzone-rows .hrzone-row:nth-child(1) .hrzone-bar-fill { background: var(--hr-zone-1); }
+.hrzone-rows .hrzone-row:nth-child(2) .hrzone-bar-fill { background: var(--hr-zone-2); }
+.hrzone-rows .hrzone-row:nth-child(3) .hrzone-bar-fill { background: var(--hr-zone-3); }
+.hrzone-rows .hrzone-row:nth-child(4) .hrzone-bar-fill { background: var(--hr-zone-4); }
+.hrzone-rows .hrzone-row:nth-child(5) .hrzone-bar-fill { background: var(--hr-zone-5); }
+
+/* Dual-variable analysis ------------------------------------------------------ */
+
+/* A little wider than the shared sheet — the density plot wants the room.
+   The compound selector out-specifies the .sheet mobile restyle below, so
+   mobile restores the full-width bottom sheet explicitly (same pattern as
+   .sheet.hrzones). */
+.sheet.dualvar { width: min(680px, calc(100vw - 32px)); }
+
+@media (max-width: 720px) {
+  .sheet.dualvar { width: 100%; }
+}
+
+.dualvar-desc {
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  padding-block: 4px 10px;
+}
+
+/* One field per row, full width — the two dropdowns never sit side by side
+   (spec §3): a phone column cannot fit two selects without shrinking their
+   touch targets. */
+.dualvar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-block-end: 12px;
+}
+
+.dualvar-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--foreground-muted);
+}
+
+.dualvar-field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.dualvar-field select:disabled { opacity: 0.55; }
+
+/* Quantities the track lacks stay listed at reduced visual weight, their
+   reason in the label text — supported, just not on this track. */
+.dualvar-field select option:disabled {
+  color: var(--foreground-faint);
+  font-style: italic;
+}
+
+.dualvar-note {
+  font-size: 12px;
+  color: var(--foreground-faint);
+  padding-block: 2px 8px;
+}
+
+.dualvar-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-block-start: 2px;
+}
+
+/* The Analyze button hugs the CURRENT language's rendered text (the .btn
+   padding is the only sizing) — no min-width keyed to the longest word. */
+
+/* Result view: selection summary + reselect, then the chart frame. */
+.dualvar-result-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 2px 10px;
+}
+
+.dualvar-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--foreground-muted);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dualvar-summary-arrow { display: inline-flex; color: var(--accent); }
+.dualvar-summary-arrow .icon { width: 14px; height: 14px; }
+
+.dualvar-result-head .btn { margin-inline-start: auto; }
+
+/* Desktop: the two ANALYSIS windows share one fixed height — the .sheet cap
+   min(76vh, 720px) — so the dual-variable dialog and the auto-split list are
+   exactly as tall on every track (the auto-split sheet is otherwise
+   content-sized and drifts with the segment count). The chart fills the room
+   under the summary row instead of its clamp() height. The metrics details
+   sheet (the same #sheet element, no .seg-list inside) and every narrow-screen
+   bottom sheet stay content-sized.
+   display:flex is scoped to [open]: an author display on the CLOSED dialog
+   overrides the UA's closed-dialog display:none and lays the box out as a
+   608px phantom in the page flow — that inflated document scrollHeight and
+   collapsed the overlays menu's positionOverride once already. */
+@media (min-width: 721px) {
+  #sheet:has(.seg-list),
+  .sheet.dualvar {
+    height: min(76vh, 720px);
+  }
+
+  #sheet[open]:has(.seg-list),
+  .sheet.dualvar[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #sheet[open]:has(.seg-list) .sheet-body,
+  .sheet.dualvar[open] .sheet-body {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sheet.dualvar[open] #dualvar-result-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sheet.dualvar .dualvar-chart { flex: 1; }
+}
+
+.dualvar-chart {
+  position: relative;
+  height: clamp(240px, 46vh, 420px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface-muted);
+  overflow: hidden;
+  /* The canvas reads pointers; the frame must not scroll out from under a
+     finger dragging across it. */
+  touch-action: none;
+}
+
+#dualvar-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Same floating surface as .profile-tooltip, positioned in VIEWPORT-fixed
+   coordinates over the whole dialog body — the chart's plot area and card
+   only resolve data coordinates and never clip or bound the box (see
+   tooltip.js's placement ladder). Lives inside the dialog so the modal's
+   top layer stacks it above everything. */
+.dualvar-tooltip {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border-radius: var(--radius-s);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  font-size: 11.5px;
+  color: var(--foreground);
+  pointer-events: none;
+  z-index: 5;
+  min-width: 130px;
+}
+
+.dualvar-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dualvar-tip-label { color: var(--foreground-faint); font-weight: 550; }
+
+.dualvar-tip-value { font-weight: 650; white-space: nowrap; }
+
+/* Empty / loading states overlay the plot — never a blank canvas. */
+.dualvar-empty,
+.dualvar-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
+  font-size: 13px;
+  color: var(--foreground-muted);
+}
+
+.dualvar-empty-icon { display: inline-flex; color: var(--foreground-faint); }
+.dualvar-empty-icon .icon { width: 24px; height: 24px; }
+
+/* State overlay (empty / loading / error) ------------------------------------ */
+
+.overlay-state {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--background) 72%, transparent);
+  backdrop-filter: blur(3px);
+  /* The dim is visual only: map-area controls under it (basemap picker,
+     zoom, pan) must stay clickable in the empty/error states. */
+  pointer-events: none;
+}
+
+.overlay-state[hidden] { display: none; }
+
+.overlay-state .state-card { pointer-events: auto; }
+
+/* No track, no map chrome: while the state overlay is up the map area shows
+   only the state card. Leaflet's control container would otherwise stack
+   above the overlay (corner z-index 1000 > overlay 900), and #map-fit would
+   show through the frost. Attribution stays — tiles render beneath it and
+   the providers require the credit. */
+#map-pane:has(#overlay-state:not([hidden])) #map-fit,
+#map-pane:has(#overlay-state:not([hidden])) .leaflet-control-zoom,
+#map-pane:has(#overlay-state:not([hidden])) .leaflet-control-scale {
+  display: none;
+}
+
+.state-card {
+  max-width: 420px;
+  padding: 28px 26px;
+  text-align: center;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.state-brand {
+  display: inline-flex;
+}
+.state-brand img { width: 56px; height: 56px; display: block; }
+
+.state-error-icon {
+  display: inline-flex;
+  color: var(--danger);
+}
+.state-error-icon .icon { width: 28px; height: 28px; }
+
+.state-title { font-size: 17px; }
+
+.state-text {
+  font-size: 13.5px;
+  color: var(--foreground-muted);
+}
+
+.state-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-block-start: 6px;
+  font-size: 12px;
+  color: var(--foreground-faint);
+  text-align: start;
+}
+
+.state-privacy .icon { width: 14px; height: 14px; margin-block-start: 2px; color: var(--success); }
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--border-strong);
+  border-block-start-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Drop target ----------------------------------------------------------------- */
+
+#drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--backdrop);
+  padding: 18px;
+}
+
+#drop-overlay[hidden] { display: none; }
+
+.drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 34px 44px;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-l);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.drop-card .icon { width: 26px; height: 26px; color: var(--accent); }

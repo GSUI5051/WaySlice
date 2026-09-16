@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>WaySlice — Favicon & App Icon Preview</title>
+<style>
+  :root {
+    --bg-light: #f7f7f5;
+    --bg-dark: #14171a;
+    --card-light: #ffffff;
+    --card-dark: #1f2429;
+    --text-light: #14171a;
+    --text-dark: #e9ecec;
+    --muted-light: #6a7370;
+    --muted-dark: #8a9094;
+    --border-light: #e3e5e4;
+    --border-dark: #2c3137;
+    --accent: #e8590c;
+    --accent-bright: #ff8a3d;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-light);
+    color: var(--text-light);
+    line-height: 1.55;
+  }
+  header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  header h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  header p { margin: 0; color: var(--muted-light); font-size: 14px; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 32px 64px; }
+  h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-light);
+    margin: 32px 0 12px;
+    font-weight: 600;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .panel {
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 20px;
+    background: var(--card-light);
+  }
+  .panel.dark {
+    background: var(--card-dark);
+    border-color: var(--border-dark);
+    color: var(--text-dark);
+  }
+  .panel.dark h2 { color: var(--muted-dark); }
+  .panel-title {
+    font-size: 12px;
+    color: var(--muted-light);
+    margin: 0 0 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .panel.dark .panel-title { color: var(--muted-dark); }
+
+  /* Browser tab mockup */
+  .tab-row {
+    display: flex;
+    gap: 6px;
+    background: rgba(0,0,0,0.04);
+    padding: 8px;
+    border-radius: 8px 8px 0 0;
+    overflow-x: auto;
+  }
+  .panel.dark .tab-row { background: rgba(255,255,255,0.05); }
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+  .panel.dark .tab { background: rgba(255,255,255,0.08); color: var(--text-dark); }
+  .tab img { display: block; }
+  .tab .label { font-size: 12px; }
+  .tab .size { font-size: 10px; color: var(--muted-light); font-family: var(--mono); }
+  .panel.dark .tab .size { color: var(--muted-dark); }
+
+  /* App icon tiles */
+  .tiles {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .tile img {
+    border-radius: 22%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 14px rgba(0,0,0,0.06);
+  }
+  .tile .label { font-size: 11px; color: var(--muted-light); font-family: var(--mono); }
+  .panel.dark .tile .label { color: var(--muted-dark); }
+  .tile.tile-square img { border-radius: 0; }
+  .tile.tile-pill img { border-radius: 18px; }
+  .tile.tile-circle img { border-radius: 50%; }
+
+  /* SVG favicon reference tile */
+  .svg-ref img { background: transparent; }
+
+  /* Code block */
+  pre {
+    background: #0e1116;
+    color: #d9e0e3;
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 0;
+  }
+  pre code { white-space: pre; }
+  .tag-color { color: #ff8a3d; }
+  .tag-attr { color: #ffb86c; }
+  .tag-val  { color: #9ec5ff; }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+    font-size: 13px;
+    color: var(--muted-light);
+  }
+  footer ul { margin: 6px 0; padding-left: 20px; }
+  footer code {
+    background: rgba(0,0,0,0.05);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .panel.dark footer { color: var(--muted-dark); }
+  .panel.dark pre { background: #0a0c0f; }
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(232, 89, 12, 0.12);
+    color: var(--accent);
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .panel.dark .badge { background: rgba(255, 138, 61, 0.18); color: var(--accent-bright); }
+
+  @media (max-width: 720px) {
+    .row { grid-template-columns: 1fr; }
+    main { padding: 20px 18px 48px; }
+    header { padding: 22px 18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>WaySlice <span class="badge">favicon + app icons</span></h1>
+  <p>Generated from the project's brand orange <code>#e8590c</code> / <code>#ff8a3d</code> and the existing Lucide <code>route</code> glyph.</p>
+</header>
+
+<main>
+
+  <h2>Browser tab — favicons (transparent, brand orange stroke)</h2>
+  <div class="row">
+    <div class="panel">
+      <p class="panel-title">Light browser chrome</p>
+      <div class="tab-row">
+        <span class="tab"><img src="favicon-16x16.png" width="16" height="16" alt=""><span class="label">WaySlice</span><span class="size">16</span></span>
+        <span class="tab"><img src="favicon-32x32.png" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">32 (HiDPI)</span></span>
+        <span class="tab"><img src="favicon-96x96.png" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">96</span></span>
+        <span class="tab"><img src="favicon.ico" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">.ico</span></span>
+        <span class="tab svg-ref"><img src="favicon.svg" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">svg (existing)</span></span>
+      </div>
+    </div>
+    <div class="panel dark">
+      <p class="panel-title">Dark browser chrome</p>
+      <div class="tab-row">
+        <span class="tab"><img src="favicon-16x16.png" width="16" height="16" alt=""><span class="label">WaySlice</span><span class="size">16</span></span>
+        <span class="tab"><img src="favicon-32x32.png" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">32 (HiDPI)</span></span>
+        <span class="tab"><img src="favicon-96x96.png" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">96</span></span>
+        <span class="tab"><img src="favicon.ico" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">.ico</span></span>
+        <span class="tab svg-ref"><img src="favicon.svg" width="32" height="32" alt=""><span class="label">WaySlice</span><span class="size">svg (existing)</span></span>
+      </div>
+    </div>
+  </div>
+
+  <h2>App icons — orange gradient + white route glyph</h2>
+  <div class="row">
+    <div class="panel">
+      <p class="panel-title">Home-screen mockup (rounded, like iOS / Android)</p>
+      <div class="tiles">
+        <span class="tile"><img src="apple-touch-icon.png" width="60" height="60" alt=""><span class="label">apple 180</span></span>
+        <span class="tile"><img src="android-chrome-192x192.png" width="76" height="76" alt=""><span class="label">android 192</span></span>
+        <span class="tile"><img src="android-chrome-512x512.png" width="100" height="100" alt=""><span class="label">android 512</span></span>
+      </div>
+    </div>
+    <div class="panel dark">
+      <p class="panel-title">Adaptive mask preview (circle, square, rounded-square)</p>
+      <div class="tiles">
+        <span class="tile tile-circle"><img src="android-chrome-512x512.png" width="100" height="100" alt=""><span class="label">circle</span></span>
+        <span class="tile tile-square"><img src="android-chrome-512x512.png" width="100" height="100" alt=""><span class="label">square</span></span>
+        <span class="tile"><img src="android-chrome-512x512.png" width="100" height="100" alt=""><span class="label">rounded (default)</span></span>
+      </div>
+    </div>
+  </div>
+
+  <h2>HTML to add to <code>&lt;head&gt;</code> in <code>index.html</code></h2>
+  <div class="panel">
+    <p class="panel-title">Insert after the existing <code>icons/favicon.svg</code> link — keeps the dark-mode-aware SVG, adds PNG/ICO for browsers &amp; devices that prefer them</p>
+<pre><code><span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"icon"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/favicon.svg"</span> <span class="tag-attr">type</span>=<span class="tag-val">"image/svg+xml"</span><span class="tag-color">&gt;</span>
+<span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"icon"</span> <span class="tag-attr">type</span>=<span class="tag-val">"image/png"</span> <span class="tag-attr">sizes</span>=<span class="tag-val">"32x32"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/favicon-32x32.png"</span><span class="tag-color">&gt;</span>
+<span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"icon"</span> <span class="tag-attr">type</span>=<span class="tag-val">"image/png"</span> <span class="tag-attr">sizes</span>=<span class="tag-val">"16x16"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/favicon-16x16.png"</span><span class="tag-color">&gt;</span>
+<span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"icon"</span> <span class="tag-attr">type</span>=<span class="tag-val">"image/png"</span> <span class="tag-attr">sizes</span>=<span class="tag-val">"96x96"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/favicon-96x96.png"</span><span class="tag-color">&gt;</span>
+<span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"icon"</span> <span class="tag-attr">type</span>=<span class="tag-val">"image/x-icon"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/favicon.ico"</span><span class="tag-color">&gt;</span>
+<span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"apple-touch-icon"</span> <span class="tag-attr">sizes</span>=<span class="tag-val">"180x180"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/apple-touch-icon.png"</span><span class="tag-color">&gt;</span>
+<span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"icon"</span> <span class="tag-attr">type</span>=<span class="tag-val">"image/png"</span> <span class="tag-attr">sizes</span>=<span class="tag-val">"192x192"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/android-chrome-192x192.png"</span><span class="tag-color">&gt;</span>
+<span class="tag-color">&lt;link</span> <span class="tag-attr">rel</span>=<span class="tag-val">"icon"</span> <span class="tag-attr">type</span>=<span class="tag-val">"image/png"</span> <span class="tag-attr">sizes</span>=<span class="tag-val">"512x512"</span> <span class="tag-attr">href</span>=<span class="tag-val">"icons/android-chrome-512x512.png"</span><span class="tag-color">&gt;</span></code></pre>
+  </div>
+
+  <footer>
+    <strong>File summary (all in <code>icons/</code>, next to this page):</strong>
+    <ul>
+      <li><code>favicon-16x16.png</code> · <code>favicon-32x32.png</code> · <code>favicon-96x96.png</code> · <code>favicon.ico</code> — browser tabs (transparent, brand-orange stroke)</li>
+      <li><code>apple-touch-icon.png</code> (180) · <code>android-chrome-192x192.png</code> · <code>android-chrome-512x512.png</code> — home-screen / PWA (orange gradient + white glyph)</li>
+    </ul>
+    Source SVGs and 1024 px masters live in <code>D:/tmp/wayslice-icons/</code> if you want to regenerate with adjusted colors or stroke weight.
+  </footer>
+
+</main>
+
+</body>
+</html>

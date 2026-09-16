@@ -1,0 +1,45 @@
+# WaySlice ignore rules
+# Order: dot-prefixed folders -> specs -> devlog -> dev scripts -> screenshot sources
+# -> prompt reference -> sample tracks -> dependencies
+
+# -- 1. Dot-prefixed folders (local tooling artifacts, not committed) --
+# Currently matches: .playwright-mcp/ (browser test artifacts), .workbuddy/, etc.
+# This rule does not affect the .gitignore file itself (it is not a folder).
+# To commit a dot folder in the future (e.g. .github/), add an explicit
+# un-ignore line after this rule, e.g.:
+# !.github/
+.*/
+
+# -- 2. Specs and task notes --
+/specs/
+
+# -- 3. Dev log --
+/devlog/
+
+# -- 4. Dev and build scripts --
+# Nothing in the web runtime depends on them (verified with a browser network
+# log: load, upload, sectoring and export make zero /tools requests), and the
+# READMEs no longer mention them. Local dev tooling only (icon build, sample
+# track generation, syntax checks).
+/tools/
+
+# -- 5. Screenshot source files --
+# Raw phone screenshots and per-image PNG versions, used only to generate the
+# published .jpg files in the parent directory, locally. The web runtime never
+# requests them: the READMEs reference /screenshots/*.jpg and the sibling
+# overview.jpg (repo-wide search confirmed nothing references this folder).
+/screenshots/png/
+
+# -- 6. Prompt reference material --
+# prompt/ is local reference material only; the web runtime never requests it.
+# The READMEs' build-your-own section was removed and no longer mentions it.
+/prompt/
+
+# -- 7. Sample tracks --
+# Sample GPX files are for local manual testing only (loaded through the
+# browser file picker); the web runtime never requests them.
+/sample/
+
+# -- 8. Dependencies --
+# Dev dependencies (Playwright etc.); the web runtime does not depend on them.
+/node_modules/

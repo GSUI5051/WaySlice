@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="The WaySlice story — why an outdoor activity is worth reading like telemetry.">
+  <title>WaySlice — Story</title>
+  <link rel="icon" href="../icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="../icons/favicon.svg" type="image/svg+xml">
+  <script>
+    // Theme boot — the same pre-paint script the app shell runs, so the
+    // story page follows the app's theme preference (localStorage
+    // 'wayslice-theme', "system" via prefers-color-scheme) with no flash.
+    (function () {
+      try {
+        var pref = localStorage.getItem('wayslice-theme');
+        if (pref !== 'light' && pref !== 'dark') pref = 'system';
+        var dark = pref === 'dark' ||
+          (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var root = document.documentElement;
+        root.dataset.theme = dark ? 'dark' : 'light';
+        root.dataset.themePref = pref;
+        root.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (e) { /* no storage — system default below */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/story.css">
+</head>
+<body class="story-page">
+  <!-- The article is rendered by story-lang.js from the page's own
+       language pack (story-en.js). When the page runs inside the
+       app's story dialog iframe, the dialog chrome carries the title and the
+       page's own header hides. -->
+  <main class="story-doc">
+    <header class="story-page-head">
+      <h1 id="story-page-title">WaySlice</h1>
+      <p class="story-tagline" id="story-page-tagline"></p>
+      <p class="story-lede" id="story-page-lede"></p>
+    </header>
+    <div id="story-sections"></div>
+  </main>
+  <script type="module" src="./story-lang.js"></script>
+</body>
+</html>

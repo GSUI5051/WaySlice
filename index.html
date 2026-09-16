@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Slice any track. Analyze any section. WaySlice is the first open-source track analyzer that lets you slice any segment of your GPX/FIT/TCX/KML/KMZ track and analyze it like telemetry — fully local, nothing is uploaded.">
+  <title>WaySlice — GPX Sector Analyzer</title>
+  <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/android-chrome-512x512.png">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Theme boot — runs before first paint to prevent any flash of the
+    // wrong theme (localStorage preference → system via prefers-color-scheme).
+    (function () {
+      try {
+        var pref = localStorage.getItem('wayslice-theme');
+        if (pref !== 'light' && pref !== 'dark') pref = 'system';
+        var dark = pref === 'dark' ||
+          (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var root = document.documentElement;
+        root.dataset.theme = dark ? 'dark' : 'light';
+        root.dataset.themePref = pref;
+        root.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (e) { /* no storage — system default below */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/map.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <link rel="stylesheet" href="css/story.css">
+</head>
+<body>
+  <div id="app">
+    <header id="app-header">
+      <div class="brand">
+        <span class="brand-icon"><img src="icons/favicon.svg" alt="" width="22" height="22"></span>
+        <span class="brand-name">WaySlice</span>
+      </div>
+      <div id="file-chip" class="file-chip num" hidden>
+        <span id="file-name"></span>
+        <span id="file-meta" class="file-meta"></span>
+        <!-- Compact-mode content: when the full line does not fit between the
+             brand and the header actions, the pill collapses to this lone
+             info button (mode decided in js/ui/fileChip.js). Its popover
+             re-shows the same three facts, one per line. -->
+        <button type="button" id="file-chip-info" class="file-chip-info" aria-expanded="false">
+          <span class="btn-icon-slot" data-icon="info"></span>
+        </button>
+      </div>
+      <div class="header-actions">
+        <!-- GitHub link. One of these four logo files shows at a time — the
+             lockup while the header is bare, the bare mark once a track is
+             loaded, black on the light theme and white on the dark one (the
+             rules live in layout.css under #btn-github). -->
+        <a id="btn-github" class="btn gh-link" href="https://github.com/GSUI5051/WaySlice"
+           target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+          <img class="gh-logo gh-lockup gh-light" src="icons/GitHub_Lockup_Black.svg" alt="" width="416" height="95">
+          <img class="gh-logo gh-lockup gh-dark" src="icons/GitHub_Lockup_White.svg" alt="" width="416" height="95">
+          <img class="gh-logo gh-mark gh-light" src="icons/GitHub_Invertocat_Black.svg" alt="" width="98" height="96">
+          <img class="gh-logo gh-mark gh-dark" src="icons/GitHub_Invertocat_White.svg" alt="" width="98" height="96">
+        </a>
+        <!-- Support (Ko-fi) link. Same data-state forms as the GitHub link:
+             heart + label while the header is bare, 34 px icon-only square
+             once a track is loaded, icon-only on phones (rules in
+             layout.css under #btn-support). -->
+        <a id="btn-support" class="btn btn-support" href="https://ko-fi.com/gsui5051"
+           target="_blank" rel="noopener noreferrer"
+           data-i18n-aria="support">
+          <span class="btn-icon-slot" data-icon="heart"></span>
+          <span data-i18n="support">Support</span>
+        </a>
+        <button type="button" id="btn-export" class="btn btn-primary" hidden
+                data-i18n-aria="export">
+          <span class="btn-icon-slot" data-icon="file-down"></span>
+          <span data-i18n="export">Export</span>
+        </button>
+        <button type="button" id="btn-auto-segments" class="btn btn-primary" hidden
+                data-i18n-aria="autoSegments">
+          <span class="btn-icon-slot" data-icon="scissors-line-dashed"></span>
+          <span data-i18n="autoSegments">Auto split</span>
+        </button>
+        <button type="button" id="btn-open" class="btn btn-primary"
+                data-i18n-aria="openTrack">
+          <span class="btn-icon-slot" data-icon="folder-open"></span>
+          <span data-i18n="openTrack">Import track</span>
+        </button>
+        <button type="button" id="btn-settings" class="btn btn-icon" aria-haspopup="dialog"
+                aria-controls="settings-drawer" aria-expanded="false">
+          <span class="btn-icon-slot" data-icon="settings"></span>
+          <span class="visually-hidden" data-i18n="settings">Settings</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="workspace">
+      <section id="map-pane" aria-label="Track map">
+        <div id="map"></div>
+        <div id="map-fit">
+          <button type="button" id="btn-fit" class="btn btn-icon btn-elevated" data-i18n-aria="zoomToFit" data-i18n-title="zoomToFit">
+            <span class="btn-icon-slot" data-icon="maximize"></span>
+          </button>
+          <button type="button" id="btn-fit-sector" class="btn btn-icon btn-elevated"
+                  data-i18n-aria="zoomToSector" data-i18n-title="zoomToSector">
+            <span class="btn-icon-slot" data-icon="focus"></span>
+          </button>
+          <button type="button" id="btn-waypoints" class="btn btn-icon btn-elevated" hidden
+                  data-i18n-aria="waypointsHide" data-i18n-title="waypointsHide">
+            <span class="btn-icon-slot" data-icon="map-pin"></span>
+          </button>
+          <button type="button" id="btn-layers" class="btn btn-icon btn-elevated"
+                  data-i18n-aria="mapSource" data-i18n-title="mapSource">
+            <span class="btn-icon-slot" data-icon="layers"></span>
+          </button>
+        </div>
+        <div id="overlay-state" class="overlay-state"></div>
+      </section>
+
+      <section id="profile-pane" aria-label="Elevation profile">
+        <div class="profile-head">
+          <span class="profile-head-icon" data-icon="mountain"></span>
+          <h2 data-i18n="elevationProfile">Elevation profile</h2>
+          <span id="profile-note" class="profile-note" data-i18n="noElevationData" hidden></span>
+          <div class="profile-controls">
+            <div class="xmode-toggle" role="group" data-i18n-aria="xAxisMode">
+              <button type="button" id="btn-x-distance" class="xmode-btn" aria-pressed="true"
+                      data-i18n-aria="distance">
+                <span class="btn-icon-slot" data-icon="ruler-dimension-line"></span>
+                <span data-i18n="distance">Distance</span>
+              </button>
+              <button type="button" id="btn-x-time" class="xmode-btn" aria-pressed="false"
+                      data-i18n-aria="timeGroup">
+                <span class="btn-icon-slot" data-icon="timer"></span>
+                <span data-i18n="timeGroup">Time</span>
+              </button>
+            </div>
+            <button type="button" id="btn-waypoint-snap" class="btn btn-ghost btn-small snap-toggle" aria-pressed="true"
+                    data-i18n-aria="waypointSnap" data-i18n-title="waypointSnap" hidden>
+              <span class="btn-icon-slot" data-icon="magnet"></span>
+            </button>
+            <button type="button" id="btn-dual-variable" class="btn btn-ghost btn-small" hidden
+                    aria-haspopup="dialog" aria-controls="dual-variable-dialog"
+                    data-i18n-aria="dualVariableAnalysis" data-i18n-title="dualVariableAnalysis">
+              <span class="btn-icon-slot" data-icon="chart-scatter"></span>
+              <span data-i18n="dualVariableAnalysis">Analysis</span>
+            </button>
+            <button type="button" id="btn-overlays" class="btn btn-ghost btn-small" aria-haspopup="menu"
+                    data-i18n-aria="overlays">
+              <span class="btn-icon-slot" data-icon="chart-spline"></span>
+              <span data-i18n="overlays">Overlays</span>
+            </button>
+          </div>
+        </div>
+        <div id="profile-readout" class="profile-readout num"></div>
+        <div id="profile-body">
+          <canvas id="profile-canvas"></canvas>
+          <button type="button" id="handle-start" class="profile-handle" role="slider"
+                  aria-label="Sector start" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></button>
+          <button type="button" id="handle-end" class="profile-handle" role="slider"
+                  aria-label="Sector end" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"></button>
+          <div id="profile-tooltip" class="profile-tooltip num" hidden></div>
+        </div>
+      </section>
+
+      <aside id="metrics-pane" aria-label="Sector metrics">
+        <div id="metrics-root" class="metrics-root"></div>
+        <div id="metrics-details-holder" hidden>
+          <div id="metrics-details-host"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="sheet" class="sheet" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <h2 id="sheet-title"></h2>
+      <button type="button" id="sheet-close" class="btn btn-icon btn-ghost"></button>
+    </div>
+    <div id="sheet-body" class="sheet-body"></div>
+  </dialog>
+
+  <dialog id="settings-drawer" class="drawer" aria-labelledby="drawer-title">
+    <div class="drawer-head">
+      <h2 id="drawer-title" data-i18n="settings">Settings</h2>
+      <button type="button" id="drawer-close" class="btn btn-icon btn-ghost"></button>
+    </div>
+    <div id="drawer-body" class="drawer-body"></div>
+  </dialog>
+
+  <dialog id="hr-zones-dialog" class="sheet hrzones" aria-labelledby="hrzones-title">
+    <div class="sheet-head">
+      <h2 id="hrzones-title" data-i18n="hrZones">Heart Rate Zones</h2>
+      <button type="button" id="hrzones-close" class="btn btn-icon btn-ghost"></button>
+    </div>
+    <div id="hrzones-body" class="sheet-body"></div>
+  </dialog>
+
+  <dialog id="dual-variable-dialog" class="sheet dualvar" aria-labelledby="dualvar-title">
+    <div class="sheet-head">
+      <h2 id="dualvar-title" data-i18n="dualVariableAnalysis">Dual-variable analysis</h2>
+      <button type="button" id="dualvar-close" class="btn btn-icon btn-ghost"></button>
+    </div>
+    <div id="dualvar-body" class="sheet-body">
+      <div id="dualvar-select-view">
+        <p class="dualvar-desc" data-i18n="dualVarSelectPrompt">Select the data to analyze</p>
+        <div class="dualvar-field">
+          <label for="dualvar-x" data-i18n="dualVarXAxis">X axis (independent)</label>
+          <select id="dualvar-x"></select>
+        </div>
+        <div class="dualvar-field">
+          <label for="dualvar-y" data-i18n="dualVarYAxis">Y axis (dependent)</label>
+          <select id="dualvar-y"></select>
+        </div>
+        <p id="dualvar-select-note" class="dualvar-note" hidden></p>
+        <div class="dualvar-actions">
+          <button type="button" id="dualvar-analyze" class="btn btn-primary" disabled
+                  data-i18n="dualVarAnalyze">Analyze</button>
+        </div>
+      </div>
+      <div id="dualvar-result-view" hidden>
+        <div class="dualvar-result-head">
+          <span id="dualvar-summary" class="dualvar-summary"></span>
+          <button type="button" id="dualvar-reselect" class="btn btn-ghost btn-small">
+            <span class="btn-icon-slot" data-icon="rotate-ccw"></span>
+            <span data-i18n="dualVarReselect">Reselect</span>
+          </button>
+        </div>
+        <div id="dualvar-chart" class="dualvar-chart">
+          <canvas id="dualvar-canvas"></canvas>
+          <div id="dualvar-empty" class="dualvar-empty" hidden>
+            <span class="dualvar-empty-icon" data-icon="triangle-alert"></span>
+            <p data-i18n="dualVarNoData">Not enough valid data for dual-variable analysis.</p>
+          </div>
+          <div id="dualvar-loading" class="dualvar-loading" hidden>
+            <span class="spinner"></span>
+            <p data-i18n="dualVarAnalyzing">Analyzing…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Author's story (settings drawer, About section → author's story).
+       The content is the standalone /story/story.html page hosted in an
+       iframe, so the page keeps its own language pack in /story.
+       Desktop presents the same window as the dual-variable analysis; on
+       phones it becomes an 80 vh popup (css/story.css). -->
+  <dialog id="story-dialog" class="sheet story" aria-labelledby="story-title">
+    <div class="sheet-head">
+      <h2 id="story-title" data-i18n="storyQuotes">Story</h2>
+      <button type="button" id="story-close" class="btn btn-icon btn-ghost"></button>
+    </div>
+    <div class="sheet-body story-body">
+      <iframe id="story-frame" class="story-frame" src="about:blank"
+              title="WaySlice story" referrerpolicy="no-referrer"></iframe>
+    </div>
+  </dialog>
+
+  <input type="file" id="file-input" accept=".gpx,.kml,.kmz,.fit,.tcx" hidden>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

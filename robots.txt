@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Keep favicon and PWA assets crawlable (Google reads them for site favicon / PWA installability).
+Allow: /icons/favicon.ico
+Allow: /icons/favicon-48x48.png
+Allow: /site.webmanifest

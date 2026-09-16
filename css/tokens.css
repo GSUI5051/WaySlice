@@ -1,0 +1,156 @@
+/* ==========================================================================
+   Design tokens — Light and Dark are two complete themes, not an inversion.
+   Every component reads these variables; no component hard-codes colors.
+   ========================================================================== */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --background: #f2f4f6;
+  --surface: #fafbfd;
+  --surface-elevated: #ffffff;
+  --surface-muted: #e9ecef;
+  --surface-hover: #f1f3f5;
+
+  /* Text */
+  --foreground: #1b2027;
+  --foreground-muted: #5b6570;
+  --foreground-faint: #8a939e;
+
+  /* Lines */
+  --border: #e1e5ea;
+  --border-strong: #c8ced6;
+
+  /* Signals */
+  --primary: #1b2027;            /* primary buttons: ink on light */
+  --primary-foreground: #ffffff;
+  --accent: #e8590c;
+  --accent-strong: #d9480f;
+  --accent-soft: rgba(232, 89, 12, 0.10);
+  --focus: #1971c2;
+  --success: #2f9e44;
+  --danger: #e03131;
+  --backdrop: rgba(15, 20, 26, 0.42);
+
+  /* Charts */
+  --profile-line: #94a0ad;
+  --profile-grid: #e3e7eb;
+  --sector-mask-brightness: 0.72;  /* transparent mask over the area outside the sector handles */
+
+  /* Dual-variable density ramp — low → high density, one ramp per theme.
+     Zero density is forced fully transparent by the renderer; these two
+     stops interpolate through every strength between. */
+  --density-zero: rgba(232, 89, 12, 0.06);
+  --density-max: #d9480f;
+
+  /* Heart-rate zone bars — Amazfit Zepp palette, light-theme set */
+  --hr-zone-1: #8e60f4;
+  --hr-zone-2: #479bd5;
+  --hr-zone-3: #50ad8e;
+  --hr-zone-4: #f1ae3c;
+  --hr-zone-5: #eb6357;
+
+  /* Shape & depth */
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 14px;
+  --shadow-1: 0 1px 2px rgba(16, 24, 32, 0.05), 0 2px 10px rgba(16, 24, 32, 0.08);
+  --shadow-2: 0 4px 18px rgba(16, 24, 32, 0.14);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0f1216;
+  --surface: #161a20;
+  --surface-elevated: #1d232b;
+  --surface-muted: #10141a;
+  --surface-hover: #222933;
+
+  --foreground: #e7eaee;
+  --foreground-muted: #9aa4b0;
+  --foreground-faint: #68727e;
+
+  --border: #272e38;
+  --border-strong: #3b4450;
+
+  --primary: #e7eaee;
+  --primary-foreground: #12161b;
+  --accent: #ff8a3d;
+  --accent-strong: #ffa05e;
+  --accent-soft: rgba(255, 138, 61, 0.14);
+  --focus: #4dabf7;
+  --success: #51cf66;
+  --danger: #ff6b6b;
+  --backdrop: rgba(0, 0, 0, 0.55);
+
+  --profile-line: #4d5763;
+  --profile-grid: #232a33;
+  --sector-mask-brightness: 0.55;  /* transparent mask over the area outside the sector handles */
+
+  /* Dual-variable density ramp — the dark theme's brighter accent reads as
+     a glow on the dark plot, mirroring the light theme's deep ramp. */
+  --density-zero: rgba(255, 138, 61, 0.07);
+  --density-max: #ffa05e;
+
+  /* Heart-rate zone bars — Amazfit Zepp palette, dark-theme set */
+  --hr-zone-1: #7f55db;
+  --hr-zone-2: #3f8cbf;
+  --hr-zone-3: #489b7c;
+  --hr-zone-4: #f1ae3c;
+  --hr-zone-5: #cb473c;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 10px rgba(0, 0, 0, 0.30);
+  --shadow-2: 0 6px 22px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   Shared structural tokens — theme-independent, declared once.
+   Map sector/handle colors reference the semantic signal tokens, so the map,
+   the profile and the metrics panel can never drift apart per theme.
+   ========================================================================== */
+
+:root {
+  /* Chart series colors — fixed per spec, identical in both themes.
+     Temperature (amber) and power (purple) stay clear of the hr red,
+     speed blue and cadence green hue families. */
+  --series-hr: #ef4444;
+  --series-speed: #3b82f6;
+  --series-cadence: #10b981;
+  --series-temp: #f59e0b;
+  --series-power: #a855f7;
+
+  /* Map layers */
+  --map-track-casing: #ffffff;
+  --map-track: #3d76f0;
+  --map-sector: var(--accent);
+  --map-handle-start: var(--success);
+  --map-handle-end: var(--danger);
+  --map-handle-border: #ffffff;
+  --map-waypoint: #8b5cf6;
+
+  /* Named stacking levels, lowest → highest */
+  --z-profile-handle: 5;
+  /* Above Leaflet's internal panes (tiles 200 … controls 800): the probe
+     readout overflows #profile-body upward and overlays the map's bottom
+     strip, so it must beat the map's own layers. Below --z-overlay. */
+  --z-profile-tooltip: 850;
+  --z-map-controls: 800;
+  --z-overlay: 900;
+  --z-header: 1500;
+  --z-backdrop: 1900;
+  --z-menu: 2000;
+  --z-drop: 3000;
+
+  /* Motion — named easings only; the browser-default `ease` is not used */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-normal: 240ms;
+}

@@ -1,0 +1,134 @@
+/* Story — the "author's story" popup and the standalone story page.
+   One file serves both consumers: index.html loads it for the story dialog
+   chrome (the drawer's About section opens it), /story/story.html loads it
+   for the page typography. The page-side rules are all scoped under
+   .story-page so they can never touch the app. Layout per
+   specs/story/mechanics.txt: desktop presents the same window as the
+   dual-variable analysis dialog; phones get an 80 vh popup instead. */
+
+/* Story dialog ---------------------------------------------------------------- */
+
+/* Desktop: the dual-variable window's geometry — min(680px, 100vw − 32px)
+   wide, capped at min(76vh, 720px) tall, head + body flex column. height on
+   the closed dialog is inert (UA display:none); display:flex is scoped to
+   [open] so the closed dialog never becomes a phantom box in the page flow
+   (same trap the dual-variable comment in components.css documents). */
+.sheet.story {
+  width: min(680px, calc(100vw - 32px));
+  height: min(76vh, 720px);
+  max-height: none;
+}
+
+.sheet.story[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The iframe scrolls internally — the body is a passive frame holder, so it
+   drops the .sheet-body padding and scroll of its own. */
+.story-body {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  padding: 0;
+  overflow: hidden;
+}
+
+.story-frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+
+/* Phone: an 80 vh popup covering the viewport — the shared bottom-sheet
+   positioning from components.css (full-width, rounded top, safe area) with
+   a fixed 80 vh height instead of the content-sized sheet. */
+@media (max-width: 720px) {
+  .sheet.story {
+    width: 100%;
+    height: 80vh;
+    max-height: 80vh;
+  }
+}
+
+/* Story page ------------------------------------------------------------------- */
+
+.story-page {
+  margin: 0;
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  /* base.css is the app shell's reset: body { overflow: hidden } because the
+     app scrolls inside its own panes, never as a document. Overflow on body
+     propagates to the viewport, so in the story page (a plain document, also
+     as the dialog iframe's document) that rule killed wheel, scrollbar and
+     touch scrolling entirely. Giving body overflow-y back hands scrolling to
+     the viewport — normal document behavior in both embedded and standalone
+     mode. */
+  overflow-y: auto;
+}
+
+.story-doc {
+  max-width: 640px;
+  margin-inline: auto;
+  padding: 28px 20px calc(48px + env(safe-area-inset-bottom, 0px));
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+/* The page's own header shows standalone only — inside the story dialog the
+   sheet head already carries the title, so story-lang.js adds the
+   .story-embedded class and this header hides. */
+.story-page-head h1 {
+  font-size: 18px;
+  font-weight: 650;
+  margin: 0 0 4px;
+}
+
+.story-tagline {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.story-lede {
+  margin: 0;
+  color: var(--foreground-muted);
+}
+
+.story-doc h2 {
+  font-size: 14px;
+  font-weight: 650;
+  margin: 26px 0 8px;
+}
+
+.story-doc h2::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  margin-inline-end: 8px;
+  border-radius: 1px;
+  background: var(--accent);
+  vertical-align: -1px;
+}
+
+.story-doc p {
+  margin: 0 0 10px;
+  color: var(--foreground-muted);
+}
+
+.story-doc p:last-child { margin-block-end: 0; }
+
+.story-doc strong { color: var(--foreground); font-weight: 600; }
+
+/* Embedded (iframe in the story dialog): tighter chrome, no own header.
+   The FIRST section heading sits one body line below the sheet head's
+   divider — the body's own line spacing (1.7 × 13.5px) — instead of the
+   frame padding stacking on the heading's 26px margin; every other heading
+   keeps its normal heading-body rhythm. */
+.story-embedded .story-doc { padding: 1.7em 18px 24px; }
+.story-embedded #story-sections > section:first-child h2 { margin-block-start: 0; }
+.story-embedded .story-page-head { display: none; }

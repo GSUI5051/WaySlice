@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WaySlice — tests</title>
+  <link rel="icon" href="../icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <style>
+    body { overflow: auto; padding: 24px; font-size: 13px; }
+    h1 { font-size: 18px; margin-block-end: 4px; }
+    .test-note { color: var(--foreground-muted); margin-block-end: 16px; }
+    .test-summary { font-weight: 700; font-size: 15px; }
+    .test-report h2 {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--foreground-muted); margin-block: 18px 6px;
+    }
+    .test-case { padding: 3px 0; font-family: var(--font-mono); }
+    .test-case.pass { color: var(--success); }
+    .test-case.fail { color: var(--danger); }
+    #lang-report { margin-block-start: 24px; padding: 12px 14px;
+      border: 1px solid var(--border); border-radius: var(--radius-m);
+      background: var(--surface); }
+  </style>
+</head>
+<body>
+  <h1>WaySlice test suite</h1>
+  <p class="test-note">Runs entirely in the browser: geo math, sector metrics, parsers, theme matrix and the language system.</p>
+  <div id="results"></div>
+  <div id="lang-report"></div>
+
+  <script type="module">
+    import { runAll } from './runner.js';
+    import './suite-geo.js';
+    import './suite-metrics.js';
+    import './suite-parsers.js';
+    import './suite-parsers-fit.js';
+    import './suite-export.js';
+    import './suite-theme.js';
+    import './suite-language.js';
+    import './suite-sources.js';
+    import './suite-profileData.js';
+    import './suite-dualVariable.js';
+    import './suite-viewport.js';
+    import './suite-units.js';
+    import './suite-heartRateZones.js';
+    import './suite-format.js';
+    import './suite-story.js';
+    import * as language from '../js/language/language.js';
+
+    await language.init();
+    await language.setLanguage('en'); // deterministic starting point for assertions
+    const summary = await runAll(document.getElementById('results'));
+
+    // Language validation report (dev-mode guard from the i18n spec). Packs
+    // load on demand, so pull every catalog pack before comparing keys.
+    for (const { code } of language.getLanguages()) {
+      await language.setLanguage(code);
+    }
+    await language.setLanguage('en');
+    const reportEl = document.getElementById('lang-report');
+    const report = language.validate();
+    reportEl.innerHTML = report.length
+      ? `<strong>Language validation</strong><pre>${report.map((r) =>
+          `⚠ ${r.language}\n  Missing: ${r.missing.join(', ')}\n  Unknown: ${r.unknown.join(', ')}`).join('\n')}</pre>`
+      : '<strong>Language validation</strong><p>✓ all registered packs are complete</p>';
+
+    document.title = `Tests — ${summary.passed}/${summary.total} passed`;
+  </script>
+</body>
+</html>

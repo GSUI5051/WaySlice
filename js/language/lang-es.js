@@ -1,0 +1,247 @@
+/**
+ * Español — traducción del paquete de idioma canónico (lang-en.js).
+ *
+ * Terminología senderismo / trail running (según el uso de Wikiloc ·
+ * Strava ES · Garmin España · FEDME): Sector → « tramo », Track → « traza »,
+ * desnivel positivo/negativo para Elevation Gain/Loss, « altitud » para
+ * elevation, « pendiente » para grade, « ritmo » para pace, GAP se mantiene.
+ * La frecuencia cardíaca se muestra en ppm (pulsaciones por minuto),
+ * convención estándar de las apps deportivas en español.
+ * Trato informal (tú), coma decimal y espacio antes de « % » (RAE).
+ */
+import { register } from './language.js';
+
+const lang_es = {
+  // App
+  appTitle: 'WaySlice — Analizador de tramos de traza',
+
+  // Upload / empty state
+  openTrack: 'Abrir traza',
+  export: 'Exportar',
+  support: 'Apoyar',
+  exportCsv: 'Exportar como csv',
+  exportTxt: 'Exportar como txt',
+  exportMd: 'Exportar como md',
+  exportGpx: 'Exportar como gpx',
+  dropTitle: 'Arrastra un archivo GPX, FIT, TCX, KML o KMZ',
+  dropSubtitle: 'para empezar a analizarla como telemetría',
+  privacyNote: 'Tu traza se queda en este navegador. Se procesa y analiza en local — no se sube nada.',
+  tryAnotherFile: 'Prueba con otro archivo',
+
+  // Loading / errors
+  parsingTrack: 'Analizando la traza…',
+  errorTitle: 'No se puede leer este archivo',
+  errorInvalidFile: 'El archivo parece no válido o incompleto.',
+  errorUnsupportedType: 'Tipo de archivo no compatible. Usa un archivo GPX, FIT, TCX, KML o KMZ.',
+  errorNoTrackPoints: 'El archivo no contiene una traza utilizable con al menos dos puntos.',
+  errorKmzNoKml: 'No se ha encontrado ningún archivo KML de traza dentro de este archivo KMZ.',
+  errorFileRead: 'No se ha podido leer el archivo.',
+
+  // Header controls
+  mapSource: 'Mapa',
+  appearance: 'Tema',
+  language: 'Idioma',
+  units: 'Unidades',
+  metric: 'Métrico',
+  imperial: 'Imperial',
+  metricUnitHint: 'km · m · km/h · min/km',
+  imperialUnitHint: 'mi · ft · mph · min/mi',
+  // Unit labels — sport-app display names per language, read by units.js.
+  // % and °C/°F stay symbolic in every language, so they have no keys.
+  unitKm: 'km',
+  unitMi: 'mi',
+  unitM: 'm',
+  unitFt: 'ft',
+  unitKmh: 'km/h',
+  unitMph: 'mph',
+  unitPerKm: '/km',
+  unitPerMi: '/mi',
+  unitMh: 'm/h',
+  unitFth: 'ft/h',
+  unitBpm: 'ppm',
+  unitRpm: 'rpm',
+  unitW: 'W',
+  system: 'Sistema',
+  light: 'Claro',
+  dark: 'Oscuro',
+  settings: 'Ajustes',
+  close: 'Cerrar',
+  aboutSection: 'Acerca de',
+  storyQuotes: 'Historia',
+  zoomToFit: 'Mostrar toda la traza',
+  zoomToSector: 'Enfocar el tramo',
+  waypointsShow: 'Mostrar waypoints',
+  waypointsHide: 'Ocultar waypoints',
+  waypointSnap: 'Ajuste a waypoints',
+  snappedToWaypoint: 'Ajustado a un waypoint',
+  panHint: 'Mantén pulsada Mayús y arrastra para desplazar el perfil',
+  profilePinchHint: 'Pellizca con dos dedos para hacer zoom en el perfil',
+  dblclickReset: 'Mostrar toda la traza',
+  profileTapHint: 'Toca el gráfico para ver la telemetría',
+  notSelected: 'No seleccionado',
+  mapGestureHint: 'Mueve el mapa con dos dedos',
+  xAxisMode: 'Modo del eje X',
+  overlays: 'Superposiciones',
+  legendHr: 'Frecuencia cardíaca',
+  legendSpeed: 'Velocidad',
+  legendPace: 'Ritmo',
+  legendGap: 'GAP',
+  legendTemp: 'Temperatura',
+  legendPower: 'Potencia',
+
+  // Dual-variable analysis
+  dualVariableAnalysis: 'Análisis de dos variables',
+  dualVarSelectPrompt: 'Selecciona los datos que quieres analizar',
+  dualVarXAxis: 'Eje X (independiente)',
+  dualVarYAxis: 'Eje Y (dependiente)',
+  dualVarAnalyze: 'Analizar',
+  dualVarReselect: 'Volver a elegir',
+  dualVarRelativeDensity: 'Densidad relativa',
+  dualVarNoData: 'No hay datos válidos suficientes para el análisis de dos variables.',
+  dualVarAnalyzing: 'Analizando…',
+
+  // Map source groups
+  groupStreet: 'Callejero',
+  groupOutdoor: 'Outdoor',
+  groupSatellite: 'Satélite',
+  groupMinimal: 'Minimalista',
+
+  // Map sources
+  srcOsm: 'OpenStreetMap',
+  srcTFAtlas: 'Mapa mundial de Thunderforest',
+  srcOpenTopoMap: 'OpenTopoMap',
+  srcCyclosm: 'CyclOSM',
+  srcTFOutdoor: 'Thunderforest Outdoor',
+  srcMapyOutdoor: 'Mapy Outdoor',
+  srcEsriImagery: 'Imágenes de satélite de Esri',
+  srcStadiaSatellite: 'Mapa satélite de Stadia',
+  srcStadiaSmooth: 'Stadia Smooth',
+  srcStadiaSmoothDark: 'Stadia Smooth Oscuro',
+  srcStadiaSmoothDarkHint: 'Mapa en estilo oscuro',
+
+  // Sector
+  sector: 'Tramo',
+  entireTrack: 'Toda la traza',
+  resetSector: 'Restablecer tramo',
+  allMetrics: 'Todas las métricas',
+  sectorStart: 'Inicio del tramo',
+  sectorEnd: 'Fin del tramo',
+
+  // Auto segments
+  autoSegments: 'División automática',
+  segmentsList: 'Lista de tramos',
+  segmentN: 'Tramo {n}',
+  segmentDetails: 'Detalles del tramo',
+  modeGrade: 'Pendiente',
+  modeWaypoint: 'Waypoint',
+  noWaypointData: 'La traza no tiene waypoints',
+  trackStart: 'Inicio',
+  modeCustom: 'Personalizado',
+  customSegmentLength: 'Longitud del tramo',
+  segmentTypeClimb: 'Subida',
+  segmentTypeDescent: 'Bajada',
+  segmentTypeFlat: 'Llano',
+  segmentTypeMixed: 'Mixto',
+
+  // Metrics — distance
+  distance: 'Distancia',
+  threeDDistance: 'Distancia 3D',
+  threeDDistanceHint: '√(horizontal² + desnivel²) por segmento, sumada',
+  effortDistance: 'Distancia equivalente',
+  effortDistanceHint: 'Distancia (km) + desnivel positivo (m) ÷ 100',
+
+  // Metrics — elevation
+  elevationGroup: 'Altitud',
+  elevationGain: 'Desnivel positivo',
+  elevationGainHint: 'Desnivel positivo acumulado con filtro de histéresis de 3 m — las oscilaciones de altitud inferiores a 3 m se consideran ruido.',
+  elevationLoss: 'Desnivel negativo',
+  elevationLossHint: 'Desnivel negativo acumulado con filtro de histéresis de 3 m — las oscilaciones de altitud inferiores a 3 m se consideran ruido.',
+  netElevationChange: 'Desnivel neto',
+  startElevation: 'Altitud de salida',
+  endElevation: 'Altitud de llegada',
+  minElevation: 'Altitud mínima',
+  maxElevation: 'Altitud máxima',
+  elevationProfile: 'Perfil altimétrico',
+
+  // Metrics — gradient
+  gradientGroup: 'Pendiente',
+  avgGrade: 'Pendiente media',
+  maxGrade: 'Pendiente máxima',
+  minGrade: 'Pendiente mínima',
+  gradeWindowNote: 'Las pendientes máxima/mínima se calculan sobre ventanas de ~50 m.',
+
+  // Metrics — time
+  timeGroup: 'Tiempo',
+  speedGroup: 'Velocidad',
+  elapsed: 'Tiempo transcurrido',
+  movingTime: 'Tiempo en movimiento',
+  movingNote: 'Los segmentos por debajo de 0,5 km/h durante 10 s o más no se cuentan como movimiento.',
+  pauseNote: 'Se excluye el tiempo en pausa (por debajo de 0,5 km/h durante 10 s o más).',
+  speedOutlierNote: 'Se calcula a partir de las velocidades de movimiento por segmento. Velocidades registradas: suavizadas con la ventana deslizante de 5 puntos; sin velocidades registradas, solo se aplica la exclusión de 3 desviaciones estándar.',
+  maxSpeedNote: 'Coincide con la curva de velocidad del perfil: valor máximo de la serie por puntos. Velocidades registradas: comprobación cruzada con el dd/dt (las lecturas más de un 50 % por encima se descartan) y suavizado con la ventana deslizante de 5 puntos; velocidades calculadas: limpieza 3σ.',
+  avgSpeed: 'Velocidad media',
+  maxSpeed: 'Velocidad máxima',
+  avgPace: 'Ritmo medio',
+  avgGap: 'GAP medio',
+  gapNote: 'Ritmo ajustado a la pendiente: ritmo del tramo ÷ factor de pendiente de Minetti (2002) — el ritmo en llano al mismo esfuerzo.',
+  fastestKm: 'Kilómetro más rápido',
+  slowestKm: 'Kilómetro más lento',
+  startTime: 'Hora de salida',
+  endTime: 'Hora de llegada',
+  vam: 'VAM (velocidad ascensional)',
+  vdm: 'VDM (velocidad de descenso)',
+
+  // Availability
+  noPowerData: 'Sin datos de potencia',
+  noTempData: 'Sin datos de temperatura',
+  fitnessGroup: 'Datos fisiológicos',
+  avgHr: 'Frecuencia cardíaca media',
+  maxHr: 'Frecuencia cardíaca máxima',
+  cadence: 'Cadencia',
+  avgCadence: 'Cadencia media',
+  maxCadence: 'Cadencia máxima',
+  avgPower: 'Potencia media',
+  maxPower: 'Potencia máxima',
+  avgTemp: 'Temperatura media',
+  minTemp: 'Temperatura mínima',
+  maxTemp: 'Temperatura máxima',
+  fitnessOutlierNote: 'Se calcula a partir de las lecturas del sensor punto a punto, sin filtrado de valores atípicos; los valores ambientales se muestran tal como se registraron.',
+  fitnessPauseNote: 'Se calcula a partir de las lecturas del sensor punto a punto, suavizadas con la ventana deslizante de 5 puntos; las lecturas tomadas durante las pausas se excluyen.',
+  noHeartRateData: 'Sin datos de frecuencia cardíaca',
+  noCadenceData: 'Sin datos de cadencia',
+  noFitnessData: 'Sin datos fisiológicos (frecuencia cardíaca, cadencia, potencia, temperatura)',
+  unavailable: 'No disponible',
+  noElevationData: 'Sin datos de altitud',
+  noTimestampData: 'Sin datos de marca de tiempo',
+
+  // Heart Rate Zones
+  hrZones: 'Zonas de frecuencia cardíaca',
+  hrZonesSettings: 'Ajustes de zonas',
+  showHrZones: 'Mostrar zonas de frecuencia cardíaca',
+  hrZoneHighlight: 'Resaltar zona cardíaca',
+  hrModeMax: 'FC máx.',
+  hrModeHrr: 'Reserva',
+  hrModeLthr: 'Umbral',
+  hrModeDescMax: 'Las zonas son porcentajes de tu frecuencia cardíaca máxima. Introduce en ppm el límite inferior de cada zona — la columna de porcentajes se calcula automáticamente.',
+  hrModeDescHrr: 'Karvonen: las zonas son porcentajes de tu reserva de frecuencia cardíaca (FC máx. − FC en reposo). Introduce en ppm el límite inferior de cada zona — el porcentaje de reserva se calcula automáticamente.',
+  hrModeDescLthr: 'Las zonas son porcentajes de tu frecuencia cardíaca de umbral. La zona 5 comienza en el propio umbral (100 %) — su límite en ppm se sincroniza automáticamente con el umbral.',
+  hrRestLabel: 'Frecuencia cardíaca en reposo',
+  hrLthrLabel: 'Frecuencia cardíaca de umbral',
+  zoneN: 'Zona {n}',
+  hrZonesHint: 'Introduce en ppm el límite inferior de cada zona — una zona termina donde comienza la siguiente y la zona 5 no tiene límite superior. La columna de porcentajes es un valor derivado de solo lectura. Las ppm nunca se convierten entre sistemas de unidades.',
+  hrNoHrNote: 'El tiempo sin datos de frecuencia cardíaca ({time}) se excluye de las zonas.',
+  hrBelowNote: 'El tiempo por debajo del límite inferior de la zona 1 ({time}) no se cuenta.',
+  hrZonesDenominatorNote: 'Los porcentajes son partes del tiempo en movimiento (se excluyen las pausas y los valores por debajo de la zona 1).',
+  hrZoneErrorInvalid: 'Introduce un número entero.',
+  hrZoneErrorMaxHr: 'La frecuencia cardíaca máxima debe ser un número entero entre 100 y 260.',
+  hrZoneErrorRestingHr: 'La frecuencia cardíaca en reposo debe ser un número entero entre 20 y 150.',
+  hrZoneErrorMaxRest: 'La frecuencia cardíaca máxima debe ser mayor que la frecuencia cardíaca en reposo.',
+  hrZoneErrorLthr: 'El umbral debe estar comprendido entre la frecuencia cardíaca en reposo y la máxima.',
+  hrZoneErrorOrder: 'Los límites en ppm de las zonas deben aumentar de forma estricta de la zona 1 a la zona 5 (en el modo Umbral, la zona 5 comienza en el umbral).',
+
+  // Track info
+  pointsCount: '{n} puntos de traza',
+  sourceFile: 'Archivo de origen:',
+};
+
+register('es', 'Español', lang_es);

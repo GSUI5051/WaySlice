@@ -1,0 +1,309 @@
+/* ==========================================================================
+   Elevation / telemetry profile — canvas plus DOM handles (real buttons,
+   keyboard sliders, big touch targets) and the hover tooltip.
+   ========================================================================== */
+
+#profile-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0 2px 4px;
+}
+
+#profile-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* Handles only make sense once a track is loaded. */
+#profile-body:not(.has-track) .profile-handle { display: none; }
+
+.profile-handle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 44px;
+  margin-inline-start: -22px;
+  transform: translateX(0);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: var(--z-profile-handle);
+}
+
+/* Visible grip centered inside the wide touch target — the bar spans the
+   plot's full y span (MARGIN.top / MARGIN.bottom in elevationProfile.js),
+   i.e. exactly from the top to the bottom of the x axis.
+   Color comes from #handle-start/#handle-end rules below so the profile
+   matches the map: green = sector start, red = sector end. */
+.profile-handle::before {
+  content: "";
+  position: absolute;
+  inset-block: 10px 22px;
+  inset-inline-start: calc(50% - 5px);
+  width: 10px;
+  border-radius: 5px;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.profile-handle::after {
+  content: "";
+  position: absolute;
+  /* The white grip line keeps its original 9:16 length ratio to the colored
+     bar: with the bar spanning the full plot height, the line insets by
+     7/32 of the bar's height on each side. */
+  inset-block:
+    calc(10px + (100% - 32px) * 7 / 32)
+    calc(22px + (100% - 32px) * 7 / 32);
+  inset-inline-start: calc(50% - 1.5px);
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+#handle-start::before { background: var(--map-handle-start); }
+#handle-end::before { background: var(--map-handle-end); }
+
+/* Hover brightens whatever the side color is, instead of switching hue. */
+.profile-handle:hover::before { filter: brightness(1.12); }
+
+.profile-handle:focus-visible {
+  outline: none;
+}
+
+.profile-handle:focus-visible::before {
+  box-shadow: 0 0 0 2px var(--focus);
+}
+
+/* Transparent mask layers dimming the area outside the sector handles —
+   a translucent theme-tinted veil with a brightness filter, not a grey
+   fill. Sits above the canvas but below handles and tooltip; the sector
+   between the handles stays untouched. Position/size are set from
+   elevationProfile.js (plot x span, same MARGIN values as the handles). */
+.profile-mask {
+  position: absolute;
+  inset-block: 10px 22px;
+  background: color-mix(in srgb, var(--background) 62%, transparent);
+  backdrop-filter: brightness(var(--sector-mask-brightness));
+  pointer-events: none;
+  z-index: 3;
+}
+
+.profile-mask[hidden] { display: none; }
+
+/* The hover readout. The node lives inside #profile-body and is
+   absolutely positioned there, so it tracks the workspace scroll natively
+   (no scroll-driven repositioning). It anchors its bottom edge to the chart
+   body's bottom (the x axis) through the stylesheet. On fine-pointer
+   devices it ALSO serves as the touch-probe readout (`.is-probe` below):
+   the dedicated fixed band (.profile-readout) does not exist there, so a
+   probe created on a hybrid device keeps the classic floating box. */
+
+.profile-tooltip {
+  position: absolute;
+  inset-block-end: 0;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: var(--radius-s);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  font-size: 11.5px;
+  color: var(--foreground);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: var(--z-profile-tooltip);
+}
+
+/* Overlay readings inside the tooltip carry their series color. */
+.tip-sep { color: var(--foreground-faint); }
+
+.tip-ov { font-weight: 650; }
+
+.profile-tooltip[hidden] { display: none; }
+
+/* Probe fallback on fine-pointer devices (touchscreen laptops, desktop
+   browsers faking touch): floats above the profile module's top edge (its
+   bottom edge sits on the map's bottom line, positioned from
+   profile-tooltip.js). Capped at half the screen width — with several
+   overlays selected the readings wrap into rows instead of stretching
+   across the chart. The explicit max-content
+   width keeps the box position-independent: an auto-width absolute box
+   shrink-to-fits into the space right of its `left`, so near the right
+   chart edge it would be squeezed narrow and its wrapped content would grow
+   absurdly tall. Rows break only at the separators: each reading (one
+   physical quantity) is nowrap and can never split across lines. */
+.profile-tooltip.is-probe {
+  white-space: normal;
+  width: max-content;
+  max-width: 50vw;
+}
+
+/* One fixed row per metric group —
+   [distance/time] [elevation] / [speed] / [heart rate] / [cadence]
+   [temperature] [power]. Each row renders as one block line, centered as a
+   whole with its fields in natural inline order; rows without a selected
+   (and available) reading collapse. A row wider than the 50vw cap
+   wraps only at its separators — a single reading never splits. */
+.profile-tooltip.is-probe .tip-row {
+  display: block;
+  text-align: center;
+}
+
+.profile-tooltip.is-probe .tip-row > span:not(.tip-sep) {
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   The touch probe's fixed telemetry readout — a band between the profile
+   header and the chart, part of the profile module itself, never an
+   overlay: readout = exact telemetry values, chart = spatial/temporal
+   context below it. Phones and tablets only ((hover: none) and
+   (pointer: coarse)); fine-pointer devices keep the floating tooltip,
+   including the `.is-probe` fallback above. The band is a FIXED 2×4 slot
+   grid, never flowing text:
+
+     [position]   [elevation] [speed]  [heart rate]
+     [cadence]    [temp]      [power]  [empty]
+
+   Every slot is permanently assigned and independently centered. Sensor
+   slots have three states: the value while their overlay is enabled, a
+   muted "Not selected" while the track carries the data but the overlay is
+   off, and a fully blank slot when the track lacks the sensor; an enabled
+   slot without a reading at the probed point shows an em dash. Position
+   and elevation (base info) always show. The band is always present once a
+   track is loaded, so showing readings never shifts the layout (stable
+   min-height); while no probe is pinned it carries a muted hint instead.
+   ========================================================================== */
+
+.profile-readout {
+  display: none;
+  flex: none;
+  /* Tall enough for the heart-rate slot's two levels (main value + zone):
+     16.2px main line + ~14.3px zone line + 2px row gap + 16.2px second row
+     ≈ 48.7px of content — every other state is shorter, so the band NEVER
+     changes height and nothing below it can shift. */
+  min-height: 64px;
+  padding: 5px 6px 7px;
+  border-block-start: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--foreground);
+}
+
+/* One telemetry slot: fixed geometry, value + unit centered as one unit.
+   Grid items stretch to their row's full height and center their content
+   through this flex box, so single-line slots stay vertically centered
+   inside the taller row the two-level heart-rate slot creates. */
+.readout-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Two-level slot (heart rate): main value on top, zone underneath. The
+   zone line INHERITS the cell's series color — it is the classification of
+   that very reading, so it wears the same hue at a lighter weight. */
+.readout-cell.has-sub {
+  flex-direction: column;
+}
+
+.readout-sub {
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+/* Highlighted zone label (zone highlight on, in both readouts): the zone-band
+   hue comes in inline (--hr-zone-N); this rule only adds the weight. */
+.readout-zone-hl,
+.tip-zone-hl {
+  font-weight: 650;
+}
+
+/* The two non-value states share the muted, non-competing look: the dash
+   (overlay enabled, no reading at the probed point) and "Not selected"
+   (data exists, overlay disabled). A track without the sensor stays a
+   fully blank slot (.is-blank needs no styling of its own). */
+.readout-cell.is-empty,
+.readout-cell.is-unselected {
+  font-weight: 400;
+  color: var(--foreground-faint);
+}
+
+/* Idle state (no probe pinned): the muted hint spans the whole band. */
+.readout-hint {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--foreground-faint);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .profile-readout {
+    display: grid;
+    /* minmax(0, 1fr), NOT bare 1fr: a bare 1fr track sizes as
+       minmax(auto, 1fr), so one long nowrap value would widen its column
+       and shift every other slot as the probe slides. minmax(0, …) keeps
+       the four tracks strictly equal — slots are IMMovable. */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-content: center;
+    row-gap: 2px;
+  }
+
+  /* Meaningless without a track — keep the empty module clean. The
+     has-track flag is set on the band itself by setProfileTrack (the band
+     precedes #profile-body in the DOM, so a sibling selector can't reach
+     it from there). */
+  .profile-readout:not(.has-track) { display: none; }
+}
+
+/* Waypoint snap toggle — pressed = snapping armed (profile header row). The
+   row's shared `#btn-waypoint-snap` rule in layout.css owns the border, so the
+   armed state only changes fill and text colour, like the Distance/Time
+   toggle's pressed segment. */
+.snap-toggle[aria-pressed="true"] {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.snap-toggle .icon { width: 15px; height: 15px; }
+
+/* Profile toast (snap / pan hints) — one instance, top-center, self-fading. */
+
+.profile-toast {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: max-content;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--foreground);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  pointer-events: none;
+  z-index: var(--z-profile-tooltip);
+}
+
+.profile-toast.is-visible {
+  opacity: 1;
+  transform: none;
+}

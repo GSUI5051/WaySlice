@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <title>WaySlice</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2a3139"/>
+      <stop offset="1" stop-color="#12161b"/>
+    </linearGradient>
+    <clipPath id="tile">
+      <rect x="0" y="0" width="1024" height="1024" rx="200" ry="200"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <!-- back ridge -->
+    <polygon points="110,560 300,300 540,620 740,520 914,700 914,1120 110,1120" fill="#b3450a"/>
+    <!-- front ridge (brand accent) -->
+    <polygon points="110,780 470,380 700,850 815,690 914,920 914,1120 110,1120" fill="#e8590c"/>
+    <!-- GPX track line crossing the ridges -->
+    <polyline points="140,820 280,660 430,780 560,620 700,760 830,640 884,700"
+              fill="none" stroke="#ffffff" stroke-opacity="0.94" stroke-width="56"
+              stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- sector start handle (green) -->
+    <circle cx="355" cy="720" r="50" fill="#ffffff"/>
+    <circle cx="355" cy="720" r="38" fill="#2f9e44"/>
+    <!-- sector end handle (red) -->
+    <circle cx="765" cy="700" r="50" fill="#ffffff"/>
+    <circle cx="765" cy="700" r="38" fill="#e03131"/>
+  </g>
+</svg>

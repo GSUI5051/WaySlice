@@ -1,0 +1,389 @@
+/* ==========================================================================
+   Layout — header + workspace grid (map / metrics / profile).
+   Desktop ≥1100px: map + right metrics rail + full-width profile.
+   Below: one long scrolling page (map → elevation → sector metrics) for
+   tablet/mobile, with the header pinned on top.
+   ========================================================================== */
+
+#app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header ------------------------------------------------------------------ */
+
+#app-header {
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  background: var(--surface);
+  border-block-end: 1px solid var(--border);
+  z-index: var(--z-header);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.brand-icon { display: inline-flex; }
+.brand-icon img { width: 22px; height: 22px; display: block; }
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface-muted);
+  font-size: 12px;
+  color: var(--foreground-muted);
+}
+
+.file-chip #file-name {
+  color: var(--foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.file-chip #file-meta { white-space: nowrap; }
+
+.file-chip[hidden] { display: none; }
+
+/* The chip has exactly two modes — the full line, or a lone info button —
+   and WHICH one applies is measured in js/ui/fileChip.js (scrollWidth vs
+   the space the flexbox actually left the chip), never hard-coded here: no
+   width constant in this file may drift from future header buttons. */
+.file-chip .file-chip-info {
+  display: none;
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground-muted);
+  cursor: pointer;
+  border-radius: var(--radius-s);
+}
+
+.file-chip .file-chip-info:hover { color: var(--foreground); }
+
+.file-chip.is-compact { padding: 4px; }
+.file-chip.is-compact #file-name,
+.file-chip.is-compact #file-meta { display: none; }
+.file-chip.is-compact .file-chip-info { display: inline-flex; }
+
+/* The compact popover reuses .hint-popover's base look (components.css);
+   the three facts sit on their own lines, the name emphasized. */
+.file-chip-popover .file-chip-pop-row { overflow-wrap: anywhere; }
+.file-chip-popover .file-chip-pop-row.is-name {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.file-chip-popover .file-chip-pop-row + .file-chip-pop-row { margin-block-start: 2px; }
+
+.header-actions {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* One height for every header action: the primary buttons define it (`.btn`'s
+   34px) and the icon-only settings trigger follows it. Stated here so a control
+   added to this row later cannot drift off it — this outranks `.btn-small`. */
+.header-actions .btn { height: 34px; }
+
+/* The GitHub link wears the settings trigger's box but not its width — a 4.4:1
+   lockup cannot live in a 34 px square, so the bare-mark state takes the square
+   and the lockup state sizes to its logo. Both marks render ~13.5 px tall,
+   which is the ink height of the header's other 16 px icons. */
+#btn-github { padding-inline: 10px; }
+
+#btn-github.is-loaded { width: 34px; padding: 0; justify-content: center; }
+
+#btn-github .gh-logo { display: none; height: 13.5px; width: auto; }
+
+/* Support (Ko-fi) link — heart + label in the Ko-fi pink, wearing the same
+   forms as the GitHub link: full heart+label while the header is bare, a 34 px
+   icon-only square once a track is loaded (see also the phone block below). */
+#btn-support { color: #e94bb4; padding-inline: 10px; text-decoration: none; }
+
+#btn-support.is-loaded { width: 34px; padding: 0; justify-content: center; }
+
+#btn-support.is-loaded span:not(.btn-icon-slot) { display: none; }
+
+/* Exactly one file is ever visible: lockup before a track is loaded, bare mark
+   after, in the theme's own black or white variant. */
+html[data-theme="light"] #btn-github:not(.is-loaded) .gh-lockup.gh-light,
+html[data-theme="dark"] #btn-github:not(.is-loaded) .gh-lockup.gh-dark,
+html[data-theme="light"] #btn-github.is-loaded .gh-mark.gh-light,
+html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block; }
+
+/* Settings drawer trigger — the single entry point for map / theme /
+   language / units on every viewport. */
+
+/* Workspace ---------------------------------------------------------------- */
+
+#workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* Widescreen proportions, nav bar excluded: map : info = 7 : 3 across,
+     top row : profile = 2 : 1 down. Narrow screens redefine these below. */
+  grid-template-columns: 7fr 3fr;
+  grid-template-rows: 2fr 1fr;
+  grid-template-areas:
+    "map metrics"
+    "profile profile";
+}
+
+#map-pane {
+  grid-area: map;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  background: var(--surface-muted);
+}
+
+#map-fit {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  z-index: var(--z-map-controls);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#metrics-pane {
+  grid-area: metrics;
+  background: var(--surface);
+  border-inline-start: 1px solid var(--border);
+  overflow-y: auto;
+  /* Keep the 7 : 3 column split honest — metric rows must not inflate the
+     track's min-content size. */
+  min-width: 0;
+  min-height: 0;
+}
+
+#profile-pane {
+  grid-area: profile;
+  background: var(--surface);
+  border-block-start: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.profile-head {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 8px 14px 2px;
+  color: var(--foreground-muted);
+}
+
+.profile-head h2 {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--foreground-muted);
+}
+
+.profile-head-icon { display: inline-flex; }
+.profile-head-icon .icon { width: 14px; height: 14px; }
+
+.profile-note {
+  margin-inline-start: 10px;
+  font-size: 12px;
+  color: var(--foreground-faint);
+}
+
+.profile-note[hidden] { display: none; }
+
+/* X-axis mode + overlay controls (top-right of the chart header). */
+
+.profile-controls {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.xmode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.xmode-btn {
+  min-height: 28px;
+  padding: 3px 12px;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--foreground-muted);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.xmode-btn + .xmode-btn { border-inline-start: 1px solid var(--border); }
+
+.xmode-btn:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--surface-hover); }
+
+.xmode-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
+.xmode-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* Wide layout: Distance/Time read as text — their icons belong to the phone
+   bar (see the 720 px block below). The Overlays and dual-variable analysis
+   controls read as text too, with a border matching the Distance/Time group. */
+.xmode-btn .btn-icon-slot,
+#btn-overlays .btn-icon-slot,
+#btn-dual-variable .btn-icon-slot { display: none; }
+
+/* Overlays, dual-variable analysis and the waypoint snap toggle all wear the
+   Distance/Time group's box: the same border colour and radius, and the
+   group's outer height — the group's own 1px border top and bottom around a
+   28px button makes it 30px tall, so the 28px `.btn-small` default would leave
+   them 1px short on each edge. */
+#btn-overlays,
+#btn-dual-variable,
+#btn-waypoint-snap {
+  border-color: var(--border);
+  border-radius: var(--radius-m);
+  height: 30px;
+}
+
+/* Tablet / mobile ---------------------------------------------------------- */
+
+@media (max-width: 1099px) {
+  /* One long scrolling page: map → elevation chart → sector summary →
+     Elevation / Gradient / Time data groups. The header stays pinned on top
+     (#app is a flex column; only the workspace scrolls). */
+  #workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(240px, 44vh) auto auto;
+    grid-template-areas:
+      "map"
+      "profile"
+      "metrics";
+    overflow-y: auto;
+  }
+
+  #metrics-pane {
+    border-inline-start: none;
+    border-block-start: 1px solid var(--border);
+    overflow: visible;
+  }
+
+  #profile-pane {
+    height: 240px;
+    border-block-start: 1px solid var(--border);
+  }
+
+  /* Every data group is a distinct module on the long page. */
+  .metrics-root .metric-groups { margin-block-start: 8px; }
+  .metrics-root .metric-group {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    padding: 10px 12px 12px;
+    margin-block-end: 12px;
+  }
+  .metrics-root .metric-group:last-child { margin-block-end: 4px; }
+}
+
+/* Touch devices (phones/tablets) also reserve the fixed probe-readout band
+   between the profile header and the chart (.profile-readout in
+   profile.css) — 64px since the
+   heart-rate slot grew a second line (the zone label); growing the module
+   by the band keeps the plot itself at its usual ~200px instead of
+   shrinking it. Mice keep 240px — they have no readout band. */
+@media (max-width: 1099px) and (hover: none) and (pointer: coarse) {
+  #profile-pane { height: 304px; }
+}
+
+/* Phone header. The three primary actions drop their labels and the GitHub link
+   goes mark-only on any phone, in ANY orientation. Width alone cannot see that,
+   because a landscape phone is 844–932 px wide — wider than the 720 px block
+   below — so a phone is recognized by its pointer instead. The 1099 px cap is
+   the same tablet/mobile boundary the profile pane uses, and it keeps a large
+   tablet (which has room) on the labeled header. Narrow windows keep collapsing
+   on width alone, pointer or not. */
+@media (max-width: 720px), (max-width: 1099px) and (hover: none) and (pointer: coarse) {
+  /* Their accessible names live on as aria-labels via data-i18n-aria in
+     index.html. */
+  .header-actions .btn-primary span:not(.btn-icon-slot) { display: none; }
+  .header-actions .btn-primary { padding-inline: 10px; }
+
+  /* The GitHub link wears the bare mark in BOTH data states, so the wide lockup
+     never appears and the button stays the 34 px square the settings trigger
+     uses. The `#app-header` step is what lets these beat the theme × state rules
+     further up, whatever order the two blocks end up in. */
+  #btn-github { width: 34px; padding: 0; justify-content: center; }
+
+  html[data-theme="light"] #app-header #btn-github .gh-lockup.gh-light,
+  html[data-theme="dark"] #app-header #btn-github .gh-lockup.gh-dark { display: none; }
+
+  html[data-theme="light"] #app-header #btn-github .gh-mark.gh-light,
+  html[data-theme="dark"] #app-header #btn-github .gh-mark.gh-dark { display: block; }
+
+  /* The Support link is icon-only in BOTH data states on a phone, like the
+     primary actions; the accessible name lives on via data-i18n-aria. */
+  #btn-support { width: 34px; padding: 0; justify-content: center; }
+  #btn-support span:not(.btn-icon-slot) { display: none; }
+}
+
+@media (max-width: 720px) {
+  #app-header { gap: 8px; padding: 0 10px; }
+
+  /* Brand collapses to the logo mark alone — the wordmark cannot compete with
+     the file chip for the little width a phone has left. */
+  .brand-name { display: none; }
+
+  /* Phone: Distance/Time/Overlays/dual-variable analysis collapse to
+     icon-only, matching the header buttons; accessible names stay on via
+     data-i18n-aria in index.html. The dual-variable entry follows the
+     Overlays button's exact responsive pattern (text on wide, icon on
+     phone), so the two controls never drift apart. */
+  .xmode-btn { padding: 3px 8px; }
+  .xmode-btn span:not(.btn-icon-slot),
+  #btn-overlays span:not(.btn-icon-slot),
+  #btn-dual-variable span:not(.btn-icon-slot) { display: none; }
+  .xmode-btn .btn-icon-slot,
+  #btn-overlays .btn-icon-slot,
+  #btn-dual-variable .btn-icon-slot { display: inline-flex; }
+
+  /* The file chip needs no phone rules any more: its full-vs-info mode is
+     measured from the real layout (js/ui/fileChip.js), so the pill degrades
+     to the (i) button exactly when name + meta stop fitting. */
+}
