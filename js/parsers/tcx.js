@@ -5,7 +5,7 @@
  * — every lookup goes through getElementsByTagNameNS('*', localName), which
  * matches any prefix (ns3, TPX, up2, none …).
  *
- * Corpus behaviors mirrored here (see sample/Routes/** and sample/*.tcx):
+ * Corpus behaviors mirrored here:
  *  - All activities / laps / tracks concatenate in document order; the lap
  *    index is recorded per point.
  *  - Trackpoints without a Position (session starts, 28 in the largest

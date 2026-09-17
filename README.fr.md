@@ -105,8 +105,12 @@ majuscule, il faut le prendre exactement au sens suivant :
   vous obtenez *Indisponible*, pas 0.
 - **Analyse à deux variables.** L'icône de nuage de points à côté des commandes du profil ouvre
   une carte de densité 2D pour toute paire valide de grandeurs — fréquence cardiaque, vitesse,
-  allure, GAP, cadence, puissance, température, pente, altitude. Les pauses, le roulib (vitesse
-  sans puissance) et les coups de pédale à vide sont filtrés avant le binning ; le survol lit le
+  allure, GAP, cadence, puissance, température, pente, altitude. L'analyse suit le secteur
+  sélectionné, et chaque grandeur prend ses valeurs dans le mécanisme du panneau de métriques
+  lui-même : fréquence cardiaque, cadence et puissance retirent les lectures en pause et
+  reçoivent le lissage à 5 points du panneau, la température reste brute (pauses incluses), la
+  pente utilise les fenêtres de gradient de 50 m du panneau, et la famille vitesse est la
+  série de vitesse maximale du panneau pour le secteur. Le survol lit le
   X, le Y et la densité relative de la cellule. Thèmes, unités et langues s'appliquent en direct,
   et un module de graphique dédié garde fluides même les traces de 100 000 points. Sur tactile, deux doigts zooment et déplacent, un doigt parcourt les
   données, un double-tap ramène l'intervalle complet.

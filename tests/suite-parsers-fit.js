@@ -1,8 +1,11 @@
 /**
- * FIT + TCX parser tests. The FIT samples are binary, so the real sample file
- * is fetched over HTTP (skip gracefully when served from file://); the TCX
- * sensor fixture is an inline document. Sensor data (hr/cad/power) and
- * elevation-gap interpolation are the interesting parts of both pipelines.
+ * FIT + TCX parser tests. The FIT samples are binary, so the committed
+ * fixtures under tests/fixtures/ (deterministic: 60 one-second records,
+ * 3 laps, hr+cadence on every record, one altitude gap, one position-less
+ * record) are fetched over HTTP (skip gracefully when served from file://);
+ * the TCX sensor fixture is an inline document. Sensor data (hr/cad/power),
+ * lap windows and elevation-gap interpolation are the interesting parts of
+ * both pipelines.
  */
 import { suite, test, assert } from './runner.js';
 import { parseFIT } from '../js/parsers/fit.js';
@@ -11,10 +14,10 @@ import { detectFormat, parseTrackFile } from '../js/parsers/index.js';
 import { ParseError, PARSE_ERROR_KEYS } from '../js/parsers/parseError.js';
 import { prepareTrack } from '../js/geo/track.js';
 
-const FIT_SAMPLE_URL = '../sample/telemetry.fit';
-const TCX_SAMPLE_URL = '../sample/telemetry.tcx';
+const FIT_FIXTURE_URL = './fixtures/telemetry-mini.fit';
+const TCX_FIXTURE_URL = './fixtures/telemetry-mini.tcx';
 
-/** Fetches a sample as an ArrayBuffer, or returns null when unreachable (file://). */
+/** Fetches a fixture as an ArrayBuffer, or returns null when unreachable (file://). */
 async function fetchSample(url) {
   try {
     const res = await fetch(url);
@@ -104,55 +107,60 @@ suite('parsers / tcx', () => {
     assert.equal(err2.key, PARSE_ERROR_KEYS.noTrack);
   });
 
-  test('real-world sample: telemetry export keeps position + hr + laps', async () => {
-    const buffer = await fetchSample(TCX_SAMPLE_URL);
+  test('committed fixture: 60 points across 3 laps keep position, hr and cadence', async () => {
+    const buffer = await fetchSample(TCX_FIXTURE_URL);
     if (!buffer) return; // not served over HTTP — skip
     const { points } = await parseTCX(buffer);
-    assert.equal(points.length, 4325);
+    assert.equal(points.length, 60);
+    assert.equal(points[0].lap, 0);
+    assert.equal(points[20].lap, 1);
+    assert.equal(points[40].lap, 2);
     const withHr = points.filter((p) => p.hr != null).length;
-    assert.truthy(withHr > 4000, `expected most points to carry hr, got ${withHr}`);
-    assert.closeTo(points[0].lat, 22.566973, 1e-6);
-    assert.equal(points[0].time, Date.parse('2025-12-11T11:53:40Z'));
+    assert.equal(withHr, 60);
+    assert.closeTo(points[0].lat, 22.6, 1e-6);
+    assert.equal(points[0].time, Date.parse('2026-01-15T08:00:00Z'));
   });
 });
 
 suite('parsers / fit', () => {
   test('detection: extension and ".FIT" magic at header bytes 8..12', async () => {
-    const buffer = await fetchSample(FIT_SAMPLE_URL);
+    const buffer = await fetchSample(FIT_FIXTURE_URL);
     if (!buffer) return;
     assert.equal(detectFormat('a.fit', buffer), 'fit');
     assert.equal(detectFormat('a.bin', buffer), 'fit'); // mislabeled, magic-sniffed
     assert.equal(detectFormat('a.gpx', buffer), 'gpx'); // extension still wins
   });
 
-  test('real-world sample: 10 laps, sensors, laps carried per point', async () => {
-    const buffer = await fetchSample(FIT_SAMPLE_URL);
+  test('committed fixture: 3 laps, sensors, laps carried per point', async () => {
+    const buffer = await fetchSample(FIT_FIXTURE_URL);
     if (!buffer) return;
     const { points, waypoints } = await parseFIT(buffer);
     assert.equal(waypoints.length, 0);
-    // The sample has 4326 records; the position-less session start drops out.
-    assert.equal(points.length, 4325);
-    assert.equal(new Set(points.map((p) => p.lap)).size, 10);
+    // Record 0 carries no position and drops out, like real session starts —
+    // 60 written records minus that one.
+    assert.equal(points.length, 59);
+    assert.equal(new Set(points.map((p) => p.lap)).size, 3);
     const withHr = points.filter((p) => p.hr != null).length;
     const withCad = points.filter((p) => p.cad != null).length;
-    assert.truthy(withHr > 4000, `expected most points to carry hr, got ${withHr}`);
-    assert.truthy(withCad > 4000, `expected most points to carry cadence, got ${withCad}`);
-    assert.closeTo(points[0].lat, 22.566973, 1e-6);
-    assert.equal(points[0].time, Date.parse('2025-12-11T11:53:40Z'));
+    assert.equal(withHr, 59);
+    assert.equal(withCad, 59);
+    assert.closeTo(points[0].lat, 22.60005, 1e-6);
+    assert.equal(points[0].time, Date.parse('2026-01-15T08:00:01Z'));
   });
 
-  test('real-world sample: dropped altitude readings are bridged, track stays usable', async () => {
-    const buffer = await fetchSample(FIT_SAMPLE_URL);
+  test('committed fixture: the altitude-less reading is bridged, track stays usable', async () => {
+    const buffer = await fetchSample(FIT_FIXTURE_URL);
     if (!buffer) return;
     const { points } = await parseFIT(buffer);
     const missingEle = points.filter((p) => p.ele == null).length;
-    assert.equal(missingEle, 0);
+    assert.equal(missingEle, 0); // record 25 arrives without altitude and is bridged
     const track = prepareTrack(points, 'f');
     assert.equal(track.hasElevation, true);
     assert.equal(track.hasTime, true);
     assert.equal(track.hasHr, true);
     assert.equal(track.hasCad, true);
-    assert.truthy(track.totalDistance > 9000, `expected ~9.8 km, got ${track.totalDistance}`);
+    assert.truthy(track.totalDistance > 400 && track.totalDistance < 800,
+      `expected ~580 m, got ${track.totalDistance}`);
   });
 
   test('garbage bytes raise errorInvalidFile', async () => {
@@ -162,11 +170,11 @@ suite('parsers / fit', () => {
     assert.equal(err.key, PARSE_ERROR_KEYS.invalid);
   });
 
-  test('unified entry point parses the sample end to end', async () => {
-    const buffer = await fetchSample(FIT_SAMPLE_URL);
+  test('unified entry point parses the fixture end to end', async () => {
+    const buffer = await fetchSample(FIT_FIXTURE_URL);
     if (!buffer) return;
-    const format = detectFormat('telemetry.fit', buffer);
+    const format = detectFormat('telemetry-mini.fit', buffer);
     const { points } = await parseTrackFile(buffer, format);
-    assert.equal(points.length, 4325);
+    assert.equal(points.length, 59);
   });
 });

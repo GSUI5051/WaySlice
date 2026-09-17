@@ -21,6 +21,7 @@
 import { t } from '../../language/language.js';
 import { icon } from '../../ui/icons.js';
 import { trackStore } from '../../core/stores.js';
+import { sectorStore } from '../../sector/sectorStore.js';
 import { on } from '../../core/events.js';
 import { METRICS, getMetric, isPairAllowed, partnersOf } from './metrics.js';
 import { buildAnalysisSamples, metricAvailability, extractPair } from './samples.js';
@@ -42,6 +43,8 @@ let yId = '';
 let samples = null;
 let availability = null;
 let samplesTrack = null;
+/** The sector range the cached table was built for ({start, end} meters). */
+let samplesRange = null;
 
 /**
  * Wires the entry button and the analysis dialog.
@@ -118,6 +121,19 @@ export function initDualVariableAnalysis(refs) {
     samples = null;
     availability = null;
     samplesTrack = null;
+    samplesRange = null;
+    if (dialog.open) dialog.close();
+  });
+
+  // The analysis reads the SELECTED SECTOR (like the metrics panel), so a
+  // sector change invalidates the cached table. The dialog is modal — the
+  // sector cannot move while it is open — so the open result stays as
+  // analyzed; the next open/analyze reads the new range.
+  sectorStore.subscribe(() => {
+    samples = null;
+    availability = null;
+    samplesTrack = null;
+    samplesRange = null;
     if (dialog.open) dialog.close();
   });
 
@@ -270,12 +286,20 @@ function refreshResultView() {
   refresh();
 }
 
-/** @private The per-track sample table, built lazily and cached. */
+/** @private The selected sector's sample table, built lazily and cached. */
 function ensureSamples() {
   const track = trackStore.get();
-  if (!samples || samplesTrack !== track) {
-    samples = buildAnalysisSamples(track);
+  const range = track ? sectorStore.get() : null;
+  const stale = !samples
+    || samplesTrack !== track
+    || !range
+    || !samplesRange
+    || samplesRange.start !== range.start
+    || samplesRange.end !== range.end;
+  if (stale) {
+    samples = buildAnalysisSamples(track, range ? range.start : 0, range ? range.end : 0);
     samplesTrack = track;
+    samplesRange = range ? { start: range.start, end: range.end } : null;
     availability = null;
   }
   return samples;

@@ -13,7 +13,7 @@ import { segment3D } from '../geo/distance.js';
 /** Window length for max/min gradient, meters. */
 export const GRADIENT_WINDOW_M = 50;
 /** Minimum length of a trailing (partial) gradient window, meters. */
-const GRADIENT_MIN_WINDOW_M = 20;
+export const GRADIENT_MIN_WINDOW_M = 20;
 /**
  * Elevation hysteresis threshold, meters. Elevation change accumulates in a
  * residual until it passes ±3 m; only then is it credited to gain/loss.
@@ -574,13 +574,14 @@ export function recordedSpeedImplausible(speed, dd, dt) {
 }
 
 /**
- * @private True when ANY point of the track carries a recorded speed — the
- * global source predicate behind the speed-family cleaning rule (recorded
- * → cross-check against dd/dt, then the 5-point sliding-window smooth;
- * none → the ±3σ exclusion), shared by the profile caches (buildCaches),
- * the maximum speed and the panel's speed/GAP statistics.
+ * True when ANY point of the track carries a recorded speed — the global
+ * source predicate behind the speed-family cleaning rule (recorded →
+ * cross-check against dd/dt, then the 5-point sliding-window smooth; none →
+ * the ±3σ exclusion), shared by the profile caches (buildCaches), the
+ * maximum speed, the panel's speed/GAP statistics and the dual-variable
+ * analysis's sector speed series.
  */
-function trackHasRecordedSpeed(track) {
+export function trackHasRecordedSpeed(track) {
   for (let i = 0; i < track.pointCount; i++) {
     const s = track.points[i].speed;
     if (s != null && Number.isFinite(s) && s >= 0) return true;

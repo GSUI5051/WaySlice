@@ -104,9 +104,13 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   *Non disponibile*, non 0.
 - **Analisi a due variabili.** L'icona a dispersione accanto ai controlli del profilo apre una
   mappa di densità 2D per qualsiasi coppia valida di grandezze — frequenza cardiaca, velocità,
-  ritmo, GAP, cadenza, potenza, temperatura, pendenza, quota. Pausa, rilascio (velocità senza
-  potenza) e pedalate a vuoto (velocità senza cadenza) vengono filtrati prima del binning;
-  passando il puntatore si leggono X, Y e la densità relativa della cella. Temi, unità e lingue
+  ritmo, GAP, cadenza, potenza, temperatura, pendenza, quota. L'analisi segue il tratto
+  selezionato, e ogni grandezza prende i valori dal meccanismo del pannello delle metriche
+  stesso: frequenza cardiaca, cadenza e potenza scartano le letture in pausa e ricevono la
+  media mobile a 5 punti del pannello, la temperatura resta grezza (pause incluse), la pendenza
+  usa le finestre di gradiente da 50 m del pannello, e la famiglia velocità è la serie di
+  velocità massima del pannello per il tratto. Passando il puntatore si leggono X, Y e la
+  densità relativa della cella. Temi, unità e lingue
   si applicano in tempo reale, e un modulo grafico dedicato tiene fluidi anche i tracciati da
   100 000 punti. Sul touch due dita fanno zoom e spostano, un dito scorre i dati, un doppio tocco
   riporta all'intervallo completo.

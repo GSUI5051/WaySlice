@@ -14,10 +14,12 @@ code belongs, which rules keep the architecture sound, and how changes are verif
 The dual-variable analysis is the 2D density heatmap opened from the profile controls row
 (`#btn-dual-variable`; like the Overlays button it reads as labeled text on wide screens and
 collapses to the `chart-scatter` icon below 720 px): pick an X quantity and a Y quantity, and the
-track's filtered samples bin into a 2D grid whose cell colors encode local point density
-(relative to the busiest bin). It shares the elevation profile's visual language but is a
-separate chart system — the spec (§22) asked for its own module directory, and it must never
-grow imports into the elevation profile beyond the shared speed pipeline.
+selected sector's samples bin into a 2D grid whose cell colors encode local point density
+(relative to the busiest bin). Every quantity's values are the metrics panel's own series for it
+(see The data rules) — the chart can never be more, or less, honest than the panel. It shares the
+elevation profile's visual language but is a separate chart system — the spec (§22) asked for its
+own module directory, and it must never grow imports into the elevation profile beyond the shared
+speed pipeline.
 
 The **public API is one function** and nothing else:
 
@@ -40,9 +42,9 @@ Never rename these ids.
 
 | File | Responsibility | Exports |
 |---|---|---|
-| `index.js` | Orchestrator: button + dialog wiring, the selecting → analyzing → displaying/empty state machine, dynamic select constraints, event surface (language / units / theme / track store) | `initDualVariableAnalysis` |
+| `index.js` | Orchestrator: button + dialog wiring, the selecting → analyzing → displaying/empty state machine, dynamic select constraints, event surface (language / units / theme / track store / sector store) | `initDualVariableAnalysis` |
 | `metrics.js` | Pure metric registry: ids, label keys, unit getters, shared formatters, display↔raw tick conversion, the valid-pair table | `METRICS`, `getMetric`, `isPairAllowed`, `partnersOf` |
-| `samples.js` | Pure data layer: the ONE filtered sample table per track (pause → invalid-power → invalid-cadence filters), availability, finite-pair extraction | `buildAnalysisSamples`, `metricAvailability`, `extractPair` |
+| `samples.js` | Pure data layer: the ONE sample table per track, every quantity produced by the metrics panel's mechanism for it (see The data rules), availability, finite-pair extraction | `buildAnalysisSamples`, `metricAvailability`, `extractPair` |
 | `densityCalculator.js` | Pure density math: robust quantile domain, fixed-grid 2D binning, relative-density normalization | `computeDensity`, `relativeDensity` (+ constants `X_BINS`, `Y_BINS`, `MIN_PAIR_SAMPLES`, `DOMAIN_QUANTILE`, `DOMAIN_PAD`) |
 | `densityRenderer.js` | All canvas drawing: plot + tick grid + stretched density bitmap + hover highlight + axis titles; the themed color LUT; hit-testing geometry; the visible window per axis (the zoom/pan viewport) | `initRenderer`, `setData`, `clearData`, `refresh`, `resize`, `render`, `hitTest`, `setHover`, `viewportAxes`, `getViewport`, `isViewportZoomed`, `resetViewport` |
 | `interaction.js` | The unified Pointer Events path (hover, touch tap/hold, pinned touch tooltip) + the SHARED touch viewport gestures in their 'two-finger' pan mode (one finger reads, two fingers pinch AND pan, double-tap resets — `../viewport-gestures.js`); never draws | `wireInteraction`, `clearInteraction` |
@@ -56,7 +58,7 @@ interaction  → densityRenderer (hitTest, setHover, viewport), tooltip, ../view
 densityRenderer → language (axis titles)
 tooltip      → language, format
 metrics      → units, format
-samples      → elevation-profile/profile-data (buildCaches, speedToPace), sectorMetrics (createPauseTracker)
+samples      → elevation-profile/profile-data (speedToPace), geo/interpolate (pointAtDistance), sectorMetrics (createPauseTracker, cleanSpeedSeries, cleanComputedSpeeds, recordedSpeedImplausible, trackHasRecordedSpeed, minettiFactor, GRADIENT_WINDOW_M, GRADIENT_MIN_WINDOW_M)
 densityCalculator → nothing in this directory
 ```
 
@@ -66,22 +68,48 @@ pipeline); the renderer and interaction layers must not.
 
 ## The data rules (do not loosen casually)
 
-The spec pins these; they are the module's contract, all applied to the WHOLE track
-(not the current sector), in this order:
+Every quantity's point values come from the METRICS PANEL's own series for that quantity
+(`computeSectorMetrics` over the SELECTED SECTOR — the panel's own scope; boundaries may sit
+between two track points and are interpolated exactly like the metrics). The chart can never be
+more, or less, honest than the panel: a plotted value can never
+disagree with — or exceed — the panel's statistics for the same quantity, because it IS the
+series those statistics run over. Per quantity:
 
-1. **Pause filtering** — a point whose timestamp falls inside a confirmed pause span
-   (exclusive of the last moving instant, inclusive of the pause end — the same predicate as
-   `pauseFreeSamples`) drops. Spans come from the shared `createPauseTracker`, never a
-   module-local detector.
-2. **Invalid power** — on tracks WITH a power meter, a moving point (cleaned speed > 0)
-   without a positive finite power reading drops. Tracks without a meter skip the rule.
-3. **Invalid cadence** — same rule against the cadence sensor.
-4. **Missing values** — a pair with a non-finite X or Y never bins (no zero-fill, no
+1. **hr / cadence / power** — the panel's fitness series: finite readings, stripped of
+   confirmed-pause timestamps (the `pauseFreeSamples` predicate — exclusive of the last moving
+   instant, inclusive of the pause end; spans from the shared `createPauseTracker`, never a
+   module-local detector), then smoothed by the shared 5-point sliding window (`cleanSpeedSeries`
+   over the compact survivor list — the exact array behind `avgHr/maxHr`, `avgCad/maxCad`,
+   `avgPower/maxPower`). Stripped or missing readings stay NaN.
+2. **temp** — raw readings, unfiltered and pause-inclusive, exactly like the panel's `rawStats`
+   (an ambient reading is not an effort signal).
+3. **speed / pace / GAP** — the panel's Maximum Speed series for the sector, built
+   RANGE-LOCALLY over the sector's points (a line-for-line mirror of `maxCleanedPointSpeed`:
+   recorded → dd/dt cross-check → 5-point window; computed → 3σ; rule selection still the
+   GLOBAL trackHasRecordedSpeed predicate, like the profile's `buildCaches`). The smoothing
+   window is range-local, so a sub-sector's fastest plotted speed equals the panel's Maximum
+   Speed for that range — near a sector edge it can differ (slightly) from the profile's
+   whole-track speed curve. Pause points stay in (rest zeros included). GAP is that speed
+   divided by the Minetti factor of its raw per-segment grade, as in the profile's GAP overlay.
+4. **grade** — the panel's gradient windows over the sector (interpolated boundaries
+   included): horizontal meters pile up to `GRADIENT_WINDOW_M` (50 m), the window's rise/run
+   lands on its closing point, plus the ≥ 20 m trailing window.
+   The finite values are exactly the set `maxGrade/minGrade` run over, so the chart's steepest
+   grade IS the panel's Maximum Grade. Grade points are therefore sparse (about one per 50 m) —
+   pairs against grade keep only the rows at window-closing points.
+5. **ele** — raw point elevations, like `eleMin/eleMax`.
+6. **Missing values** — a pair with a non-finite X or Y never bins (no zero-fill, no
    forward-fill, no interpolation).
 
-Speed / pace / GAP values come from `buildCaches` (the elevation profile's shared pipeline:
-recorded → dd/dt cross-check → 5-point window; computed → 3σ). Grade is the RAW per-segment
-rise/run — the spec's first version deliberately adds no outlier removal beyond rules 1–3.
+The original spec's row-level pipeline (whole-row pause drops, and the invalid-power /
+invalid-cadence exclusions of the first version's §10) was removed on 2026-09-17 by explicit request:
+the panel applies no such rules — a 0 W coasting reading counts in its averages, and temperature
+keeps its paused readings — so the chart must not drop them either. The spec's §10 (and §20's
+outlier stance) were rewritten the same day to these rules. Exclusion now happens per
+quantity exactly where the panel's mechanism excludes, and a point leaves an analysis only
+through rule 6. The panel's own aggregate-only statistics (Average Speed / Average Pace from
+per-segment dd/dt, average GAP from segment effort paces) have no per-point counterpart to
+match here; the chart has no averages of its own.
 
 The domain drawn is the 0.2 %–99.8 % quantile range plus ~4 % padding: rare sensor spikes
 compress nothing (§21). Points outside the domain stay in the table; they only fall outside
@@ -152,14 +180,22 @@ that no longer means the same data; a finger that never travels is still a tap. 
 
 `index.js` subscribes: `language:changed` (re-render the open view), `units:changed` (redraw
 ticks), `theme:changed` (rebuild LUT + redraw), `trackStore` (invalidate the sample cache,
-close the dialog, toggle the button). The dialog is modal, so these mostly fire from OS-level
-changes (e.g. system theme) while it is open — do not remove them.
+close the dialog, toggle the button) and `sectorStore` (invalidate the sample cache — the
+analysis reads the SELECTED SECTOR, like the metrics panel; a new open/analyze rebuilds for
+the new range). The dialog is modal — the sector cannot move while it is open — so a sector
+change in practice arrives between sessions; do not remove these subscriptions.
 
 ## Verification
 
-`tests/suite-dualVariable.js` covers the pair table, the three data filters, NaN handling,
-availability, pair extraction, the density grid (robust domain, degenerate ranges, bin
-consistency) and the tooltip placement ladder — 32 cases in five suites. Run the whole suite
+`tests/suite-dualVariable.js` covers the pair table, the per-quantity panel alignment (the
+pause strip, the 5-point smoothing, coasting zeros kept, pause-inclusive temperature, the 50 m
+grade windows), the sector scope (rows outside the selected sector are NaN; parity against
+`computeSectorMetrics` for mid-track ranges with interpolated boundaries, including a sector
+born inside a whole-track pause), the panel-parity invariants (the chart's max/avg/min over
+each quantity's finite points equal the panel's figures exactly), NaN handling, availability,
+pair extraction,
+the density grid (robust domain, degenerate ranges, bin consistency) and the tooltip placement
+ladder — 42 cases in seven suites. Run the whole suite
 at `tests/index.html` on a local HTTP server; keep it green, and extend it for any new data
 rule. The shared viewport gestures are covered separately: `tests/suite-viewport.js` pins the
 window math (clamps, the per-axis direction conventions, anchor preservation, the double-tap

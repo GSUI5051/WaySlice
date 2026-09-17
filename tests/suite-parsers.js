@@ -128,7 +128,7 @@ suite('parsers / gpx waypoints', () => {
 
 suite('parsers / gpx power', () => {
   // The two real-world encodings of power in GPX: a bare <power> element and
-  // the Stages-style <gpxpx:PowerInWatts> extension (sample/with_power_*.gpx).
+  // the Stages-style <gpxpx:PowerInWatts> extension.
   const GPX_POWER_BARE = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="WaySlice tests" xmlns="http://www.topografix.com/GPX/1/1">
   <trk><trkseg>

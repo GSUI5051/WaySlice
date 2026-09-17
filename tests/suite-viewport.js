@@ -2,11 +2,11 @@
  * Shared chart viewport gestures — the window math both charts pan and zoom
  * through, and the double-tap rule they reset with.
  *
- * The touch machine itself is exercised in the browser by
- * tools/tmp-viewport-scenarios.js (it needs real pointer events and layout);
- * what is unit-tested here is everything that can be wrong invisibly: the
- * clamps, the direction conventions (a y axis starts at its data max), the
- * anchor preservation and the reset semantics.
+ * The touch machine itself is not exercised here (it needs real pointer
+ * events and layout — check it in the browser, ideally on or emulated as a
+ * touch device); what is unit-tested is everything that can be wrong
+ * invisibly: the clamps, the direction conventions (a y axis starts at its
+ * data max), the anchor preservation and the reset semantics.
  */
 import { suite, test, assert } from './runner.js';
 import {

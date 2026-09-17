@@ -96,8 +96,11 @@ capital letter, it means exactly this:
   when the file carries them. When input data is missing you get *Unavailable*, not 0.
 - **Dual-variable analysis.** The scatter icon beside the profile controls opens a 2D density
   heatmap of any valid pair of quantities — heart rate, speed, pace, GAP, cadence, power,
-  temperature, grade, elevation. Pauses, coasting (speed without power) and dead cranks (speed
-  without cadence) are filtered out before analyzing; hovering reads the cell's X, Y and relative
+  temperature, grade, elevation. The analysis follows the currently selected sector, and every
+  quantity's values come from the metrics panel's own mechanism: heart rate, cadence and power
+  drop paused readings and get the panel's 5-point smoothing, temperature stays raw (paused
+  readings included), grade uses the panel's 50 m gradient windows, and the speed family is the
+  panel's Maximum Speed series for the sector. Hovering reads the cell's X, Y and relative
   density. Themes, units and languages apply live, and a dedicated chart module keeps even
   100k-point tracks fast and smooth. On touch, two fingers zoom and pan the chart, one finger scrubs the reading, and a double-tap
   brings the full range back.

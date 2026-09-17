@@ -246,7 +246,7 @@ The suite does not import this module (it is canvas/DOM work); it is the regress
 the shared math (`metrics/`, `geo/`) and for `tests/suite-viewport.js` (the shared zoom/pan
 window math + the double-tap rule). Expected: all green.
 
-**Manual** — load `sample/telemetry.gpx` (full telemetry except temperature and power), then
+**Manual** — load a real-world GPX track with a full sensor set (elevation, timestamps, heart rate, cadence), then
 replay at least:
 
 - overlays menu: HR on/off → zone bands appear/disappear; speed → pace → GAP replace each

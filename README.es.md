@@ -105,10 +105,13 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   un dato de entrada obtienes *No disponible*, no 0.
 - **Análisis de dos variables.** El icono de dispersión junto a los controles del perfil abre un
   mapa de calor de densidad 2D para cualquier par válido de magnitudes — frecuencia cardíaca,
-  velocidad, ritmo, GAP, cadencia, potencia, temperatura, pendiente, altitud. Las pausas, el
-  rodar por inercia (velocidad sin potencia) y los pedaleos vacíos (velocidad sin cadencia) se
-  filtran antes de agrupar en celdas; al pasar el puntero se leen la X, la Y y la densidad
-  relativa de la celda. Temas, unidades e idiomas se aplican al instante, y un módulo de gráfico
+  velocidad, ritmo, GAP, cadencia, potencia, temperatura, pendiente, altitud. El análisis sigue
+  el tramo seleccionado, y cada magnitud toma sus valores del mecanismo del propio panel de
+  métricas: frecuencia cardíaca, cadencia y potencia descartan las lecturas en pausa y reciben
+  el suavizado de 5 puntos del panel, la temperatura se mantiene en bruto (pausas incluidas),
+  la pendiente usa las ventanas de gradiente de 50 m del panel, y la familia de velocidad es
+  la serie de velocidad máxima del panel para el tramo. Al pasar el puntero se leen la X, la Y
+  y la densidad relativa de la celda. Temas, unidades e idiomas se aplican al instante, y un módulo de gráfico
   independiente mantiene fluidas incluso las trazas de 100 000 puntos. En pantalla táctil, dos dedos hacen zoom y desplazan, un dedo recorre los datos y un
   doble toque recupera el intervalo completo.
 - **Exportación.** Descarga el tramo actual — sus métricas como csv, txt o md, sus puntos de traza como

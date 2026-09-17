@@ -104,9 +104,13 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   *Nicht verfügbar*, nicht 0.
 - **Zweivariablen-Analyse.** Das Streudiagramm-Symbol neben den Profil-Steuerungen öffnet eine
   2D-Dichte-Heatmap für jedes gültige Größenpaar — Herzfrequenz, Geschwindigkeit, Tempo, GAP,
-  Trittfrequenz, Leistung, Temperatur, Steigung, Höhe. Pausen, Ausrollen (Geschwindigkeit ohne
-  Leistung) und Trittpausen (Geschwindigkeit ohne Trittfrequenz) werden vor dem Binning
-  gefiltert; beim Überfahren liest der Tooltip X, Y und die relative Dichte der Zelle. Helle und
+  Trittfrequenz, Leistung, Temperatur, Steigung, Höhe. Die Analyse folgt dem aktuell gewählten
+  Abschnitt, und jede Größe nimmt ihre Werte aus dem Mechanismus des Messwert-Panels:
+  Herzfrequenz, Trittfrequenz und Leistung verwerfen Pause-Messwerte und erhalten die
+  5-Punkte-Glättung des Panels, Temperatur bleibt roh (Pausen inklusive), die Steigung nutzt
+  die 50-m-Gradientenfenster des Panels, und die Geschwindigkeitsfamilie ist die
+  Höchstgeschwindigkeits-Reihe des Panels für den Abschnitt. Beim Überfahren liest der Tooltip
+  X, Y und die relative Dichte der Zelle. Helle und
   dunkle Themen, Einheiten und Sprachen werden sofort übernommen, und ein eigenes Chart-Modul
   hält auch 100.000-Punkte-Tracks flüssig. Am Touchscreen zoomen und verschieben zwei Finger die Karte, ein Finger liest die Werte ab, ein Doppel-Tipp holt
   den vollen Bereich zurück.

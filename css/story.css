@@ -2,9 +2,9 @@
    One file serves both consumers: index.html loads it for the story dialog
    chrome (the drawer's About section opens it), /story/story.html loads it
    for the page typography. The page-side rules are all scoped under
-   .story-page so they can never touch the app. Layout per
-   specs/story/mechanics.txt: desktop presents the same window as the
-   dual-variable analysis dialog; phones get an 80 vh popup instead. */
+   .story-page so they can never touch the app. Layout: desktop presents the
+   same window as the dual-variable analysis dialog; phones get an 80 vh
+   popup instead. */
 
 /* Story dialog ---------------------------------------------------------------- */
 

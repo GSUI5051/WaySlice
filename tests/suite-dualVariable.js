@@ -1,5 +1,7 @@
-/** Dual-variable analysis tests: pair rules, sample filtering, density grid. */
+/** Dual-variable analysis tests: pair rules, panel-aligned samples, density grid. */
 import { suite, test, assert } from './runner.js';
+import { computeTrackStats } from '../js/metrics/trackStats.js';
+import { computeSectorMetrics } from '../js/metrics/sectorMetrics.js';
 import { isPairAllowed, partnersOf, getMetric, METRICS } from '../js/charts/dual-variable-analysis/metrics.js';
 import {
   buildAnalysisSamples, metricAvailability, extractPair,
@@ -64,6 +66,22 @@ function makeTrack(segments, {
 
 const MOVE = (n) => Array.from({ length: n }, () => ({ ds: 8, dt: 1 })); // 8 m/s
 const STANDSTILL = (n) => Array.from({ length: n }, () => ({ ds: 0.05, dt: 1 }));
+
+/** Finite-value stats over one sample column (shared by the parity suites). */
+function columnStats(arr) {
+  let min = Infinity;
+  let max = -Infinity;
+  let sum = 0;
+  let count = 0;
+  for (const v of arr) {
+    if (!Number.isFinite(v)) continue;
+    if (v < min) min = v;
+    if (v > max) max = v;
+    sum += v;
+    count++;
+  }
+  return count ? { min, max, avg: sum / count, count } : null;
+}
 
 suite('dual-variable / valid pair table', () => {
   test('every spec combination is allowed in both directions', () => {
@@ -144,32 +162,42 @@ suite('dual-variable / sample filtering', () => {
     assert.equal(samples.count, 31);
   });
 
-  test('confirmed-pause points are excluded (data-layer rule)', () => {
+  test('pause handling follows each quantity\'s panel mechanism', () => {
     // 20 s moving, 15 × 1 s standstill (confirmed at 10 s), 10 s moving again:
     // 46 points, of which points 21..35 (times 21 s..35 s) sit inside the
-    // pause span (20 s, 35 s] — the same predicate as pauseFreeSamples.
+    // pause span (20 s, 35 s] — the same predicate as pauseFreeSamples. hr
+    // drops those readings exactly like the panel's averages do; temperature
+    // keeps them (the panel never filters an ambient reading); the table
+    // itself keeps every row — exclusion is per quantity, never row-level.
     const segments = [...MOVE(20), ...STANDSTILL(15), ...MOVE(10)];
-    const samples = buildAnalysisSamples(makeTrack(segments, { hr: () => 140 }));
-    assert.equal(samples.count, 46 - 15);
+    const samples = buildAnalysisSamples(makeTrack(segments, { hr: () => 140, temp: () => 21 }));
+    assert.equal(samples.count, 46, 'the table keeps every point row');
+    let hrFinite = 0;
+    let tempFinite = 0;
+    for (let i = 0; i < samples.count; i++) {
+      if (Number.isFinite(samples.hr[i])) hrFinite++;
+      if (Number.isFinite(samples.temp[i])) tempFinite++;
+    }
+    assert.equal(hrFinite, 46 - 15, 'paused hr readings stripped, like avgHr/maxHr');
+    assert.equal(tempFinite, 46, 'temperature keeps its paused readings, like avgTemp');
   });
 
-  test('speed > 0 with power <= 0 drops the point — only on power-bearing tracks', () => {
+  test('zero power/cadence while moving stays — the panel counts coasting', () => {
+    // The former invalid-power/invalid-cadence row drops are gone: the
+    // panel's averages include 0 W coasting and 0 rpm spots as recorded, so
+    // the chart must plot them too.
     const power = (i) => (i % 3 === 0 ? 0 : 150);
-    const track = makeTrack(MOVE(30), { power });
-    // 31 points; i = 0, 3, …, 27 read zero (the untimed last point is never
-    // "moving", so its zero cannot trip the rule) → 10 drops.
-    assert.equal(buildAnalysisSamples(track).count, 21, 'coasting / zero-power points dropped');
-    const noMeter = makeTrack(MOVE(30), { power, hasPower: false });
-    assert.equal(buildAnalysisSamples(noMeter).count, 31, 'a track without a power meter is not filtered');
-  });
-
-  test('speed > 0 with cadence <= 0 drops the point — only on cadence tracks', () => {
     const cad = (i) => (i % 4 === 0 ? 0 : 80);
-    const track = makeTrack(MOVE(24), { cad });
-    // 25 points; i = 0, 4, …, 20 read zero → 6 drops.
-    assert.equal(buildAnalysisSamples(track).count, 19, 'zero-cadence moving points dropped');
-    const noSensor = makeTrack(MOVE(24), { cad, hasCad: false });
-    assert.equal(buildAnalysisSamples(noSensor).count, 25);
+    const samples = buildAnalysisSamples(makeTrack(MOVE(30), { power, cad }));
+    assert.equal(samples.count, 31, 'no row-level validity drops');
+    let powerFinite = 0;
+    let cadFinite = 0;
+    for (let i = 0; i < samples.count; i++) {
+      if (Number.isFinite(samples.power[i])) powerFinite++;
+      if (Number.isFinite(samples.cad[i])) cadFinite++;
+    }
+    assert.equal(powerFinite, 31, 'every power reading stays in the series');
+    assert.equal(cadFinite, 31, 'every cadence reading stays in the series');
   });
 
   test('missing sensor readings stay NaN — never zero-filled', () => {
@@ -205,14 +233,181 @@ suite('dual-variable / sample filtering', () => {
     assert.equal(avail.pace.available, false);
   });
 
-  test('availability follows the FILTERED table', () => {
-    // The only hr readings sit inside the pause — the filter removes them all.
+  test('availability follows the cleaned table', () => {
+    // The only hr readings sit inside the pause — the pause strip removes
+    // them all.
     const segments = [...MOVE(20), ...STANDSTILL(15), ...MOVE(10)];
     const hr = (i) => (i >= 21 && i <= 35 ? 140 : null);
     const track = makeTrack(segments, { hr });
     const avail = metricAvailability(buildAnalysisSamples(track), track);
     assert.equal(avail.hr.available, false, 'every hr reading sat inside a pause');
     assert.equal(avail.speed.available, true);
+  });
+});
+
+suite('dual-variable / sector scope (the analysis reads the SELECTED sector)', () => {
+  // The point set comes from the currently selected sector, boundaries
+  // interpolated exactly like computeSectorMetrics; every quantity's figures
+  // must equal the panel's for the SAME range.
+
+  test('rows outside the sector are NaN in every quantity', () => {
+    // MOVE(30): 31 points, 8 m apart. Sector (20, 100) → start.i = 2
+    // (16 ≤ 20 < 24), end.i = 12 (96 ≤ 100 < 104).
+    const track = makeTrack(MOVE(30), { hr: () => 140 });
+    const samples = buildAnalysisSamples(track, 20, 100);
+    assert.equal(samples.count, 31, 'the table keeps its length; range rows drop via NaN');
+    for (let i = 0; i < samples.count; i++) {
+      const inside = i >= 2 && i <= 12;
+      assert.equal(Number.isFinite(samples.hr[i]), inside, `hr[${i}]`);
+      assert.equal(Number.isFinite(samples.speed[i]), inside, `speed[${i}]`);
+      assert.equal(Number.isFinite(samples.ele[i]), inside, `ele[${i}]`);
+    }
+  });
+
+  test('panel parity holds for a mid-track sector with interpolated boundaries', () => {
+    const segments = [...MOVE(20), ...STANDSTILL(15), ...MOVE(10)];
+    const track = makeTrack(segments, {
+      hr: (i) => (i === 10 ? 200 : 140),
+      cad: (i) => (i % 4 === 0 ? 0 : 80),
+      power: (i) => (i % 3 === 0 ? 0 : 150),
+      temp: (i) => (i >= 21 && i <= 35 ? 30 : 20),
+      ele: (i) => 100 + 6 * Math.sin(i / 2.7),
+    });
+    const s = 53.2;
+    const e = 205.7;
+    const samples = buildAnalysisSamples(track, s, e);
+    const panel = computeSectorMetrics(track, s, e);
+    const hr = columnStats(samples.hr);
+    const cad = columnStats(samples.cad);
+    const power = columnStats(samples.power);
+    const temp = columnStats(samples.temp);
+    const grade = columnStats(samples.grade);
+    const speed = columnStats(samples.speed);
+    assert.equal(hr.count, 20, 'pause-stripped sector readings');
+    assert.closeTo(hr.max, panel.maxHr, 1e-9);
+    assert.closeTo(hr.avg, panel.avgHr, 1e-9);
+    assert.closeTo(cad.max, panel.maxCad, 1e-9);
+    assert.closeTo(cad.avg, panel.avgCad, 1e-9);
+    assert.closeTo(power.max, panel.maxPower, 1e-9);
+    assert.closeTo(power.avg, panel.avgPower, 1e-9);
+    assert.closeTo(temp.min, panel.minTemp, 1e-9);
+    assert.closeTo(temp.max, panel.maxTemp, 1e-9);
+    assert.closeTo(temp.avg, panel.avgTemp, 1e-9);
+    assert.closeTo(grade.max, panel.maxGrade, 1e-9);
+    assert.closeTo(grade.min, panel.minGrade, 1e-9);
+    assert.closeTo(speed.max, panel.maxSpeed, 1e-9);
+  });
+
+  test('a sector born inside a whole-track pause strips nothing (its own walk never confirms)', () => {
+    // 160.4 m sits inside the standstill stretch (160–160.75 m): only
+    // 0.35 m / 7 s of stop remain inside the sector — under the 10 s
+    // threshold, so the sector's FRESH walk confirms no pause and keeps
+    // every reading, exactly like the panel's own walk over the same range.
+    const segments = [...MOVE(20), ...STANDSTILL(15), ...MOVE(10)];
+    const track = makeTrack(segments, { hr: () => 140 });
+    const s = 160.4;
+    const samples = buildAnalysisSamples(track, s, track.totalDistance);
+    const panel = computeSectorMetrics(track, s, track.totalDistance);
+    const hr = columnStats(samples.hr);
+    assert.equal(hr.count, 19, 'every sector reading kept');
+    assert.closeTo(hr.avg, panel.avgHr, 1e-9);
+    assert.closeTo(hr.max, panel.maxHr, 1e-9);
+  });
+
+  test('grade windows follow the sector, not the whole track', () => {
+    const ele = (i) => 100 + 6 * Math.sin(i / 2.7);
+    const track = makeTrack(MOVE(60), { ele });
+    const s = 37;
+    const e = 421.3;
+    const grade = columnStats(buildAnalysisSamples(track, s, e).grade);
+    const panel = computeSectorMetrics(track, s, e);
+    assert.closeTo(grade.max, panel.maxGrade, 1e-9);
+    assert.closeTo(grade.min, panel.minGrade, 1e-9);
+    const whole = computeTrackStats(track);
+    assert.truthy(Math.abs(grade.max - whole.maxGrade) > 1e-6
+      || Math.abs(grade.min - whole.minGrade) > 1e-6,
+      'the sector picks its OWN extremes, not the whole track\'s');
+  });
+});
+
+suite('dual-variable / panel parity (the honesty contract)', () => {
+  // Every plotted quantity IS the series the metrics panel's statistics run
+  // over (computeTrackStats for the default whole-track range; the sector
+  // scope suite above pins mid-track ranges): max/avg/min over the chart's
+  // finite points must be numerically identical to the panel's figures, so
+  // no plotted point can disagree with — or exceed — the panel.
+
+  test('hr points are the panel\'s smoothed series: max/avg equal maxHr/avgHr', () => {
+    // A single 200 bpm glitch: the panel dilutes it through the 5-point
+    // window before its statistics run; the chart plots the same cleaned
+    // array, so its extremes match the panel exactly.
+    const segments = [...MOVE(20), ...STANDSTILL(15), ...MOVE(10)];
+    const hr = (i) => (i === 10 ? 200 : 140);
+    const track = makeTrack(segments, { hr });
+    const s = columnStats(buildAnalysisSamples(track).hr);
+    const panel = computeTrackStats(track);
+    assert.equal(s.count, 46 - 15, 'paused readings stripped');
+    assert.closeTo(s.max, panel.maxHr, 1e-9);
+    assert.closeTo(s.avg, panel.avgHr, 1e-9);
+  });
+
+  test('cadence points match avgCad/maxCad, zeros included', () => {
+    const cad = (i) => (i % 4 === 0 ? 0 : 80);
+    const track = makeTrack(MOVE(30), { cad });
+    const s = columnStats(buildAnalysisSamples(track).cad);
+    const panel = computeTrackStats(track);
+    assert.equal(s.count, 31);
+    assert.closeTo(s.max, panel.maxCad, 1e-9);
+    assert.closeTo(s.avg, panel.avgCad, 1e-9);
+  });
+
+  test('power points match avgPower/maxPower — 0 W coasting counts', () => {
+    const power = (i) => (i % 3 === 0 ? 0 : 150);
+    const track = makeTrack(MOVE(30), { power });
+    const s = columnStats(buildAnalysisSamples(track).power);
+    const panel = computeTrackStats(track);
+    assert.equal(s.count, 31);
+    assert.closeTo(s.max, panel.maxPower, 1e-9);
+    assert.closeTo(s.avg, panel.avgPower, 1e-9);
+  });
+
+  test('temp points are raw and pause-inclusive: avg/min/max equal the panel', () => {
+    // Hot readings ONLY while paused: the panel keeps them (rawStats never
+    // filters an ambient reading) and so must the chart.
+    const segments = [...MOVE(20), ...STANDSTILL(15), ...MOVE(10)];
+    const temp = (i) => (i >= 21 && i <= 35 ? 30 : 20);
+    const track = makeTrack(segments, { temp });
+    const s = columnStats(buildAnalysisSamples(track).temp);
+    const panel = computeTrackStats(track);
+    assert.equal(s.count, 46, 'paused ambient readings kept');
+    assert.closeTo(s.min, panel.minTemp, 1e-9);
+    assert.closeTo(s.max, panel.maxTemp, 1e-9);
+    assert.closeTo(s.avg, panel.avgTemp, 1e-9);
+  });
+
+  test('grade points are the panel\'s 50 m windows: max/min equal maxGrade/minGrade', () => {
+    const ele = (i) => 100 + 6 * Math.sin(i / 2.7);
+    const track = makeTrack(MOVE(60), { ele });
+    const s = columnStats(buildAnalysisSamples(track).grade);
+    const panel = computeTrackStats(track);
+    assert.truthy(s.count >= 1 && s.count < 61, 'one value per closed 50 m window');
+    assert.closeTo(s.max, panel.maxGrade, 1e-9);
+    assert.closeTo(s.min, panel.minGrade, 1e-9);
+  });
+
+  test('speed points are the Maximum Speed series (recorded speeds)', () => {
+    const recorded = (i) => (i === 15 ? 20 : 7.9); // one GPS-drift spike
+    const track = makeTrack(MOVE(30), { recorded });
+    const s = columnStats(buildAnalysisSamples(track).speed);
+    const panel = computeTrackStats(track);
+    assert.closeTo(s.max, panel.maxSpeed, 1e-9);
+  });
+
+  test('speed points are the Maximum Speed series (computed dd/dt)', () => {
+    const track = makeTrack(MOVE(30));
+    const s = columnStats(buildAnalysisSamples(track).speed);
+    const panel = computeTrackStats(track);
+    assert.closeTo(s.max, panel.maxSpeed, 1e-9);
   });
 });
 

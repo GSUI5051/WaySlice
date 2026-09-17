@@ -1,6 +1,6 @@
 /**
  * The story dialog — the "author's story" popup opened from the settings
- * drawer's About section (specs/story/mechanics.txt). Desktop presents the
+ * drawer's About section. Desktop presents the
  * same window as the dual-variable analysis dialog; phones get an 80 vh
  * popup (the geometry lives in css/story.css).
  *
