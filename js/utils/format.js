@@ -21,10 +21,9 @@
  *
  * Pace (min:sec per km) and durations are formatted manually since Intl has
  * no duration unit style worth the fuss. Unit labels come from the language
- * packs via units.js's locale-aware getters (native sport-app names in
- * Chinese, international abbreviations elsewhere; % and °C/°F stay symbolic
- * everywhere) and stay outside the number. GPX export deliberately does NOT
- * go through this module: its values are machine data in canonical form.
+ * packs via units.js's locale-aware getters and stay outside the number.
+ * GPX export deliberately does NOT go through this module: its values are
+ * machine data in canonical form.
  */
 import { getLocale } from '../language/language.js';
 import {
