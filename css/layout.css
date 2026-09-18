@@ -306,6 +306,13 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
     border-inline-start: none;
     border-block-start: 1px solid var(--border);
     overflow: visible;
+    /* The desktop rail's min-height: 0 must not survive here: #workspace has a
+       definite height (flex in #app), so with the item's content minimum
+       disabled this auto row collapses to the space left over after map +
+       profile. The pane's box then ends mid-content and, with overflow now
+       visible, the remaining rows paint over the body's --background instead
+       of the pane's --surface — the white→gray split down the panel. */
+    min-height: auto;
   }
 
   #profile-pane {
