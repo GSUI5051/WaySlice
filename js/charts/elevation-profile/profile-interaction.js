@@ -293,6 +293,10 @@ function placeProbeAt(clientX) {
   // newest interaction wins, exactly like a desktop click unpins.
   unpinWaypoint();
   scheduleSync();
+  // The probe is the touch inspection cursor, so it wears the same map
+  // mirror as the desktop hover: the orange dot rides the track at the
+  // probe's distance (dismissal hides it again).
+  emit('hover:dist', { dist: state.probe.dist, origin: 'profile' });
 }
 
 /** Drag: move the probe along the x axis to the finger position. */
@@ -302,6 +306,7 @@ function moveProbeTo(clientX) {
   const xv = clientXtoX(clientX, rect, state.plot, state.view, state.xs);
   state.probe.dist = xToDist(xv, state.track, state.xs);
   scheduleSync();
+  emit('hover:dist', { dist: state.probe.dist, origin: 'profile' });
 }
 
 /** Dismiss the probe — a clear tap outside the chart, never a pan that
@@ -313,6 +318,7 @@ function dismissProbe() {
   hideTooltip();
   resetProbeReadout();
   scheduleSync();
+  emit('hover:dist', { dist: null, origin: 'profile' });
 }
 
 /** Canvas hover → tooltip + map dot (fine pointers); rubber-band selection
@@ -412,24 +418,23 @@ export function wirePointer() {
 
   // Probe dismissal — a clear TAP that starts AND ends outside the profile
   // chart removes the probe (the touch equivalent of the pointer leaving the
-  // chart). Taps on the fixed readout band above the chart count as inside —
-  // the band is part of the chart component, and a dismissal there would be
-  // an accident waiting for a finger aiming at the chart's bottom edge.
-  // The decision keys on the pointerdown point, so a chart pan that
-  // drifts past the chart edge (it started inside) never dismisses, and a
-  // pointer that travels further than TAP_SLOP is a drag, not a tap.
-  // Capture-phase and purely observational — no event is ever swallowed.
+  // chart). The keep-alive test is anchored to the SAME elements the
+  // tap-to-probe path is wired to below — the canvas (its box fills
+  // #profile-body) plus the two sector handles, whose enlarged hit strips
+  // deliberately reach past the chart edge — so the add and remove regions
+  // cannot drift apart. The decision keys on the pointerdown point, so a
+  // chart pan that drifts past the chart edge (it started inside) never
+  // dismisses, and a pointer that travels further than TAP_SLOP is a drag,
+  // not a tap. Capture-phase and purely observational — no event is ever
+  // swallowed.
   const outsideDowns = new Map(); // pointerId → {x, y, outside}
-  const outsideOfChart = (target) =>
-    !profileBody.contains(target) &&
-    !(state.dom.readout && state.dom.readout.contains(target));
+  const onChart = (target) =>
+    canvas.contains(target) ||
+    !!state.dom.handles.start?.contains(target) ||
+    !!state.dom.handles.end?.contains(target);
   document.addEventListener('pointerdown', (e) => {
     if (!state.probe) return;
-    outsideDowns.set(e.pointerId, {
-      x: e.clientX,
-      y: e.clientY,
-      outside: outsideOfChart(e.target),
-    });
+    outsideDowns.set(e.pointerId, { x: e.clientX, y: e.clientY, outside: !onChart(e.target) });
   }, true);
   document.addEventListener('pointerup', (e) => {
     const down = outsideDowns.get(e.pointerId);
@@ -603,7 +608,10 @@ export function wirePointer() {
     state.hoverX = null;
     state.hoverOrigin = null;
     scheduleSync();
-    emit('hover:dist', { dist: null, origin: 'profile' });
+    // A touch pointer "leaves" the instant it lifts (pointerup → pointerout →
+    // pointerleave), but the probe outlives the finger and keeps owning the
+    // map dot — only a mouse hover actually ends here.
+    if (!state.probe) emit('hover:dist', { dist: null, origin: 'profile' });
   });
   // The browser can revoke an active touch at any moment (notification shade,
   // incoming gesture); a stale pan or a half-finished pinch must not linger.
