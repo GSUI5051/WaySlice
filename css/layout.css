@@ -294,7 +294,15 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
      (#app is a flex column; only the workspace scrolls). */
   #workspace {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(240px, 44vh) auto auto;
+    /* The map row effectively runs at its floor: once a track is loaded the
+       metrics row's content pushes the base sizes past the viewport, grid
+       free space goes negative and the 44vh growth limit is never reached.
+       The floor must hold the full right-edge control stack without overlap —
+       the 12px-inset #map-fit column (4 × 34px buttons + 3 × 8px gaps =
+       172px) above Leaflet's zoom bar + attribution (~95px) needs ≥267px;
+       304px keeps ~37px of live map between them and matches the touch
+       profile module's height. */
+    grid-template-rows: minmax(304px, 44vh) auto auto;
     grid-template-areas:
       "map"
       "profile"
