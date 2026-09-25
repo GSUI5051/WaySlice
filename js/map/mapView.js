@@ -6,6 +6,13 @@
  * track points (display-only simplification), and every user interaction
  * funnels into `sectorStore`, which the profile and metrics panels also
  * subscribe to.
+ *
+ * The map is created LAZILY: until a track is parsed the pane shows only the
+ * empty-state card over the plain surface — no MapLibre instance, no tiles,
+ * no WebGL context. The first track creates the map, and the basemap loads
+ * only after the initial fit-to-track flight has finished (tiles fetched for
+ * a moving viewport would be thrown away), drawing that flight over the
+ * bare style with just the track line visible.
  */
 /* global maplibregl */
 import { sectorStore, moveBoundary, getTrackTotal, isEntireTrack } from '../sector/sectorStore.js';
@@ -20,6 +27,10 @@ import { t } from '../language/language.js';
 import { emit, on } from '../core/events.js';
 
 let map = null;
+/** The #map container — the MapLibre instance is created on first use. */
+let container = null;
+/** True once the initial basemap has been loaded (post-first-flight). */
+let basemapLoaded = false;
 let track = null;
 let rafPending = false;
 let waypointsVisible = true;
@@ -108,21 +119,33 @@ function applyMapTheme() {
 }
 
 /**
- * Creates the map, restores the saved basemap and wires sector syncing.
- * @param {HTMLElement} container
+ * Wires the map's store/event couplings. The MapLibre instance itself is
+ * NOT created here — `ensureMap` builds it when the first track arrives, so
+ * an untouched visit never requests a basemap.
+ * @param {HTMLElement} node  the #map container
  */
-export function initMap(container) {
-  // Cooperative mode on touch devices: one finger scrolls the page, two
-  // fingers pan/zoom the map. MapLibre's cooperativeGestures puts the canvas
-  // container on `touch-action: pan-x pan-y` — the same mechanism Leaflet
-  // reached through its leaflet-touch-zoom class — and shows its own banner,
-  // which css/map.css hides in favor of our .map-gesture-hint overlay.
-  // dragRotate/touchPitch stay off to keep the map flat and north-up.
+export function initMap(node) {
+  container = node;
+  sectorStore.subscribe(scheduleSectorSync);
+  on('units:changed', refreshScaleControl);
+  on('theme:changed', applyMapTheme);
+}
+
+/** @private Creates the MapLibre instance and everything bound to it.
+ * Cooperative mode on touch devices: one finger scrolls the page, two
+ * fingers pan/zoom the map. MapLibre's cooperativeGestures puts the canvas
+ * container on `touch-action: pan-x pan-y` — the same mechanism Leaflet
+ * reached through its leaflet-touch-zoom class — and shows its own banner,
+ * which css/map.css hides in favor of our .map-gesture-hint overlay.
+ * dragRotate/touchPitch stay off to keep the map flat and north-up. */
+function ensureMap() {
+  if (map) return;
   const cooperative = wantsCooperativeGestures();
   map = new maplibregl.Map({
     container,
     // Minimal runtime style; the basemap raster and the track GeoJSON
-    // sources hang off it below (official raster-source pattern).
+    // sources hang off it below (official raster-source pattern). The
+    // basemap itself joins only after the first flight — see setTrack.
     style: { version: 8, sources: {}, layers: [] },
     cooperativeGestures: cooperative,
     dragRotate: false,
@@ -135,11 +158,7 @@ export function initMap(container) {
   map.addControl(new maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'bottom-right');
   refreshScaleControl();
   armStyleGate();
-  onStyleReady(() => setSource(getSavedSource()));
 
-  sectorStore.subscribe(scheduleSectorSync);
-  on('units:changed', refreshScaleControl);
-  on('theme:changed', applyMapTheme);
   // A click anywhere on the map unpins the profile's waypoint line (a
   // waypoint marker click selects instead; marker clicks are plain DOM above
   // the canvas and never reach the map). MapLibre — unlike Leaflet — fires
@@ -176,7 +195,36 @@ export function initMap(container) {
       map.resize();
     }).observe(container);
   }
-  return map;
+}
+
+/** @private Loads the saved basemap once the initial fit-to-track flight is
+ * over. The fit itself is animated, so an immediate load would fetch tiles
+ * for a viewport that is about to move — they are held back until the
+ * camera lands, drawing the flight over the bare style. Idempotent: the
+ * moveend and the interrupt poll below can both land here, and so can a
+ * basemap picked mid-flight (whose own setSource already set the flag). */
+function loadInitialBasemap() {
+  if (basemapLoaded || !map) return;
+  setSource(getSavedSource());
+}
+
+/** @private Waits for the initial flight to end. moveend is the precise
+ * signal, but it never fires when the ease is cut short — a basemap picked
+ * mid-flight stops the camera with setStyle — so a bounded poll watching
+ * isMoving() stands in as the fallback. */
+function armBasemapAfterFlight() {
+  if (basemapLoaded || !map) return;
+  map.once('moveend', loadInitialBasemap);
+  const startedAt = performance.now();
+  const poll = setInterval(() => {
+    if (basemapLoaded) { clearInterval(poll); return; }
+    // A still-moving camera after 10 s means the flight is wedged; load
+    // anyway rather than leave the pane blank forever.
+    if (!map || !map.isMoving() || performance.now() - startedAt > 10000) {
+      clearInterval(poll);
+      loadInitialBasemap();
+    }
+  }, 250);
 }
 
 function refreshScaleControl() {
@@ -201,6 +249,9 @@ export function setSourceById(id) {
 let currentSourceId = null;
 function setSource(source) {
   if (!map) return;
+  // Any source load — the post-flight initial one or an explicit user pick —
+  // retires the first-flight hold.
+  basemapLoaded = true;
   currentSourceId = source.id;
   if (source.styleUrl) {
     // Vector basemap (Stadia Direct Access): the provider style replaces the
@@ -248,11 +299,14 @@ function addRasterLayers(source) {
 }
 
 /**
- * Loads a track onto the map: simplified display polyline + handles + fit.
+ * Loads a track onto the map: creates the map if this is the first one,
+ * hangs the simplified display polyline + handles, flies to fit and only
+ * then lets the basemap load (the flight draws over the bare style).
  * @param {import('../types.js').Track} newTrack
  */
 export function setTrack(newTrack) {
   track = newTrack;
+  ensureMap();
 
   // File-picker focus changes can briefly leave the map container without a
   // measurable size. Defer fitting until the next frame, after MapLibre can
@@ -263,7 +317,11 @@ export function setTrack(newTrack) {
     // sectorStore may have broadcast while the style was still loading; sync
     // once now so handles and the highlight reflect the current selection.
     syncSector();
-    requestAnimationFrame(() => fitTrack());
+    requestAnimationFrame(() => {
+      fitTrack();
+      if (!map.isMoving()) loadInitialBasemap();
+      else armBasemapAfterFlight();
+    });
   });
 }
 

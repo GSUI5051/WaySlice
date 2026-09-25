@@ -121,7 +121,11 @@
 
 /* Hover dot (profile ⇄ map sync) --------------------------------------------- */
 
-.hover-dot-icon { background: none; border: none; pointer-events: none; }
+/* MapLibre's vendor CSS fades every marker in and out (opacity .2s); the
+   dot mirrors the pointer and the mobile probe, so it must switch instantly
+   like Leaflet's setOpacity did — a fade leaves it semi-transparent for
+   200 ms after every hover and probe move. */
+.hover-dot-icon { background: none; border: none; pointer-events: none; transition: none; }
 
 .hover-dot {
   width: 12px;
