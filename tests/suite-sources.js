@@ -21,12 +21,16 @@ suite('basemap / catalog integrity', () => {
     assert.deepEqual(grouped, MAP_SOURCES.map((s) => s.id).sort());
   });
 
-  test('vector style sources point at the EU-hosted style endpoint', () => {
+  test('vector style sources point at their provider style endpoints', () => {
     const vector = MAP_SOURCES.filter((s) => s.styleUrl);
-    assert.deepEqual(vector.map((s) => s.id).sort(), ['StadiaSmooth', 'StadiaSmoothDark']);
-    for (const s of vector) {
+    assert.deepEqual(vector.map((s) => s.id).sort(), ['StadiaSmooth', 'StadiaSmoothDark', 'TFAtlas']);
+    for (const s of vector.filter((s) => s.id.startsWith('Stadia'))) {
       assert.truthy(s.styleUrl.startsWith('https://tiles-eu.stadiamaps.com/styles/'), `style host for ${s.id}`);
       assert.truthy(s.styleUrl.endsWith('.json'), `style file for ${s.id}`);
+    }
+    for (const s of vector.filter((s) => s.id === 'TFAtlas')) {
+      assert.truthy(s.styleUrl.startsWith('https://api.thunderforest.com/styles/'), `style host for ${s.id}`);
+      assert.truthy(s.styleUrl.includes('apikey='), `api key for ${s.id}`);
     }
   });
 

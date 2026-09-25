@@ -41,6 +41,12 @@ export const MAP_SOURCES = [
     labelKey: 'srcTFAtlas',
     group: 'street',
     url: 'https://api.thunderforest.com/atlas/{z}/{x}/{y}{r}.png?apikey=8008601e01cf4f2aaf9a8ad4a3867e4a',
+    // Vector Styles API (per thunderforest.com's MapLibre tutorial): the
+    // style JSON is self-contained — its glyphs, sprite and TileJSON all
+    // carry the apikey, and its source attribution (© Thunderforest ©
+    // OpenStreetMap contributors) reaches the attribution control on its
+    // own. Native z14 tiles with overzoom up to maxZoom.
+    styleUrl: 'https://api.thunderforest.com/styles/atlas/style.json?apikey=8008601e01cf4f2aaf9a8ad4a3867e4a',
     maxZoom: 19,
     attribution: '© Thunderforest',
   },

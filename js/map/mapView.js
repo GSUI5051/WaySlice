@@ -73,16 +73,20 @@ function onStyleReady(fn) {
 }
 
 /** Re-arms the readiness gate for the style the map is currently loading.
- * 'style.load' fires for the constructor style and after every setStyle with
- * a contentful style — but NOT for an empty one (raster basemaps hang off a
- * bare {version, sources, layers} style), so 'idle' races it as a fallback.
- * A synchronous isStyleLoaded() check cannot be trusted here: right after
- * setStyle it still reports the outgoing style as loaded. */
-function armStyleGate() {
+ * 'style.load' fires after every setStyle with a contentful style — but NOT
+ * for an empty one (raster basemaps hang off a bare {version, sources,
+ * layers} style), so for those 'idle' races it as a fallback. The race is
+ * kept strictly for the empty styles: 'idle' can fire while a contentful
+ * style is still loading (the outgoing style renders meanwhile), and a gate
+ * resolved that early lets the re-hang land on the dying style — where the
+ * arriving provider style wipes it. A synchronous isStyleLoaded() check
+ * cannot be trusted here either: right after setStyle it still reports the
+ * outgoing style as loaded. */
+function armStyleGate(contentful) {
   styleGeneration++;
   styleReady = new Promise((resolve) => {
     map.once('style.load', resolve);
-    map.once('idle', resolve);
+    if (!contentful) map.once('idle', resolve);
   });
 }
 
@@ -90,9 +94,9 @@ function armStyleGate() {
  * every custom source/layer, so style changes and track-vector re-hangs always
  * travel together. The gate is armed AFTER setStyle so it observes the new
  * style's loading state, not the previous one. */
-function switchStyle(style, fn) {
+function switchStyle(style, fn, contentful = true) {
   map.setStyle(style);
-  armStyleGate();
+  armStyleGate(contentful);
   onStyleReady(fn);
 }
 
@@ -214,7 +218,7 @@ function createMapInstance() {
   map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'bottom-right');
   refreshScaleControl();
-  armStyleGate();
+  armStyleGate(false);
 
   // A click anywhere on the map unpins the profile's waypoint line (a
   // waypoint marker click selects instead; marker clicks are plain DOM above
@@ -330,7 +334,7 @@ function setSource(source) {
       hangTrackGeometry();
       addRasterLayers(source);
       map.setMaxZoom(source.maxZoom);
-    });
+    }, false);
     return;
   }
   addRasterLayers(source);
