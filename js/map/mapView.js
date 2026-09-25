@@ -1,5 +1,5 @@
 /**
- * Map view — Leaflet integration.
+ * Map view — MapLibre GL JS integration.
  *
  * Shows the whole track, the highlighted sector, two draggable boundary
  * handles and the file's waypoints. Everything is drawn from the ORIGINAL
@@ -7,12 +7,12 @@
  * funnels into `sectorStore`, which the profile and metrics panels also
  * subscribe to.
  */
-/* global L */
+/* global maplibregl */
 import { sectorStore, moveBoundary, getTrackTotal, isEntireTrack } from '../sector/sectorStore.js';
 import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
 import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
-import { getSavedSource, createTileLayer, saveSource, MAP_SOURCES } from './sources.js';
+import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
 import { formatDistanceShort } from '../utils/format.js';
 import { getUnitSystem } from '../units/units.js';
@@ -23,21 +23,28 @@ let map = null;
 let track = null;
 let rafPending = false;
 let waypointsVisible = true;
+/** True once the GeoJSON sources/layers and markers exist. */
+let vectorReady = false;
 
 const layers = {
-  trackCasing: null,
-  trackLine: null,
-  sectorLine: null,
   startHandle: null,
   endHandle: null,
   hoverDot: null,
   waypoints: null,
 };
 
-const dragHints = { start: null, end: null };
+let dragHints = { start: null, end: null };
 const dragging = { start: false, end: false };
 let hoverHint = null;
 let scaleControl = null;
+
+/** Resolves once the runtime style is loaded — addSource/addLayer/setMaxZoom
+ * require it even for a literal style object. */
+let styleReady = null;
+function onStyleReady(fn) {
+  if (!styleReady) return fn();
+  styleReady.then(fn);
+}
 
 /** Reads a themed design token (map layer colors live in css/tokens.css). */
 function themeColor(name) {
@@ -46,10 +53,10 @@ function themeColor(name) {
 
 /** Re-styles track, sector, handle and waypoint colors after a theme flip. */
 function applyMapTheme() {
-  if (!layers.trackLine) return;
-  layers.trackCasing.setStyle({ color: themeColor('--map-track-casing') });
-  layers.trackLine.setStyle({ color: themeColor('--map-track') });
-  layers.sectorLine.setStyle({ color: themeColor('--map-sector') });
+  if (!vectorReady) return;
+  map.setPaintProperty('track-casing', 'line-color', themeColor('--map-track-casing'));
+  map.setPaintProperty('track-line', 'line-color', themeColor('--map-track'));
+  map.setPaintProperty('sector-line', 'line-color', themeColor('--map-sector'));
   for (const which of ['start', 'end']) {
     const el = layers[`${which}Handle`]?.getElement()?.querySelector('.map-handle');
     if (el) {
@@ -57,7 +64,7 @@ function applyMapTheme() {
     }
   }
   if (layers.waypoints) {
-    for (const marker of layers.waypoints.getLayers()) {
+    for (const marker of layers.waypoints) {
       const el = marker.getElement()?.querySelector('.map-waypoint');
       if (el) el.style.setProperty('--waypoint-color', themeColor('--map-waypoint'));
     }
@@ -70,41 +77,55 @@ function applyMapTheme() {
  */
 export function initMap(container) {
   // Cooperative mode on touch devices: one finger scrolls the page, two
-  // fingers pan/zoom the map. Disabling `dragging` (but keeping `touchZoom`)
-  // leaves the container with Leaflet's `leaflet-touch-zoom` class, whose
-  // `touch-action: pan-x pan-y` gives the page the single-finger swipe.
+  // fingers pan/zoom the map. MapLibre's cooperativeGestures puts the canvas
+  // container on `touch-action: pan-x pan-y` — the same mechanism Leaflet
+  // reached through its leaflet-touch-zoom class — and shows its own banner,
+  // which css/map.css hides in favor of our .map-gesture-hint overlay.
+  // dragRotate/touchPitch stay off to keep the map flat and north-up.
   const cooperative = wantsCooperativeGestures();
-  map = L.map(container, {
-    zoomControl: true,
-    worldCopyJump: true,
-    attributionControl: true,
-    dragging: !cooperative,
+  map = new maplibregl.Map({
+    container,
+    // Minimal runtime style; the basemap raster and the track GeoJSON
+    // sources hang off it below (official raster-source pattern).
+    style: { version: 8, sources: {}, layers: [] },
+    cooperativeGestures: cooperative,
+    dragRotate: false,
+    touchPitch: false,
+    attributionControl: false,
   });
-  // Zoom lives in the bottom-right corner: Leaflet inserts bottom-corner
-  // controls above the attribution (never over it), and map.css lines the
-  // bar's right edge up with the #map-fit button column.
-  map.zoomControl.setPosition('bottomright');
-  // Leaflet 1.9.4's default prefix ships an inline Ukrainian-flag SVG; keep
-  // just the text link to the library.
-  map.attributionControl.setPrefix('Leaflet');
+  // Corner stacking: attribution ends up at the very bottom edge with the
+  // zoom bar above it, mirroring the Leaflet layout.
+  map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'bottom-right');
   refreshScaleControl();
-  setSource(getSavedSource());
+  styleReady = new Promise((resolve) => {
+    if (map.isStyleLoaded()) resolve();
+    else map.once('load', resolve);
+  });
+  onStyleReady(() => setSource(getSavedSource()));
 
   sectorStore.subscribe(scheduleSectorSync);
   on('units:changed', refreshScaleControl);
   on('theme:changed', applyMapTheme);
   // A click anywhere on the map unpins the profile's waypoint line (a
-  // waypoint marker click selects instead; Leaflet marker clicks do not
-  // bubble to the map).
-  map.on('click', () => emit('waypoint:deselect'));
+  // waypoint marker click selects instead; marker clicks are plain DOM above
+  // the canvas and never reach the map). MapLibre — unlike Leaflet — fires
+  // the map click even when a layer was hit, so clicks that land on the
+  // track's hit line are excluded here and handled by onTrackClick.
+  map.on('click', (e) => {
+    const hits = vectorReady ? map.queryRenderedFeatures(e.point, { layers: ['track-hit'] }) : [];
+    if (!hits.length) emit('waypoint:deselect');
+  });
   if (cooperative) addGestureHint(container);
 
-  // Keep Leaflet in sync with responsive layout changes.
+  // Keep MapLibre in sync with responsive layout changes. (MapLibre also
+  // tracks the container itself, but the explicit resize keeps the
+  // zero-size-layout deferral in fitTrack/fitSector honest.)
   if ('ResizeObserver' in window) {
     let first = true;
     new ResizeObserver(() => {
       if (first) { first = false; return; }
-      map.invalidateSize({ animate: false });
+      map.resize();
     }).observe(container);
   }
   return map;
@@ -112,33 +133,45 @@ export function initMap(container) {
 
 function refreshScaleControl() {
   if (!map) return;
-  if (scaleControl) map.removeControl(scaleControl);
-  scaleControl = L.control.scale({ imperial: getUnitSystem() === 'imperial', metric: getUnitSystem() === 'metric', position: 'bottomleft' });
-  scaleControl.addTo(map);
+  if (!scaleControl) {
+    scaleControl = new maplibregl.ScaleControl({ unit: getUnitSystem() });
+    map.addControl(scaleControl, 'bottom-left');
+    return;
+  }
+  scaleControl.setUnit(getUnitSystem());
 }
 
 /** Switches the tile layer to the given source id and persists the choice. */
 export function setSourceById(id) {
   const source = MAP_SOURCES.find((s) => s.id === id);
   if (!source) return;
-  setSource(source);
   saveSource(id);
+  onStyleReady(() => setSource(source));
 }
 
 /** @private */
-let currentTileLayer = null;
-let currentOverlayLayer = null;
 let currentSourceId = null;
 function setSource(source) {
-  if (currentTileLayer) map.removeLayer(currentTileLayer);
-  if (currentOverlayLayer) map.removeLayer(currentOverlayLayer);
+  if (!map) return;
   currentSourceId = source.id;
-  currentTileLayer = createTileLayer(source);
-  currentTileLayer.addTo(map);
+  // Raster layers go to the BOTTOM of the style stack so they always sit
+  // under the track vectors (addLayer with beforeId).
+  const beforeId = vectorReady ? 'track-casing' : undefined;
+  if (map.getLayer('basemap-layer')) map.removeLayer('basemap-layer');
+  if (map.getLayer('basemap-overlay-layer')) map.removeLayer('basemap-overlay-layer');
+  if (map.getSource('basemap')) map.removeSource('basemap');
+  if (map.getSource('basemap-overlay')) map.removeSource('basemap-overlay');
+  map.addSource('basemap', createRasterSource(source));
+  map.addLayer({ id: 'basemap-layer', type: 'raster', source: 'basemap' }, beforeId);
   // Sources may pair their base tiles with a transparent label overlay;
-  // DOM order keeps it above the base and below the track's vector pane.
-  currentOverlayLayer = source.overlayUrl ? createTileLayer(source, source.overlayUrl) : null;
-  if (currentOverlayLayer) currentOverlayLayer.addTo(map);
+  // insertion order keeps it above the base and below the track's layers.
+  if (source.overlayUrl) {
+    map.addSource('basemap-overlay', createRasterSource(source, source.overlayUrl));
+    map.addLayer({ id: 'basemap-overlay-layer', type: 'raster', source: 'basemap-overlay' }, beforeId);
+  }
+  // Leaflet capped the MAP's zoom at the layer's maxZoom; MapLibre sources
+  // overzoom past their maxzoom instead, so the cap is applied to the map.
+  map.setMaxZoom(source.maxZoom);
 }
 
 /**
@@ -148,86 +181,116 @@ function setSource(source) {
 export function setTrack(newTrack) {
   track = newTrack;
 
-  const display = simplifyForDisplay(track.points);
-  const latlngs = display.map((p) => [p.lat, p.lon]);
-
-  if (!layers.trackLine) {
-    layers.trackCasing = L.polyline(latlngs, {
-      color: themeColor('--map-track-casing'), weight: 8, opacity: 0.9,
-      lineCap: 'round', lineJoin: 'round', interactive: false,
-    }).addTo(map);
-    layers.trackLine = L.polyline(latlngs, {
-      color: themeColor('--map-track'), weight: 4, opacity: 0.95,
-      lineCap: 'round', lineJoin: 'round',
-    }).addTo(map);
-    layers.sectorLine = L.polyline([], {
-      color: themeColor('--map-sector'), weight: 6, opacity: 1,
-      lineCap: 'round', lineJoin: 'round', interactive: false,
-    }).addTo(map);
-    layers.hoverDot = L.marker([0, 0], {
-      icon: L.divIcon({ className: 'hover-dot-icon', html: '<div class="hover-dot"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }),
-      interactive: false, zIndexOffset: 500,
-    }).addTo(map);
-    layers.hoverDot.setOpacity(0);
-
-    createHandle('start');
-    createHandle('end');
-
-    layers.trackLine.on('click', onTrackClick);
-    layers.trackLine.on('mousemove', onTrackHover);
-    layers.trackLine.on('mouseout', () => showHover(null));
-  } else {
-    layers.trackCasing.setLatLngs(latlngs);
-    layers.trackLine.setLatLngs(latlngs);
-  }
-
   // File-picker focus changes can briefly leave the map container without a
-  // measurable size. Defer fitting until the next frame, after Leaflet can
+  // measurable size. Defer fitting until the next frame, after MapLibre can
   // recalculate its viewport.
-  rebuildWaypoints();
-  requestAnimationFrame(() => fitTrack());
+  onStyleReady(() => {
+    ensureTrackLayers();
+
+    const display = simplifyForDisplay(track.points);
+    const coordinates = display.map((p) => [p.lon, p.lat]);
+    map.getSource('track').setData(
+      coordinates.length
+        ? { type: 'Feature', geometry: { type: 'LineString', coordinates } }
+        : { type: 'FeatureCollection', features: [] },
+    );
+
+    rebuildWaypoints();
+    // sectorStore may have broadcast while the style was still loading; sync
+    // once now so handles and the highlight reflect the current selection.
+    syncSector();
+    requestAnimationFrame(() => fitTrack());
+  });
 }
 
-/** @private Rebuilds the waypoint marker group from `track.waypoints`. */
+/** @private Creates the GeoJSON sources, line layers and markers once. */
+function ensureTrackLayers() {
+  if (vectorReady) return;
+  const lineLayout = { 'line-cap': 'round', 'line-join': 'round' };
+  map.addSource('track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addSource('sector', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  // Casing under line under sector, matching the Leaflet pane order. The 4px
+  // track line is far below MapLibre's touch tolerance, so an invisible
+  // widened twin carries the pointer events (Leaflet's path hit tolerance).
+  map.addLayer({
+    id: 'track-casing', type: 'line', source: 'track', layout: lineLayout,
+    paint: { 'line-color': themeColor('--map-track-casing'), 'line-width': 8, 'line-opacity': 0.9 },
+  });
+  map.addLayer({
+    id: 'track-line', type: 'line', source: 'track', layout: lineLayout,
+    paint: { 'line-color': themeColor('--map-track'), 'line-width': 4, 'line-opacity': 0.95 },
+  });
+  map.addLayer({
+    id: 'sector-line', type: 'line', source: 'sector', layout: lineLayout,
+    paint: { 'line-color': themeColor('--map-sector'), 'line-width': 6, 'line-opacity': 1 },
+  });
+  map.addLayer({
+    id: 'track-hit', type: 'line', source: 'track', layout: lineLayout,
+    paint: { 'line-color': '#000', 'line-width': 16, 'line-opacity': 0 },
+  });
+  map.on('click', 'track-hit', onTrackClick);
+  map.on('mousemove', 'track-hit', onTrackHover);
+  map.on('mouseout', 'track-hit', () => showHover(null));
+
+  createHoverDot();
+  createHandle('start');
+  createHandle('end');
+  vectorReady = true;
+}
+
+/** @private The profile-synced hover dot (hidden until a hover arrives). */
+function createHoverDot() {
+  const el = document.createElement('div');
+  el.className = 'hover-dot-icon';
+  el.innerHTML = '<div class="hover-dot"></div>';
+  el.style.zIndex = '500';
+  layers.hoverDot = new maplibregl.Marker({ element: el, anchor: 'center' })
+    .setLngLat([0, 0])
+    .addTo(map);
+  layers.hoverDot.setOpacity(0);
+}
+
+/** @private Rebuilds the waypoint markers from `track.waypoints`. */
 function rebuildWaypoints() {
   if (layers.waypoints) {
-    layers.waypoints.remove();
+    for (const marker of layers.waypoints) marker.remove();
     layers.waypoints = null;
   }
   const wpts = track?.waypoints || [];
   if (!wpts.length || !waypointsVisible) return;
   let hint = 0;
-  layers.waypoints = L.layerGroup(
-    wpts.map((w) => {
-      // Resolve the waypoint onto the track once, so pin hovers can point the
-      // elevation profile at the exact x position.
-      const near = nearestOnTrack(track, w.lat, w.lon, hint);
-      hint = near.i;
-      const marker = L.marker([w.lat, w.lon], {
-        icon: L.divIcon({
-          className: 'map-waypoint-icon',
-          html: `<div class="map-waypoint" style="--waypoint-color:${themeColor('--map-waypoint')}"></div>`,
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
-        }),
-        keyboard: false,
-        zIndexOffset: 300,
-        alt: w.name || '',
-      });
-      if (w.name) marker.bindTooltip(w.name, { direction: 'top', offset: [0, -8] });
-      marker.on('mouseover', () => emit('waypoint:hover', { dist: near.dist, name: w.name || null }));
-      marker.on('mouseout', () => emit('waypoint:hover', { dist: null }));
-      // Clicking a waypoint centers the viewport on it; panTo keeps the
-      // current zoom level untouched. The profile (wide screens only) pans
-      // its zoom window to the same waypoint and pins its line/readout
-      // until the next click anywhere.
-      marker.on('click', () => {
-        map.panTo([w.lat, w.lon]);
-        emit('waypoint:select', { dist: near.dist, name: w.name || null });
-      });
-      return marker;
-    }),
-  ).addTo(map);
+  layers.waypoints = wpts.map((w) => {
+    // Resolve the waypoint onto the track once, so pin hovers can point the
+    // elevation profile at the exact x position.
+    const near = nearestOnTrack(track, w.lat, w.lon, hint);
+    hint = near.i;
+    const el = document.createElement('div');
+    el.className = 'map-waypoint-icon';
+    el.innerHTML = `<div class="map-waypoint" style="--waypoint-color:${themeColor('--map-waypoint')}"></div>`;
+    // Name plate in place of Leaflet's bindTooltip(direction: 'top'): a
+    // self-drawn div above the pin, shown on hover via css/map.css.
+    if (w.name) {
+      const label = document.createElement('div');
+      label.className = 'map-waypoint-label';
+      label.textContent = w.name;
+      el.appendChild(label);
+    }
+    el.style.zIndex = '300';
+    const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([w.lon, w.lat])
+      .addTo(map);
+    el.addEventListener('mouseover', () => emit('waypoint:hover', { dist: near.dist, name: w.name || null }));
+    el.addEventListener('mouseout', () => emit('waypoint:hover', { dist: null }));
+    // Clicking a waypoint centers the viewport on it; panTo keeps the
+    // current zoom level untouched. The profile (wide screens only) pans
+    // its zoom window to the same waypoint and pins its line/readout
+    // until the next click anywhere.
+    el.addEventListener('click', () => {
+      map.panTo([w.lon, w.lat]);
+      emit('waypoint:select', { dist: near.dist, name: w.name || null });
+    });
+    return marker;
+  });
 }
 
 /** Shows or hides the waypoint layer (no-op before a track is loaded). */
@@ -243,17 +306,17 @@ export function setWaypointsVisible(visible) {
     return;
   }
   if (!layers.waypoints) return;
-  if (visible) layers.waypoints.addTo(map);
-  else layers.waypoints.remove();
+  if (visible) for (const marker of layers.waypoints) marker.addTo(map);
+  else for (const marker of layers.waypoints) marker.remove();
 }
 
 /** Fits the viewport to the whole track. */
 export function fitTrack() {
-  if (!track || !map || !map._container || !map._container.isConnected) return;
+  if (!track || !map || !map.getContainer().isConnected) return;
   try {
-    map.invalidateSize({ animate: false });
+    map.resize();
     const b = track.bounds;
-    map.fitBounds([[b.minLat, b.minLon], [b.maxLat, b.maxLon]], { padding: [28, 28] });
+    map.fitBounds([[b.minLon, b.minLat], [b.maxLon, b.maxLat]], { padding: 28 });
   } catch (error) {
     // A transient zero-size layout should not invalidate an already parsed
     // track; a later resize or explicit fit will retry.
@@ -268,9 +331,9 @@ export function fitTrack() {
  * Same behavior as fitTrack, scoped to the sector.
  */
 export function fitSector() {
-  if (!track || !map || !map._container || !map._container.isConnected) return;
+  if (!track || !map || !map.getContainer().isConnected) return;
   try {
-    map.invalidateSize({ animate: false });
+    map.resize();
     const { start, end } = sectorStore.get();
     let minLat = Infinity;
     let minLon = Infinity;
@@ -301,7 +364,7 @@ export function fitSector() {
         if (p.lon > maxLon) maxLon = p.lon;
       }
     }
-    map.fitBounds([[minLat, minLon], [maxLat, maxLon]], { padding: [28, 28] });
+    map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 28 });
   } catch (error) {
     console.warn('[WaySlice] map fit deferred:', error);
   }
@@ -318,50 +381,75 @@ export function showHover(dist, origin = 'map') {
   }
   const pt = pointAtDistance(track, dist);
   if (!pt) return;
-  layers.hoverDot.setLatLng([pt.lat, pt.lon]).setOpacity(1);
+  layers.hoverDot.setLngLat([pt.lon, pt.lat]).setOpacity(1);
   if (origin !== 'map') return;
   emit('hover:dist', { dist, origin });
+}
+
+/**
+ * Leaflet's autoPanPadding [40, 40]: while a handle is being dragged, nudge
+ * the viewport back whenever the pointer closes on a container edge.
+ * @param {PointerEvent|MouseEvent} [originalEvent]
+ * @param {HTMLElement} el  the dragged marker's element (fallback anchor)
+ * @private
+ */
+const AUTOPAN_PADDING = 40;
+function autoPanToward(originalEvent, el) {
+  let px;
+  let py;
+  if (originalEvent && Number.isFinite(originalEvent.clientX)) {
+    px = originalEvent.clientX;
+    py = originalEvent.clientY;
+  } else {
+    const r = el.getBoundingClientRect();
+    px = r.left + r.width / 2;
+    py = r.top + r.height / 2;
+  }
+  const box = map.getContainer().getBoundingClientRect();
+  const dx = px < box.left + AUTOPAN_PADDING
+    ? px - (box.left + AUTOPAN_PADDING)
+    : px > box.right - AUTOPAN_PADDING ? px - (box.right - AUTOPAN_PADDING) : 0;
+  const dy = py < box.top + AUTOPAN_PADDING
+    ? py - (box.top + AUTOPAN_PADDING)
+    : py > box.bottom - AUTOPAN_PADDING ? py - (box.bottom - AUTOPAN_PADDING) : 0;
+  if (dx || dy) map.panBy([dx, dy], { animate: false });
 }
 
 /** @private Creates one draggable sector boundary handle. */
 function createHandle(which) {
   const isStart = which === 'start';
   const color = themeColor(isStart ? '--map-handle-start' : '--map-handle-end');
-  const marker = L.marker([0, 0], {
+  const el = document.createElement('div');
+  el.className = `map-handle-icon map-handle-${which}`;
+  el.innerHTML = `<div class="map-handle" style="--handle-color:${color}"><span class="map-handle-grip"></span></div>`;
+  el.tabIndex = 0;
+  el.setAttribute('role', 'slider');
+  // The ARIA slider keyboard below is the ONLY keyboard behavior: binding
+  // first and stopping the event in capture phase keeps MapLibre's built-in
+  // draggable-marker arrows (1px/10px screen steps) out of the way.
+  el.addEventListener('keydown', (e) => onHandleKey(which, e), true);
+  const marker = new maplibregl.Marker({
+    element: el,
+    anchor: 'center',
     draggable: true,
-    autoPan: true,
-    autoPanPadding: [40, 40],
-    zIndexOffset: 1000,
-    icon: L.divIcon({
-      className: `map-handle-icon map-handle-${which}`,
-      html: `<div class="map-handle" style="--handle-color:${color}"><span class="map-handle-grip"></span></div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 15],
-    }),
-    keyboard: false,
-  }).addTo(map);
+  }).setLngLat([0, 0]).addTo(map);
+  el.style.zIndex = '1000';
 
   marker.on('dragstart', () => {
     dragging[which] = true;
     dragHints[which] = sectorPoint(which)?.i ?? null;
   });
-  marker.on('drag', () => {
-    const { lat, lng } = marker.getLatLng();
+  marker.on('drag', (e) => {
+    const { lat, lng } = marker.getLngLat();
     const near = nearestOnTrack(track, lat, lng, dragHints[which]);
     dragHints[which] = near.i;
     moveBoundary(which, near.dist);
+    autoPanToward(e.originalEvent, el);
   });
   marker.on('dragend', () => {
     dragging[which] = false;
     const pt = sectorPoint(which);
-    if (pt) marker.setLatLng([pt.lat, pt.lon]);
-  });
-  marker.on('add', () => {
-    const el = marker.getElement();
-    if (!el) return;
-    el.tabIndex = 0;
-    el.setAttribute('role', 'slider');
-    el.addEventListener('keydown', (e) => onHandleKey(which, e));
+    if (pt) marker.setLngLat([pt.lon, pt.lat]);
   });
 
   layers[`${which}Handle`] = marker;
@@ -374,10 +462,11 @@ function onHandleKey(which, e) {
   let delta = 0;
   if (e.key === 'ArrowRight' || e.key === 'ArrowUp') delta = step;
   else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') delta = -step;
-  else if (e.key === 'Home') { moveBoundary(which, which === 'start' ? 0 : sectorStore.get().start); e.preventDefault(); return; }
-  else if (e.key === 'End') { moveBoundary(which, which === 'end' ? getTrackTotal() : sectorStore.get().end); e.preventDefault(); return; }
+  else if (e.key === 'Home') { moveBoundary(which, which === 'start' ? 0 : sectorStore.get().start); e.preventDefault(); e.stopImmediatePropagation(); return; }
+  else if (e.key === 'End') { moveBoundary(which, which === 'end' ? getTrackTotal() : sectorStore.get().end); e.preventDefault(); e.stopImmediatePropagation(); return; }
   else return;
   e.preventDefault();
+  e.stopImmediatePropagation();
   const { start, end } = sectorStore.get();
   moveBoundary(which, (which === 'start' ? start : end) + delta);
 }
@@ -385,7 +474,7 @@ function onHandleKey(which, e) {
 /** @private Clicking the track moves the nearest boundary to the click. */
 function onTrackClick(e) {
   if (!track) return;
-  const near = nearestOnTrack(track, e.latlng.lat, e.latlng.lng, null);
+  const near = nearestOnTrack(track, e.lngLat.lat, e.lngLat.lng, null);
   const { start, end } = sectorStore.get();
   const which = Math.abs(near.dist - start) <= Math.abs(end - near.dist) ? 'start' : 'end';
   moveBoundary(which, near.dist);
@@ -394,7 +483,7 @@ function onTrackClick(e) {
 /** @private Track hover → hover dot + profile crosshair. */
 function onTrackHover(e) {
   if (!track) return;
-  const near = nearestOnTrack(track, e.latlng.lat, e.latlng.lng, hoverHint);
+  const near = nearestOnTrack(track, e.lngLat.lat, e.lngLat.lng, hoverHint);
   hoverHint = near.i;
   showHover(near.dist, 'map');
 }
@@ -418,7 +507,7 @@ function scheduleSectorSync() {
 
 /** @private Redraws the sector highlight + handle positions + ARIA state. */
 function syncSector() {
-  if (!track || !layers.sectorLine) return;
+  if (!track || !vectorReady) return;
   const { start, end } = sectorStore.get();
 
   // Sector highlight: original points inside the range, stride-thinned for
@@ -431,8 +520,8 @@ function syncSector() {
     slice.push(s);
     for (let k = s.i + 1; k <= e.i; k++) slice.push(pts[k]);
     if (e.i > s.i || e.dist > s.dist) slice.push(e);
-    const latlngs = thinStride(slice).map((p) => [p.lat, p.lon]);
-    layers.sectorLine.setLatLngs(latlngs);
+    const coordinates = thinStride(slice).map((p) => [p.lon, p.lat]);
+    map.getSource('sector').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
   }
 
   for (const which of ['start', 'end']) {
@@ -440,7 +529,7 @@ function syncSector() {
     if (!marker) continue;
     const pt = which === 'start' ? s : e;
     if (!pt) continue;
-    if (!dragging[which]) marker.setLatLng([pt.lat, pt.lon]);
+    if (!dragging[which]) marker.setLngLat([pt.lon, pt.lat]);
     const el = marker.getElement();
     if (el) {
       const dist = which === 'start' ? start : end;

@@ -270,7 +270,7 @@ js/
   geo/                  haversine + distanza 3D, interpolazione, semplificazione
   metrics/              metriche del tratto (funzioni pure, testabili in modo indipendente)
   sector/               stato di selezione del tratto (unica fonte di verità)
-  map/                  vista Leaflet, catalogo mappe di base, maniglie del tratto
+  map/                  vista MapLibre, catalogo mappe di base, maniglie del tratto
   charts/               grafici su canvas (profilo altimetrico, analisi a due variabili)
   theme/                sistema / chiaro / scuro con sincronizzazione live dell'OS
   language/             nucleo lingua + pacchetti lang-*.js + modello
@@ -390,7 +390,7 @@ Le traduzioni esistenti ([English](README.md), [日本語](README.ja.md), [한�
 Distribuito sotto [licenza MIT](LICENSE). Libero per uso commerciale e privato — per favore mantieni
 intatte le attribuzioni dei fornitori di mappe:
 
-- [Leaflet](https://leafletjs.com) (BSD-2-Clause)
+- [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
 - Mappe di base di [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com)

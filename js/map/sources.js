@@ -8,12 +8,17 @@
  * @property {string} id
  * @property {string} labelKey      i18n key for the display name
  * @property {'street'|'outdoor'|'satellite'|'minimal'} group
- * @property {string} url           Leaflet tile URL template
+ * @property {string} url           tile URL template ({z}/{x}/{y}, plus the
+ *                                  Leaflet-era {s}/{r} markers where a provider
+ *                                  offers them)
  * @property {string} [overlayUrl]  transparent label overlay stacked on the base
  * @property {number} maxZoom
  * @property {string} attribution
  * @property {string[]} [subdomains]
- * @property {boolean} [crossOrigin] opt out (false) for providers without CORS headers
+ * @property {boolean} [crossOrigin] not supported by MapLibre: raster tiles are
+ *                                   uploaded as WebGL textures, which the browser
+ *                                   security model restricts to CORS-enabled
+ *                                   providers, and there is no opt-out
  * @property {string} [hintKey]     optional i18n key for a hint line
  */
 
@@ -145,17 +150,37 @@ export function groupedSources() {
 }
 
 /**
- * Creates a Leaflet tile layer for a source. Sources with a label overlay
- * get a second call with `source.overlayUrl` — same options, stacked above
- * the base inside the tile pane.
+ * Converts a catalog template into a MapLibre raster source definition.
+ * Sources with a label overlay get a second call with `source.overlayUrl`.
+ *
+ * MapLibre expands neither {s} nor {r}: subdomains become parallel complete
+ * URLs in the `tiles` array, and {r} becomes '@2x' on high-DPI screens
+ * (devicePixelRatio ≥ 2 — the same condition under which Leaflet substituted
+ * it) or an empty string elsewhere. Both variants are 256 logical px per
+ * tile; the @2x files simply carry double density, which keeps the Thunderforest
+ * basemaps crisp on retina screens exactly like before.
+ *
+ * Esri's {z}/{y}/{x} axis order is provider-defined and kept as-is; MapLibre
+ * substitutes by name.
+ *
  * @param {MapSource} source
  * @param {string} [url]  defaults to the base `source.url`
+ * @param {boolean} [retina]  defaults to the live devicePixelRatio
+ * @returns {{type:'raster', tiles:string[], tileSize:number, maxzoom:number, attribution:string}}
  */
-export function createTileLayer(source, url = source.url) {
-  return L.tileLayer(url, {
-    maxZoom: source.maxZoom,
+export function createRasterSource(source, url = source.url, retina = (window.devicePixelRatio || 1) >= 2) {
+  const template = url.replace('{r}', retina ? '@2x' : '');
+  const subdomains = Array.isArray(source.subdomains)
+    ? source.subdomains
+    : String(source.subdomains || 'abc').split('');
+  const tiles = template.includes('{s}')
+    ? subdomains.map((s) => template.replace('{s}', s))
+    : [template];
+  return {
+    type: 'raster',
+    tiles,
+    tileSize: 256,
+    maxzoom: source.maxZoom,
     attribution: source.attribution,
-    subdomains: source.subdomains || 'abc',
-    crossOrigin: source.crossOrigin !== false,
-  });
+  };
 }

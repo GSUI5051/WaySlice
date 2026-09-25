@@ -183,7 +183,7 @@ js/
   geo/                  ハバーサイン + 3D 距離、補間、簡略化
   metrics/              セクター指標（純関数、独立してテスト可能）
   sector/               セクター選択状態（唯一の情報源）
-  map/                  Leaflet ビュー、ベースマップカタログ、セクターハンドル
+  map/                  MapLibre ビュー、ベースマップカタログ、セクターハンドル
   charts/               Canvas チャート（標高プロファイル、2変数分析）
   theme/                システム / ライト / ダーク、OS にリアルタイム追従
   language/             言語コア + lang-*.js 言語パック + テンプレート
@@ -268,7 +268,7 @@ WaySlice の翻訳システムは意図的に依存関係のない設計です�
 
 [MIT ライセンス](LICENSE)で公開されています。商用・私用を問わず自由に利用できます。地図プロバイダーの帰属表示はそのまま維持してください:
 
-- [Leaflet](https://leafletjs.com)（BSD-2-Clause）
+- [MapLibre GL JS](https://maplibre.org)（BSD-3-Clause）
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) コントリビューター（ODbL）
 - [OpenTopoMap](https://opentopomap.org)（CC-BY-SA）、[CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
 - [Thunderforest](https://www.thunderforest.com)、[Mapy.com](https://mapy.com)、[Stadia Maps](https://stadiamaps.com)、[Esri World Imagery](https://www.esri.com) ベースマップ

@@ -3,7 +3,7 @@
  * Boots theme + language, initializes map / profile / metrics / upload and
  * wires the header controls. All heavy lifting lives in dedicated modules.
  */
-/* global L */
+/* global maplibregl */
 import * as theme from './theme/theme.js';
 import * as language from './language/language.js';
 import * as units from './units/units.js';
@@ -32,9 +32,9 @@ import { formatDistance, formatInt } from './utils/format.js';
 boot();
 
 async function boot() {
-  if (typeof L === 'undefined') {
+  if (typeof maplibregl === 'undefined') {
     document.body.innerHTML =
-      '<p style="padding:2rem;font-family:system-ui">Leaflet failed to load. Serve the app over HTTP (see README).</p>';
+      '<p style="padding:2rem;font-family:system-ui">MapLibre failed to load. Serve the app over HTTP (see README).</p>';
     return;
   }
 

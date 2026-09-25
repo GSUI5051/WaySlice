@@ -270,7 +270,7 @@ js/
   geo/                  Haversine + 3D-Distanz, Interpolation, Vereinfachung
   metrics/              Abschnittsmesswerte (reine Funktionen, unabhängig testbar)
   sector/               Abschnittsauswahl-Zustand (einzige Quelle der Wahrheit)
-  map/                  Leaflet-Ansicht, Basiskartenkatalog, Abschnittsgriffe
+  map/                  MapLibre-Ansicht, Basiskartenkatalog, Abschnittsgriffe
   charts/               Canvas-Diagramme (Höhenprofil, Zweivariablen-Analyse)
   theme/                System / hell / dunkel mit Live-Sync zum Betriebssystem
   language/             Sprachkern + lang-*.js-Pakete + Vorlage
@@ -390,7 +390,7 @@ Die vorhandenen Übersetzungen ([English](README.md), [日本語](README.ja.md),
 Veröffentlicht unter der [MIT-Lizenz](LICENSE). Frei für kommerzielle und private Nutzung — bitte lass
 die Zuschreibungen der Kartenanbieter unangetastet:
 
-- [Leaflet](https://leafletjs.com) (BSD-2-Clause)
+- [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
 - Basiskarten von [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com)

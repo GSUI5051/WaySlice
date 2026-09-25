@@ -273,7 +273,7 @@ js/
   geo/                  haversine + distance 3D, interpolation, simplification
   metrics/              métriques de secteur (fonctions pures, testables indépendamment)
   sector/               état de sélection du secteur (source de vérité unique)
-  map/                  vue Leaflet, catalogue de fonds de carte, poignées de secteur
+  map/                  vue MapLibre, catalogue de fonds de carte, poignées de secteur
   charts/               graphiques canvas (profil altimétrique, analyse à deux variables)
   theme/                système / clair / sombre avec synchronisation live de l'OS
   language/             noyau de langue + packs lang-*.js + modèle
@@ -397,7 +397,7 @@ modèles. Pour en ajouter une :
 Publié sous [licence MIT](LICENSE). Libre d'usage commercial et privé — merci de laisser intactes
 les attributions des fournisseurs de cartes :
 
-- [Leaflet](https://leafletjs.com) (BSD-2-Clause)
+- [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
 - Fonds de carte [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com)

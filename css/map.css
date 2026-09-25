@@ -1,15 +1,19 @@
 /* ==========================================================================
-   Leaflet theming — controls, attribution and custom markers must follow
+   MapLibre GL theming — controls, attribution and custom markers must follow
    the application theme. Map TILES stay provider-styled on purpose; the
    basemap choice is independent from the light/dark appearance.
    ========================================================================== */
 
-.leaflet-container {
+.maplibregl-map {
   font: inherit;
   background: var(--surface-muted);
 }
 
-.leaflet-control-zoom {
+/* MapLibre's built-in cooperative-gesture banner duplicates the app's own
+   .map-gesture-hint overlay (js/map/gestures.js) — keep only the latter. */
+.maplibregl-cooperative-gesture-screen { display: none; }
+
+.maplibregl-ctrl-group {
   border: 1px solid var(--border) !important;
   border-radius: var(--radius-m) !important;
   overflow: hidden;
@@ -17,24 +21,42 @@
 }
 
 /* The zoom bar's right edge lines up with the #map-fit button column above
-   (both 12px off the pane edge); Leaflet's default margin is 10px. */
-.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+   (both 12px off the pane edge); MapLibre's default margin is 10px. */
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
   margin-inline-end: 12px;
 }
 
-.leaflet-control-zoom a {
-  background: var(--surface-elevated) !important;
-  color: var(--foreground) !important;
-  border-block-end: 1px solid var(--border) !important;
+.maplibregl-ctrl-group button {
   width: 32px !important;
   height: 32px !important;
-  line-height: 30px !important;
+  background-color: var(--surface-elevated) !important;
+  color: var(--foreground) !important;
 }
 
-.leaflet-control-zoom a:last-child { border-block-end: none !important; }
-.leaflet-control-zoom a:hover { background: var(--surface-hover) !important; }
+.maplibregl-ctrl-group button + button {
+  border-block-start: 1px solid var(--border) !important;
+}
 
-.leaflet-control-attribution {
+.maplibregl-ctrl-group button:hover { background-color: var(--surface-hover) !important; }
+
+/* MapLibre's zoom glyphs are hard-coded SVG fills (with a prefers-color-scheme
+   swap that cannot follow the app theme) — re-route them through a mask so
+   they take the themed `color`. Same paths as upstream. */
+.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon {
+  background-image: none;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 8.5c-.75 0-1.5.75-1.5 1.5v3h-3c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h3v3c0 .75.75 1.5 1.5 1.5S16 19.75 16 19v-3h3c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13h-3v-3c0-.75-.75-1.5-1.5-1.5'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 8.5c-.75 0-1.5.75-1.5 1.5v3h-3c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h3v3c0 .75.75 1.5 1.5 1.5S16 19.75 16 19v-3h3c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13h-3v-3c0-.75-.75-1.5-1.5-1.5'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
+}
+
+.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon {
+  background-image: none;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M10 13c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h9c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13z'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M10 13c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h9c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13z'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
+}
+
+.maplibregl-ctrl-attrib {
   background: color-mix(in srgb, var(--surface-elevated) 86%, transparent) !important;
   color: var(--foreground-faint) !important;
   font-size: 10.5px !important;
@@ -42,22 +64,22 @@
   border-start-start-radius: var(--radius-s);
 }
 
-.leaflet-control-attribution a { color: var(--foreground-muted) !important; }
+.maplibregl-ctrl-attrib a { color: var(--foreground-muted) !important; }
 
-.leaflet-control-scale-line {
+.maplibregl-ctrl-scale {
   background: color-mix(in srgb, var(--surface-elevated) 80%, transparent) !important;
   border-color: var(--border-strong) !important;
   color: var(--foreground-muted) !important;
 }
 
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
-  background: var(--surface-elevated);
-  color: var(--foreground);
-  box-shadow: var(--shadow-1);
+/* No track, no map chrome: while the state overlay is up the map area shows
+   only the state card. (components.css carries the same rule keyed on the
+   old .leaflet-* classes; this is the MapLibre counterpart.) Attribution
+   stays — tiles render beneath it and the providers require the credit. */
+#map-pane:has(#overlay-state:not([hidden])) .maplibregl-ctrl-group,
+#map-pane:has(#overlay-state:not([hidden])) .maplibregl-ctrl-scale {
+  display: none;
 }
-
-.leaflet-popup-content { margin: 10px 14px; font: inherit; }
 
 /* Sector boundary handles ---------------------------------------------------- */
 
@@ -92,14 +114,14 @@
   background: rgba(255, 255, 255, 0.9);
 }
 
-.leaflet-marker-icon.map-handle-icon:focus-visible {
+.map-handle-icon:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
 /* Hover dot (profile ⇄ map sync) --------------------------------------------- */
 
-.hover-dot-icon { background: none; border: none; }
+.hover-dot-icon { background: none; border: none; pointer-events: none; }
 
 .hover-dot {
   width: 12px;
@@ -123,11 +145,49 @@
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Enlarged invisible hit area for touch, so the tooltip is reachable. */
+/* Enlarged invisible hit area for touch, so the name plate is reachable. */
 .map-waypoint::after {
   content: "";
   position: absolute;
   inset: -12px;
+}
+
+/* Name plate for named waypoints (in place of Leaflet's bindTooltip
+   direction: top, offset [0, -8]): self-drawn div above the pin, shown while
+   the pin is hovered; light-on-dark styling follows the old tooltip look. */
+.map-waypoint-label {
+  display: none;
+  position: absolute;
+  inset-block-end: calc(50% + 8px);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 8px;
+  background: #fff;
+  border: 1px solid #fff;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  color: #222;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+}
+
+.map-waypoint-icon:hover .map-waypoint-label { display: block; }
+
+/* Arrow pointing at the pin, like the old .leaflet-tooltip-top caret. */
+.map-waypoint-label::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-block-start-color: #fff;
 }
 
 /* Cooperative-gestures hint (touch devices): one finger scrolls the page,

@@ -252,7 +252,7 @@ js/
   geo/                  haversine + 3D distance, interpolation, simplification
   metrics/              sector metrics (pure functions, independently testable)
   sector/               sector selection state (single source of truth)
-  map/                  Leaflet view, basemap catalog, sector handles
+  map/                  MapLibre view, basemap catalog, sector handles
   charts/               canvas charts (elevation profile, dual-variable analysis)
   theme/                system / light / dark with live OS sync
   language/             language core + lang-*.js packs + template
@@ -371,7 +371,7 @@ The existing translations ([日本語](README.ja.md), [한국어](README.ko.md),
 Released under the [MIT License](LICENSE). Free for commercial and private use — please keep
 the map providers' attributions intact:
 
-- [Leaflet](https://leafletjs.com) (BSD-2-Clause)
+- [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
 - [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com) basemaps

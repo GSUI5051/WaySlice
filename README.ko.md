@@ -183,7 +183,7 @@ js/
   geo/                  하버사인 + 3D 거리, 보간, 단순화
   metrics/              구간 지표(순수 함수, 독립 테스트 가능)
   sector/               구간 선택 상태(단일 데이터 소스)
-  map/                  Leaflet 뷰, 베이스맵 카탈로그, 구간 핸들
+  map/                  MapLibre 뷰, 베이스맵 카탈로그, 구간 핸들
   charts/               Canvas 차트(고도 프로필, 이변량 분석)
   theme/                시스템 / 라이트 / 다크 테마, OS에 실시간 동기화
   language/             언어 코어 + lang-*.js 언어 팩 + 템플릿
@@ -268,7 +268,7 @@ vendor/fit-parser/      벤더링된 fit-parser 툴킷(FIT 디코딩, MIT) + buf
 
 [MIT 라이선스](LICENSE)로 배포됩니다. 상업적·개인적 사용 모두 자유입니다 — 지도 제공자의 귀속 표기는 유지해 주세요:
 
-- [Leaflet](https://leafletjs.com) (BSD-2-Clause)
+- [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) 기여자 (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
 - [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com) 베이스맵
