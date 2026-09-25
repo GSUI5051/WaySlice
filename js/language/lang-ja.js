@@ -107,6 +107,7 @@ const lang_ja = {
   srcTFOutdoor: 'Thunderforest アウトドア',
   srcMapyOutdoor: 'Mapy アウトドア',
   srcEsriImagery: 'Esri 衛星画像',
+  srcMapyAerial: 'Mapy 航空写真',
   srcStadiaSmooth: 'Stadia スムース',
   srcStadiaSmoothDark: 'Stadia スムースダーク',
   srcStadiaSmoothDarkHint: 'ダークスタイルの地図',

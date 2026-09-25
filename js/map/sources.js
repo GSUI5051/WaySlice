@@ -77,6 +77,14 @@ export const MAP_SOURCES = [
     attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics',
   },
   {
+    id: 'MapyAerial',
+    labelKey: 'srcMapyAerial',
+    group: 'satellite',
+    url: 'https://api.mapy.com/v1/maptiles/aerial/256/{z}/{x}/{y}?apikey=ZmLnzZY7g5dYIIPshyx5-anT4M2WPQYWKQd_Cmy8icE',
+    maxZoom: 19,
+    attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
+  },
+  {
     id: 'StadiaSmooth',
     labelKey: 'srcStadiaSmooth',
     group: 'minimal',

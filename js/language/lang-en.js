@@ -110,6 +110,7 @@ const lang_en = {
   srcTFOutdoor: 'Thunderforest Outdoor',
   srcMapyOutdoor: 'Mapy Outdoor',
   srcEsriImagery: 'Esri World Imagery',
+  srcMapyAerial: 'Mapy Aerial',
   srcStadiaSmooth: 'Stadia Smooth',
   srcStadiaSmoothDark: 'Stadia Smooth Dark',
   srcStadiaSmoothDarkHint: 'Dark-styled map',

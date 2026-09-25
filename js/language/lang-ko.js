@@ -107,6 +107,7 @@ const lang_ko = {
   srcTFOutdoor: 'Thunderforest 아웃도어',
   srcMapyOutdoor: 'Mapy 아웃도어',
   srcEsriImagery: 'Esri 위성 영상',
+  srcMapyAerial: 'Mapy 항공 사진',
   srcStadiaSmooth: 'Stadia 스무스',
   srcStadiaSmoothDark: 'Stadia 스무스 다크',
   srcStadiaSmoothDarkHint: '다크 스타일 지도',
