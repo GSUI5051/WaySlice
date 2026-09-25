@@ -9,10 +9,13 @@
  *
  * The map is created LAZILY: until a track is parsed the pane shows only the
  * empty-state card over the plain surface — no MapLibre instance, no tiles,
- * no WebGL context. The first track creates the map, and the initial fit is
- * a JUMP, not a flight (both on the first track and on every re-import), so
- * the basemap loads immediately after the camera lands on the fitted view.
- * Explicit fit commands (zoom-to-track / zoom-to-sector buttons) still fly.
+ * no WebGL context. The LIBRARY is lazy too (lfmaps.fr's Core Web Vitals
+ * tip): its ~1.1MB of vendor JS and CSS download only once a track file
+ * starts loading, via preloadMapLibre's dynamic import. The first track
+ * creates the map, and the initial fit is a JUMP, not a flight (both on the
+ * first track and on every re-import), so the basemap loads immediately
+ * after the camera lands on the fitted view. Explicit fit commands
+ * (zoom-to-track / zoom-to-sector buttons) still fly.
  */
 /* global maplibregl */
 import { sectorStore, moveBoundary, getTrackTotal, isEntireTrack } from '../sector/sectorStore.js';
@@ -31,6 +34,10 @@ let map = null;
 let container = null;
 /** True once the initial basemap has been loaded (post-first-flight). */
 let basemapLoaded = false;
+/** Shared library download + in-flight map creation (see preloadMapLibre /
+ * ensureMap). */
+let maplibrePromise = null;
+let mapCreating = null;
 let track = null;
 let rafPending = false;
 let waypointsVisible = true;
@@ -131,15 +138,65 @@ export function initMap(node) {
   on('theme:changed', applyMapTheme);
 }
 
-/** @private Creates the MapLibre instance and everything bound to it.
- * Cooperative mode on touch devices: one finger scrolls the page, two
- * fingers pan/zoom the map. MapLibre's cooperativeGestures puts the canvas
- * container on `touch-action: pan-x pan-y` — the same mechanism Leaflet
- * reached through its leaflet-touch-zoom class — and shows its own banner,
- * which css/map.css hides in favor of our .map-gesture-hint overlay.
- * dragRotate/touchPitch stay off to keep the map flat and north-up. */
+/** Starts the MapLibre library download at most once and returns its
+ * readiness promise — lfmaps.fr's lazy-load tip for Core Web Vitals: the
+ * ~1.1MB of vendor JS plus its CSS only hit the network once a track file
+ * starts loading, never during the initial page paint. The vendored
+ * maplibre-global.mjs shim mounts the namespace as window.maplibregl, so
+ * the rest of the module keeps using the global. The promise resets on
+ * failure so a later attempt can retry. */
+export function preloadMapLibre() {
+  if (!maplibrePromise) {
+    maplibrePromise = Promise.all([
+      import('../../vendor/maplibre/maplibre-global.mjs'),
+      loadMapLibreCss(),
+    ]).catch((error) => {
+      maplibrePromise = null;
+      emit('maplibre:error', { error });
+      throw error;
+    });
+  }
+  return maplibrePromise;
+}
+
+/** @private Injects the vendor MapLibre stylesheet on first use — controls,
+ * attribution and markers are unstyled without it. The link goes BEFORE the
+ * app's own stylesheets, mirroring the static <link> order this replaced:
+ * css/map.css overrides several same-specificity vendor rules (the marker
+ * fade, the map font, the cooperative-gesture banner) and only wins while
+ * it comes later in the cascade. Resolves on load; a load ERROR still
+ * resolves (default control styling is survivable) because the JS import
+ * failure is the one worth reporting. */
+function loadMapLibreCss() {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('../../vendor/maplibre/maplibre-gl.css', import.meta.url).href;
+  const firstCss = document.head.querySelector('link[rel="stylesheet"]');
+  if (firstCss) document.head.insertBefore(link, firstCss);
+  else document.head.appendChild(link);
+  return new Promise((resolve) => {
+    link.onload = resolve;
+    link.onerror = resolve;
+  });
+}
+
+/** @private Creates the MapLibre instance and everything bound to it once
+ * the lazily loaded library is ready (see ensureMap). Cooperative mode on
+ * touch devices: one finger scrolls the page, two fingers pan/zoom the map.
+ * MapLibre's cooperativeGestures puts the canvas container on `touch-action:
+ * pan-x pan-y` — the same mechanism Leaflet reached through its
+ * leaflet-touch-zoom class — and shows its own banner, which css/map.css
+ * hides in favor of our .map-gesture-hint overlay. dragRotate/touchPitch
+ * stay off to keep the map flat and north-up. */
 function ensureMap() {
-  if (map) return;
+  if (map || mapCreating) return mapCreating;
+  mapCreating = preloadMapLibre().then(createMapInstance);
+  return mapCreating;
+}
+
+/** @private The library-dependent half of ensureMap — everything that needs
+ * window.maplibregl to exist. */
+function createMapInstance() {
   const cooperative = wantsCooperativeGestures();
   map = new maplibregl.Map({
     container,
@@ -299,35 +356,39 @@ function addRasterLayers(source) {
 }
 
 /**
- * Loads a track onto the map: creates the map if this is the first one,
- * hangs the simplified display polyline + handles and jumps to fit (the
- * initial fit is NOT animated, on the first track and on every re-import
- * alike); the basemap then loads immediately — there is no flight left to
- * wait for.
+ * Loads a track onto the map: creates the map if this is the first one
+ * (awaiting the lazily loaded library), hangs the simplified display
+ * polyline + handles and jumps to fit (the initial fit is NOT animated, on
+ * the first track and on every re-import alike); the basemap then loads
+ * immediately — there is no flight left to wait for.
  * @param {import('../types.js').Track} newTrack
  */
 export function setTrack(newTrack) {
   track = newTrack;
-  ensureMap();
-
-  // File-picker focus changes can briefly leave the map container without a
-  // measurable size. Defer fitting until the next frame, after MapLibre can
-  // recalculate its viewport.
-  onStyleReady(() => {
-    hangTrackGeometry();
-    rebuildWaypoints();
-    // sectorStore may have broadcast while the style was still loading; sync
-    // once now so handles and the highlight reflect the current selection.
-    syncSector();
-    requestAnimationFrame(() => {
-      fitTrack({ animate: false });
-      // The jump lands synchronously, so this loads the basemap right away;
-      // armBasemapAfterFlight only matters for the animated fallback fit
-      // (cameraForBounds returning null) or a mid-flight user pick.
-      if (!map.isMoving()) loadInitialBasemap();
-      else armBasemapAfterFlight();
+  // The library import usually started when the file began loading, so the
+  // download has been racing the parser; on the happy path this then() is
+  // already resolved. Every later import finds map set and resolves at once.
+  ensureMap().then(() => {
+    // File-picker focus changes can briefly leave the map container without
+    // a measurable size. Defer fitting until the next frame, after MapLibre
+    // can recalculate its viewport.
+    onStyleReady(() => {
+      hangTrackGeometry();
+      rebuildWaypoints();
+      // sectorStore may have broadcast while the style was still loading;
+      // sync once now so handles and the highlight reflect the selection.
+      syncSector();
+      requestAnimationFrame(() => {
+        fitTrack({ animate: false });
+        // The jump lands synchronously, so this loads the basemap right
+        // away; armBasemapAfterFlight only matters for the animated
+        // fallback fit (cameraForBounds returning null) or a mid-flight
+        // user pick.
+        if (!map.isMoving()) loadInitialBasemap();
+        else armBasemapAfterFlight();
+      });
     });
-  });
+  }).catch(() => { /* surfaced via the maplibre:error listener in main.js */ });
 }
 
 /** @private (Re)hangs the track/sector sources and line layers on the ACTIVE

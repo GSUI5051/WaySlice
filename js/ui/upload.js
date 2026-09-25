@@ -6,6 +6,7 @@
  */
 import { ParseError, PARSE_ERROR_KEYS } from '../parsers/parseError.js';
 import { parseTrackOffThread } from '../workers/parseWorkerClient.js';
+import { preloadMapLibre } from '../map/mapView.js';
 import { trackStore } from '../core/stores.js';
 import { t } from '../language/language.js';
 import { on } from '../core/events.js';
@@ -75,6 +76,11 @@ export async function loadFile(file) {
     return;
   }
   showLoading();
+  // Start the MapLibre download now so it races the parser instead of
+  // serializing behind it — first track on a cold cache still paints its
+  // map the moment parsing finishes. (A download failure surfaces through
+  // the maplibre:error listener in main.js.)
+  preloadMapLibre().catch(() => {});
   try {
     // Yield a frame so the loading state paints before the file is read; the
     // parse itself runs in the worker (parseWorkerClient.js) and never

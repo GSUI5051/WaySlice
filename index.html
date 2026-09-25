@@ -48,7 +48,10 @@
       } catch (e) { /* no storage — system default below */ }
     })();
   </script>
-  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
+  <!-- The MapLibre vendor JS and its stylesheet are NOT loaded here: both
+       download on demand when a track file starts parsing (see
+       js/map/mapView.js preloadMapLibre) — lfmaps.fr's lazy-load tip for
+       better Core Web Vitals (~1.1MB off the first paint). -->
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
@@ -314,7 +317,6 @@
 
   <input type="file" id="file-input" accept=".gpx,.kml,.kmz,.fit,.tcx" hidden>
 
-  <script type="module" src="vendor/maplibre/maplibre-global.mjs"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -2,8 +2,9 @@
  * WaySlice — application entry point.
  * Boots theme + language, initializes map / profile / metrics / upload and
  * wires the header controls. All heavy lifting lives in dedicated modules.
+ * MapLibre itself is NOT loaded here: it downloads on demand when a track
+ * file starts parsing (see mapView.preloadMapLibre).
  */
-/* global maplibregl */
 import * as theme from './theme/theme.js';
 import * as language from './language/language.js';
 import * as units from './units/units.js';
@@ -32,12 +33,6 @@ import { formatDistance, formatInt } from './utils/format.js';
 boot();
 
 async function boot() {
-  if (typeof maplibregl === 'undefined') {
-    document.body.innerHTML =
-      '<p style="padding:2rem;font-family:system-ui">MapLibre failed to load. Serve the app over HTTP (see README).</p>';
-    return;
-  }
-
   theme.init();
   // The boot language pack loads on demand (English fallback + the user's
   // language) — everything below renders text, so it waits for the dict.
@@ -45,6 +40,12 @@ async function boot() {
   units.initUnits();
 
   initMap(document.getElementById('map'));
+  // The library downloads on demand (first track file); a failure surfaces
+  // here with the same total-failure page the old boot-time check produced.
+  on('maplibre:error', () => {
+    document.body.innerHTML =
+      '<p style="padding:2rem;font-family:system-ui">MapLibre failed to load. Serve the app over HTTP (see README).</p>';
+  });
   initProfile(document.getElementById('profile-body'));
   initSheets(document.getElementById('sheet'));
   wireDetailsSheet();
