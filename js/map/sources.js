@@ -15,6 +15,10 @@
  * @property {number} maxZoom
  * @property {string} attribution
  * @property {string[]} [subdomains]
+ * @property {string} [styleUrl]  provider MapLibre style JSON (vector basemap):
+ *                                rendered via map.setStyle instead of a raster
+ *                                source; attribution then comes from the
+ *                                style's TileJSON and needs no raster `url`
  * @property {boolean} [crossOrigin] not supported by MapLibre: raster tiles are
  *                                   uploaded as WebGL textures, which the browser
  *                                   security model restricts to CORS-enabled
@@ -94,6 +98,7 @@ export const MAP_SOURCES = [
     labelKey: 'srcStadiaSmooth',
     group: 'minimal',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+    styleUrl: 'https://tiles-eu.stadiamaps.com/styles/alidade_smooth.json',
     maxZoom: 20,
     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
   },
@@ -102,6 +107,7 @@ export const MAP_SOURCES = [
     labelKey: 'srcStadiaSmoothDark',
     group: 'minimal',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    styleUrl: 'https://tiles-eu.stadiamaps.com/styles/alidade_smooth_dark.json',
     maxZoom: 20,
     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
 	hintKey: 'srcStadiaSmoothDarkHint',

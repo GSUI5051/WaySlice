@@ -23,8 +23,11 @@ let map = null;
 let track = null;
 let rafPending = false;
 let waypointsVisible = true;
-/** True once the GeoJSON sources/layers and markers exist. */
-let vectorReady = false;
+/** True once the markers and the delegated hit-layer events exist. */
+let trackWired = false;
+/** True while the basemap is a provider style (vector) rather than our
+ * minimal style with a raster layer hung off it. */
+let styleIsProvider = false;
 
 const layers = {
   startHandle: null,
@@ -38,13 +41,46 @@ const dragging = { start: false, end: false };
 let hoverHint = null;
 let scaleControl = null;
 
-/** Resolves once the runtime style is loaded — addSource/addLayer/setMaxZoom
- * require it even for a literal style object. */
+/** Resolves once the active style is loaded — addSource/addLayer/setMaxZoom
+ * require it even for a literal style object, and every setStyle (vector
+ * basemaps) invalidates it again. */
 let styleReady = null;
+let styleGeneration = 0;
 function onStyleReady(fn) {
   if (!styleReady) return fn();
-  styleReady.then(fn);
+  // Work scheduled for one style must not land inside a newer one when the
+  // user swaps basemaps faster than styles load.
+  const gen = styleGeneration;
+  styleReady.then(() => { if (styleGeneration === gen) fn(); });
 }
+
+/** Re-arms the readiness gate for the style the map is currently loading.
+ * 'style.load' fires for the constructor style and after every setStyle with
+ * a contentful style — but NOT for an empty one (raster basemaps hang off a
+ * bare {version, sources, layers} style), so 'idle' races it as a fallback.
+ * A synchronous isStyleLoaded() check cannot be trusted here: right after
+ * setStyle it still reports the outgoing style as loaded. */
+function armStyleGate() {
+  styleGeneration++;
+  styleReady = new Promise((resolve) => {
+    map.once('style.load', resolve);
+    map.once('idle', resolve);
+  });
+}
+
+/** Applies a new style and runs `fn` once it is fully loaded. setStyle wipes
+ * every custom source/layer, so style changes and track-vector re-hangs always
+ * travel together. The gate is armed AFTER setStyle so it observes the new
+ * style's loading state, not the previous one. */
+function switchStyle(style, fn) {
+  map.setStyle(style);
+  armStyleGate();
+  onStyleReady(fn);
+}
+
+/** The bare style the raster basemaps hang off. Fresh object per use —
+ * MapLibre takes ownership of what it is handed. */
+const minimalStyle = () => ({ version: 8, sources: {}, layers: [] });
 
 /** Reads a themed design token (map layer colors live in css/tokens.css). */
 function themeColor(name) {
@@ -53,7 +89,7 @@ function themeColor(name) {
 
 /** Re-styles track, sector, handle and waypoint colors after a theme flip. */
 function applyMapTheme() {
-  if (!vectorReady) return;
+  if (!map || !map.getLayer('track-line')) return;
   map.setPaintProperty('track-casing', 'line-color', themeColor('--map-track-casing'));
   map.setPaintProperty('track-line', 'line-color', themeColor('--map-track'));
   map.setPaintProperty('sector-line', 'line-color', themeColor('--map-sector'));
@@ -98,10 +134,7 @@ export function initMap(container) {
   map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'bottom-right');
   refreshScaleControl();
-  styleReady = new Promise((resolve) => {
-    if (map.isStyleLoaded()) resolve();
-    else map.once('load', resolve);
-  });
+  armStyleGate();
   onStyleReady(() => setSource(getSavedSource()));
 
   sectorStore.subscribe(scheduleSectorSync);
@@ -112,9 +145,24 @@ export function initMap(container) {
   // the canvas and never reach the map). MapLibre — unlike Leaflet — fires
   // the map click even when a layer was hit, so clicks that land on the
   // track's hit line are excluded here and handled by onTrackClick.
+  // Track interactions ride the generic canvas events with a point query:
+  // MapLibre's delegated map.on(type, layerId) dispatch proved unreliable for
+  // layers re-added across setStyle, while the generic events always fire. A
+  // click on the track moves the nearest boundary; anywhere else unpins the
+  // profile's waypoint line (marker clicks are plain DOM above the canvas and
+  // never reach the map).
   map.on('click', (e) => {
-    const hits = vectorReady ? map.queryRenderedFeatures(e.point, { layers: ['track-hit'] }) : [];
-    if (!hits.length) emit('waypoint:deselect');
+    if (track && map.getLayer('track-hit')
+        && map.queryRenderedFeatures(e.point, { layers: ['track-hit'] }).length) {
+      onTrackClick(e);
+      return;
+    }
+    emit('waypoint:deselect');
+  });
+  map.on('mousemove', (e) => {
+    if (!track || !map.getLayer('track-hit')) return;
+    if (map.queryRenderedFeatures(e.point, { layers: ['track-hit'] }).length) onTrackHover(e);
+    else showHover(null);
   });
   if (cooperative) addGestureHint(container);
 
@@ -154,9 +202,37 @@ let currentSourceId = null;
 function setSource(source) {
   if (!map) return;
   currentSourceId = source.id;
-  // Raster layers go to the BOTTOM of the style stack so they always sit
-  // under the track vectors (addLayer with beforeId).
-  const beforeId = vectorReady ? 'track-casing' : undefined;
+  if (source.styleUrl) {
+    // Vector basemap (Stadia Direct Access): the provider style replaces the
+    // whole style and carries its own attribution via the TileJSON. setStyle
+    // wipes the track vectors along with the old basemap, so they are re-hung
+    // on readiness; markers are DOM and survive on their own.
+    styleIsProvider = true;
+    switchStyle(source.styleUrl, () => {
+      map.setMaxZoom(source.maxZoom);
+      hangTrackGeometry();
+    });
+    return;
+  }
+  if (styleIsProvider) {
+    // Back to a raster source from a provider style: restore the minimal
+    // style so the style's sources/layers (and their tile traffic) go away.
+    styleIsProvider = false;
+    switchStyle(minimalStyle(), () => {
+      hangTrackGeometry();
+      addRasterLayers(source);
+      map.setMaxZoom(source.maxZoom);
+    });
+    return;
+  }
+  addRasterLayers(source);
+  map.setMaxZoom(source.maxZoom);
+}
+
+/** @private Adds the raster basemap layer(s) at the bottom of the style stack,
+ * under the track vectors. */
+function addRasterLayers(source) {
+  const beforeId = map.getLayer('track-casing') ? 'track-casing' : undefined;
   if (map.getLayer('basemap-layer')) map.removeLayer('basemap-layer');
   if (map.getLayer('basemap-overlay-layer')) map.removeLayer('basemap-overlay-layer');
   if (map.getSource('basemap')) map.removeSource('basemap');
@@ -169,9 +245,6 @@ function setSource(source) {
     map.addSource('basemap-overlay', createRasterSource(source, source.overlayUrl));
     map.addLayer({ id: 'basemap-overlay-layer', type: 'raster', source: 'basemap-overlay' }, beforeId);
   }
-  // Leaflet capped the MAP's zoom at the layer's maxZoom; MapLibre sources
-  // overzoom past their maxzoom instead, so the cap is applied to the map.
-  map.setMaxZoom(source.maxZoom);
 }
 
 /**
@@ -185,16 +258,7 @@ export function setTrack(newTrack) {
   // measurable size. Defer fitting until the next frame, after MapLibre can
   // recalculate its viewport.
   onStyleReady(() => {
-    ensureTrackLayers();
-
-    const display = simplifyForDisplay(track.points);
-    const coordinates = display.map((p) => [p.lon, p.lat]);
-    map.getSource('track').setData(
-      coordinates.length
-        ? { type: 'Feature', geometry: { type: 'LineString', coordinates } }
-        : { type: 'FeatureCollection', features: [] },
-    );
-
+    hangTrackGeometry();
     rebuildWaypoints();
     // sectorStore may have broadcast while the style was still loading; sync
     // once now so handles and the highlight reflect the current selection.
@@ -203,39 +267,56 @@ export function setTrack(newTrack) {
   });
 }
 
-/** @private Creates the GeoJSON sources, line layers and markers once. */
-function ensureTrackLayers() {
-  if (vectorReady) return;
-  const lineLayout = { 'line-cap': 'round', 'line-join': 'round' };
-  map.addSource('track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  map.addSource('sector', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  // Casing under line under sector, matching the Leaflet pane order. The 4px
-  // track line is far below MapLibre's touch tolerance, so an invisible
-  // widened twin carries the pointer events (Leaflet's path hit tolerance).
-  map.addLayer({
-    id: 'track-casing', type: 'line', source: 'track', layout: lineLayout,
-    paint: { 'line-color': themeColor('--map-track-casing'), 'line-width': 8, 'line-opacity': 0.9 },
-  });
-  map.addLayer({
-    id: 'track-line', type: 'line', source: 'track', layout: lineLayout,
-    paint: { 'line-color': themeColor('--map-track'), 'line-width': 4, 'line-opacity': 0.95 },
-  });
-  map.addLayer({
-    id: 'sector-line', type: 'line', source: 'sector', layout: lineLayout,
-    paint: { 'line-color': themeColor('--map-sector'), 'line-width': 6, 'line-opacity': 1 },
-  });
-  map.addLayer({
-    id: 'track-hit', type: 'line', source: 'track', layout: lineLayout,
-    paint: { 'line-color': '#000', 'line-width': 16, 'line-opacity': 0 },
-  });
-  map.on('click', 'track-hit', onTrackClick);
-  map.on('mousemove', 'track-hit', onTrackHover);
-  map.on('mouseout', 'track-hit', () => showHover(null));
+/** @private (Re)hangs the track/sector sources and line layers on the ACTIVE
+ * style and refills their geometry. Every setStyle wipes them, so style
+ * changes route through here; markers are DOM and survive on their own. */
+function hangTrackGeometry() {
+  if (!track || !map) return;
+  if (!map.getSource('track')) {
+    const lineLayout = { 'line-cap': 'round', 'line-join': 'round' };
+    map.addSource('track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    map.addSource('sector', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    // Casing under line under sector, matching the Leaflet pane order. The 4px
+    // track line is far below MapLibre's touch tolerance, so an invisible
+    // widened twin carries the pointer events (Leaflet's path hit tolerance).
+    map.addLayer({
+      id: 'track-casing', type: 'line', source: 'track', layout: lineLayout,
+      paint: { 'line-color': themeColor('--map-track-casing'), 'line-width': 8, 'line-opacity': 0.9 },
+    });
+    map.addLayer({
+      id: 'track-line', type: 'line', source: 'track', layout: lineLayout,
+      paint: { 'line-color': themeColor('--map-track'), 'line-width': 4, 'line-opacity': 0.95 },
+    });
+    map.addLayer({
+      id: 'sector-line', type: 'line', source: 'sector', layout: lineLayout,
+      paint: { 'line-color': themeColor('--map-sector'), 'line-width': 6, 'line-opacity': 1 },
+    });
+    map.addLayer({
+      id: 'track-hit', type: 'line', source: 'track', layout: lineLayout,
+      paint: { 'line-color': '#000', 'line-width': 16, 'line-opacity': 0 },
+    });
+    if (!trackWired) {
+      createHoverDot();
+      createHandle('start');
+      createHandle('end');
+      trackWired = true;
+    }
+  }
+  updateTrackGeometry();
+  syncSector();
+}
 
-  createHoverDot();
-  createHandle('start');
-  createHandle('end');
-  vectorReady = true;
+/** @private Pushes the simplified display polyline into the track source. */
+function updateTrackGeometry() {
+  const trackSource = map.getSource('track');
+  if (!trackSource) return;
+  const display = simplifyForDisplay(track.points);
+  const coordinates = display.map((p) => [p.lon, p.lat]);
+  trackSource.setData(
+    coordinates.length
+      ? { type: 'Feature', geometry: { type: 'LineString', coordinates } }
+      : { type: 'FeatureCollection', features: [] },
+  );
 }
 
 /** @private The profile-synced hover dot (hidden until a hover arrives). */
@@ -507,7 +588,8 @@ function scheduleSectorSync() {
 
 /** @private Redraws the sector highlight + handle positions + ARIA state. */
 function syncSector() {
-  if (!track || !vectorReady) return;
+  const sectorSource = track && map ? map.getSource('sector') : null;
+  if (!sectorSource) return;
   const { start, end } = sectorStore.get();
 
   // Sector highlight: original points inside the range, stride-thinned for
@@ -517,11 +599,11 @@ function syncSector() {
   const s = pointAtDistance(track, start);
   const e = pointAtDistance(track, end);
   if (s && e) {
-    slice.push(s);
+    const slice = [s];
     for (let k = s.i + 1; k <= e.i; k++) slice.push(pts[k]);
     if (e.i > s.i || e.dist > s.dist) slice.push(e);
     const coordinates = thinStride(slice).map((p) => [p.lon, p.lat]);
-    map.getSource('sector').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
+    sectorSource.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
   }
 
   for (const which of ['start', 'end']) {

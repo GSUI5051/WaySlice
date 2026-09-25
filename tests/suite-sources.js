@@ -21,6 +21,15 @@ suite('basemap / catalog integrity', () => {
     assert.deepEqual(grouped, MAP_SOURCES.map((s) => s.id).sort());
   });
 
+  test('vector style sources point at the EU-hosted style endpoint', () => {
+    const vector = MAP_SOURCES.filter((s) => s.styleUrl);
+    assert.deepEqual(vector.map((s) => s.id).sort(), ['StadiaSmooth', 'StadiaSmoothDark']);
+    for (const s of vector) {
+      assert.truthy(s.styleUrl.startsWith('https://tiles-eu.stadiamaps.com/styles/'), `style host for ${s.id}`);
+      assert.truthy(s.styleUrl.endsWith('.json'), `style file for ${s.id}`);
+    }
+  });
+
   test('default source id resolves to a registered source', () => {
     assert.truthy(MAP_SOURCES.some((s) => s.id === DEFAULT_SOURCE_ID));
   });
