@@ -95,8 +95,10 @@ function wireHeader() {
     buildItems: buildMapSourceItems,
     onPick: pickMapSource,
   });
-  document.getElementById('btn-fit').addEventListener('click', fitTrack);
-  document.getElementById('btn-fit-sector').addEventListener('click', fitSector);
+  // Arrow wrappers: fitTrack takes an options object — a raw binding would
+  // hand the click event to it.
+  document.getElementById('btn-fit').addEventListener('click', () => fitTrack());
+  document.getElementById('btn-fit-sector').addEventListener('click', () => fitSector());
 }
 
 /**

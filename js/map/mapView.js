@@ -9,10 +9,10 @@
  *
  * The map is created LAZILY: until a track is parsed the pane shows only the
  * empty-state card over the plain surface — no MapLibre instance, no tiles,
- * no WebGL context. The first track creates the map, and the basemap loads
- * only after the initial fit-to-track flight has finished (tiles fetched for
- * a moving viewport would be thrown away), drawing that flight over the
- * bare style with just the track line visible.
+ * no WebGL context. The first track creates the map, and the initial fit is
+ * a JUMP, not a flight (both on the first track and on every re-import), so
+ * the basemap loads immediately after the camera lands on the fitted view.
+ * Explicit fit commands (zoom-to-track / zoom-to-sector buttons) still fly.
  */
 /* global maplibregl */
 import { sectorStore, moveBoundary, getTrackTotal, isEntireTrack } from '../sector/sectorStore.js';
@@ -197,18 +197,18 @@ function ensureMap() {
   }
 }
 
-/** @private Loads the saved basemap once the initial fit-to-track flight is
- * over. The fit itself is animated, so an immediate load would fetch tiles
- * for a viewport that is about to move — they are held back until the
- * camera lands, drawing the flight over the bare style. Idempotent: the
- * moveend and the interrupt poll below can both land here, and so can a
- * basemap picked mid-flight (whose own setSource already set the flag). */
+/** @private Loads the saved basemap after the initial fit has landed. The
+ * normal initial fit is an unanimated jump, so this runs the moment the
+ * camera is in place. The flight-wait machinery below only kicks in for the
+ * animated fallback (cameraForBounds returning null) or a basemap picked
+ * mid-fit. Idempotent: several paths can land here, and so can a basemap
+ * whose own setSource already set the flag. */
 function loadInitialBasemap() {
   if (basemapLoaded || !map) return;
   setSource(getSavedSource());
 }
 
-/** @private Waits for the initial flight to end. moveend is the precise
+/** @private Waits for an animated initial fit to end. moveend is the precise
  * signal, but it never fires when the ease is cut short — a basemap picked
  * mid-flight stops the camera with setStyle — so a bounded poll watching
  * isMoving() stands in as the fallback. */
@@ -300,8 +300,10 @@ function addRasterLayers(source) {
 
 /**
  * Loads a track onto the map: creates the map if this is the first one,
- * hangs the simplified display polyline + handles, flies to fit and only
- * then lets the basemap load (the flight draws over the bare style).
+ * hangs the simplified display polyline + handles and jumps to fit (the
+ * initial fit is NOT animated, on the first track and on every re-import
+ * alike); the basemap then loads immediately — there is no flight left to
+ * wait for.
  * @param {import('../types.js').Track} newTrack
  */
 export function setTrack(newTrack) {
@@ -318,7 +320,10 @@ export function setTrack(newTrack) {
     // once now so handles and the highlight reflect the current selection.
     syncSector();
     requestAnimationFrame(() => {
-      fitTrack();
+      fitTrack({ animate: false });
+      // The jump lands synchronously, so this loads the basemap right away;
+      // armBasemapAfterFlight only matters for the animated fallback fit
+      // (cameraForBounds returning null) or a mid-flight user pick.
       if (!map.isMoving()) loadInitialBasemap();
       else armBasemapAfterFlight();
     });
@@ -449,13 +454,25 @@ export function setWaypointsVisible(visible) {
   else for (const marker of layers.waypoints) marker.remove();
 }
 
-/** Fits the viewport to the whole track. */
-export function fitTrack() {
+/** Fits the viewport to the whole track. Pass `{ animate: false }` for the
+ * initial fit after a track parse — the camera jumps to the fitted view in
+ * one step instead of flying there. */
+export function fitTrack(opts) {
   if (!track || !map || !map.getContainer().isConnected) return;
   try {
     map.resize();
     const b = track.bounds;
-    map.fitBounds([[b.minLon, b.minLat], [b.maxLon, b.maxLat]], { padding: 28 });
+    const bounds = [[b.minLon, b.minLat], [b.maxLon, b.maxLat]];
+    if (opts?.animate === false) {
+      // cameraForBounds is the exact camera fitBounds would animate to —
+      // applying it with jumpTo skips the flyTo easing entirely.
+      const cam = map.cameraForBounds(bounds, { padding: 28 });
+      if (cam) {
+        map.jumpTo(cam);
+        return;
+      }
+    }
+    map.fitBounds(bounds, { padding: 28 });
   } catch (error) {
     // A transient zero-size layout should not invalidate an already parsed
     // track; a later resize or explicit fit will retry.
