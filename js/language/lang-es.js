@@ -114,7 +114,6 @@ const lang_es = {
   srcTFOutdoor: 'Thunderforest Outdoor',
   srcMapyOutdoor: 'Mapy Outdoor',
   srcEsriImagery: 'Imágenes de satélite de Esri',
-  srcStadiaSatellite: 'Mapa satélite de Stadia',
   srcStadiaSmooth: 'Stadia Smooth',
   srcStadiaSmoothDark: 'Stadia Smooth Oscuro',
   srcStadiaSmoothDarkHint: 'Mapa en estilo oscuro',

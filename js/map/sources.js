@@ -77,14 +77,6 @@ export const MAP_SOURCES = [
     attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics',
   },
   {
-    id: 'StadiaSatellite',
-    labelKey: 'srcStadiaSatellite',
-    group: 'satellite',
-    url: 'https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg',
-    maxZoom: 20,
-    attribution: '&copy; CNES, Distribution Airbus DS, &copy; Airbus DS, &copy; PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
-  },
-  {
     id: 'StadiaSmooth',
     labelKey: 'srcStadiaSmooth',
     group: 'minimal',
