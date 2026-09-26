@@ -519,6 +519,28 @@ export function setWaypointsVisible(visible) {
   else for (const marker of layers.waypoints) marker.remove();
 }
 
+/** True when the OS asked for reduced motion: camera flights become the
+ *  one-step jump (CSS already freezes its own transitions in base.css, but
+ *  MapLibre's camera easing runs in JS and needs this explicit gate). */
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** fitBounds that honors prefers-reduced-motion: under the preference the
+ *  camera jumps straight to the fitted view (same cameraForBounds + jumpTo
+ *  path as the de-animated initial fit) instead of flying there. */
+function fitBoundsRespectingMotion(bounds) {
+  if (prefersReducedMotion()) {
+    // cameraForBounds is the exact camera fitBounds would animate to.
+    const cam = map.cameraForBounds(bounds, { padding: 28 });
+    if (cam) {
+      map.jumpTo(cam);
+      return;
+    }
+  }
+  map.fitBounds(bounds, { padding: 28 });
+}
+
 /** Fits the viewport to the whole track. Pass `{ animate: false }` for the
  * initial fit after a track parse — the camera jumps to the fitted view in
  * one step instead of flying there. */
@@ -537,7 +559,7 @@ export function fitTrack(opts) {
         return;
       }
     }
-    map.fitBounds(bounds, { padding: 28 });
+    fitBoundsRespectingMotion(bounds);
   } catch (error) {
     // A transient zero-size layout should not invalidate an already parsed
     // track; a later resize or explicit fit will retry.
@@ -585,7 +607,7 @@ export function fitSector() {
         if (p.lon > maxLon) maxLon = p.lon;
       }
     }
-    map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 28 });
+    fitBoundsRespectingMotion([[minLon, minLat], [maxLon, maxLat]]);
   } catch (error) {
     console.warn('[WaySlice] map fit deferred:', error);
   }
