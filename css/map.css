@@ -199,25 +199,24 @@
 
 /* Name plate for named waypoints (in place of Leaflet's bindTooltip
    direction: top, offset [0, -8]): self-drawn div above the pin, shown while
-   the pin is hovered. Themed like every other floating surface (the old
-   hard-coded white plate ignored the dark theme); the border stays the
-   plate's own color so the silhouette is unchanged. */
+   the pin is hovered. The form replicates Leaflet's tooltip-top: the white
+   plate with the V-shaped caret descending from its bottom border, the
+   caret always centered and its tip pointing at the waypoint. No
+   max-width/overflow here — clipping would cut the caret off (and Leaflet
+   let long names run wide). */
 .map-waypoint-label {
   display: none;
   position: absolute;
-  inset-block-end: calc(50% + 8px);
+  inset-block-end: calc(50% + 14px);
   inset-inline-start: 50%;
   transform: translateX(-50%);
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   padding: 4px 8px;
-  background: var(--surface-elevated);
-  border: 1px solid var(--surface-elevated);
+  background: #fff;
+  border: 1px solid #fff;
   border-radius: 3px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  color: var(--foreground);
+  color: #222;
   font-size: 12px;
   line-height: 1.4;
   text-align: center;
@@ -226,15 +225,19 @@
 
 .map-waypoint-icon:hover .map-waypoint-label { display: block; }
 
-/* Arrow pointing at the pin, like the old .leaflet-tooltip-top caret. */
+/* Arrow pointing at the pin — Leaflet's tooltip-top caret geometry: a 12px
+   border box centered on the plate (left 50%, pulled back half its width),
+   its top border colored so the visible triangle descends 6px from the
+   plate's bottom border; the plate sits 14px above the pin center, which
+   puts the tip 8px above it — on the pin, like the old offset [0, -8]. */
 .map-waypoint-label::after {
   content: "";
   position: absolute;
   inset-block-start: 100%;
   inset-inline-start: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-block-start-color: var(--surface-elevated);
+  margin-inline-start: -6px;
+  border: 6px solid transparent;
+  border-block-start-color: #fff;
 }
 
 /* Waypoint markers are keyboard buttons (Tab + Enter/Space, js/map/mapView.js):
