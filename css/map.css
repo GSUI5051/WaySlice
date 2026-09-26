@@ -39,21 +39,32 @@
 
 .maplibregl-ctrl-group button:hover { background-color: var(--surface-hover) !important; }
 
-/* MapLibre's zoom glyphs are hard-coded SVG fills (with a prefers-color-scheme
-   swap that cannot follow the app theme) — re-route them through a mask so
-   they take the themed `color`. Same paths as upstream. */
+/* The zoom glyphs join the app's Lucide icon family (plus/minus, 24-grid,
+   2px stroke — same set the #map-fit buttons use) via a mask so they take
+   the themed `color`; MapLibre's built-in fills are hard-coded. The stroke
+   color in the data URI is inert — a mask only reads alpha. */
 .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon {
   background-image: none;
   background-color: currentColor;
-  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 8.5c-.75 0-1.5.75-1.5 1.5v3h-3c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h3v3c0 .75.75 1.5 1.5 1.5S16 19.75 16 19v-3h3c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13h-3v-3c0-.75-.75-1.5-1.5-1.5'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
-  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M14.5 8.5c-.75 0-1.5.75-1.5 1.5v3h-3c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h3v3c0 .75.75 1.5 1.5 1.5S16 19.75 16 19v-3h3c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13h-3v-3c0-.75-.75-1.5-1.5-1.5'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M12 5v14'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M12 5v14'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
 }
 
 .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon {
   background-image: none;
   background-color: currentColor;
-  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M10 13c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h9c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13z'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
-  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='29' height='29' viewBox='0 0 29 29'%3E%3Cpath d='M10 13c-.75 0-1.5.75-1.5 1.5S9.25 16 10 16h9c.75 0 1.5-.75 1.5-1.5S19.75 13 19 13z'/%3E%3C/svg%3E") center / 29px 29px no-repeat;
+  -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  mask: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+}
+
+/* MapLibre paints keyboard focus with a hard-coded blue ring — a migration
+   leftover the Leaflet anchors never had. Follow the global :focus-visible
+   outline instead (vendor `outline: none` needs the !important). The inset
+   offset keeps the ring inside the group's overflow:hidden. */
+.maplibregl-ctrl-group button:focus { box-shadow: none !important; }
+.maplibregl-ctrl-group button:focus-visible {
+  outline: 2px solid var(--focus) !important;
+  outline-offset: -2px;
 }
 
 .maplibregl-ctrl-attrib {
