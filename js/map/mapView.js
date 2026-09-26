@@ -41,6 +41,15 @@ let mapCreating = null;
 let track = null;
 let rafPending = false;
 let waypointsVisible = true;
+/** Waypoint markers flattened to what the handle bridge needs: the element,
+ *  its resolved track distance, name and position. Rebuilt with the layer. */
+let waypointPlates = [];
+/** The plate a sector handle is currently surfacing, if any. */
+let bridgedPlate = null;
+/** The bridge radius mirrors .map-handle::after's hit reach (22px icon +
+ *  14px outward inset = 25px): inside it a pin's own hover is impossible
+ *  because the handle's hit area shadows the pin entirely. */
+const WAYPOINT_BRIDGE_PX = 25;
 /** True once the markers and the delegated hit-layer events exist. */
 let trackWired = false;
 /** True while the basemap is a provider style (vector) rather than our
@@ -473,6 +482,8 @@ function rebuildWaypoints() {
     for (const marker of layers.waypoints) marker.remove();
     layers.waypoints = null;
   }
+  clearWaypointBridge();
+  waypointPlates = [];
   const wpts = track?.waypoints || [];
   if (!wpts.length || !waypointsVisible) return;
   let hint = 0;
@@ -520,8 +531,49 @@ function rebuildWaypoints() {
       e.preventDefault();
       el.click();
     });
+    waypointPlates.push({ el, dist: near.dist, name: w.name || null, lat: w.lat, lon: w.lon });
     return marker;
   });
+}
+
+/** @private Ends the handle bridge: unraises the pin and ends its hover. */
+function clearWaypointBridge() {
+  if (!bridgedPlate) return;
+  bridgedPlate.el.classList.remove('is-bridged');
+  bridgedPlate = null;
+  emit('waypoint:hover', { dist: null });
+}
+
+/** @private Hover bridge for the sector handles. A boundary parked on a
+ *  waypoint shadows the pin with its 50px hit area (css .map-handle::after),
+ *  so the pin's own hover — name plate and profile line — is unreachable
+ *  exactly where the handle sits. The handle must keep the pointer (it is
+ *  the drag affordance at that spot), so while the pointer is on a handle it
+ *  surfaces the nearest pin within the handle's hit reach instead: the pin
+ *  shows its plate pointer-transparent (.is-bridged) and drives the same
+ *  waypoint:hover channel a pin hover does. Skipped while that handle
+ *  drags — the boundary is moving and a chasing plate is noise. */
+function bridgeWaypoint(marker) {
+  if (dragging.start || dragging.end || !track || !waypointsVisible ||
+      !waypointPlates.length) {
+    clearWaypointBridge();
+    return;
+  }
+  const c = marker.getLngLat();
+  const o = map.project([c.lng, c.lat]);
+  let best = null;
+  let bestD = WAYPOINT_BRIDGE_PX;
+  for (const w of waypointPlates) {
+    const q = map.project([w.lon, w.lat]);
+    const d = Math.hypot(q.x - o.x, q.y - o.y);
+    if (d < bestD) { best = w; bestD = d; }
+  }
+  if (best === bridgedPlate) return;
+  clearWaypointBridge();
+  if (!best) return;
+  bridgedPlate = best;
+  best.el.classList.add('is-bridged');
+  emit('waypoint:hover', { dist: best.dist, name: best.name });
 }
 
 /** Shows or hides the waypoint layer (no-op before a track is loaded). */
@@ -538,7 +590,7 @@ export function setWaypointsVisible(visible) {
   }
   if (!layers.waypoints) return;
   if (visible) for (const marker of layers.waypoints) marker.addTo(map);
-  else for (const marker of layers.waypoints) marker.remove();
+  else { clearWaypointBridge(); for (const marker of layers.waypoints) marker.remove(); }
 }
 
 /** True when the OS asked for reduced motion: camera flights become the
@@ -708,8 +760,32 @@ function createHandle(which) {
   // elements honor z-index like positioned ones).
   el.style.zIndex = '700';
 
+  // The hover bridge: while the pointer is on a handle, a waypoint pinned
+  // under its hit area shows its name plate and drives the profile line
+  // (see bridgeWaypoint). Suppressed while a press is down: a drag (and the
+  // auto-pan it can trigger) slides the markers around, and the synthetic
+  // mouse events that movement fires carry unreliable button state — a
+  // self-tracked press is the only clean signal. dragstart still drops a
+  // pre-drag plate, and dragend re-evaluates at the resting position.
+  let handlePressed = false;
+  const endHandlePress = () => { handlePressed = false; };
+  el.addEventListener('pointerdown', () => { handlePressed = true; clearWaypointBridge(); });
+  // Non-mouse pointers end their hover at pointerup (the virtual mouse never
+  // moves off after a tap, which would strand the plate).
+  el.addEventListener('pointerup', (e) => {
+    endHandlePress();
+    if (e.pointerType !== 'mouse') clearWaypointBridge();
+  });
+  el.addEventListener('pointercancel', endHandlePress);
+  window.addEventListener('pointerup', endHandlePress);
+  window.addEventListener('pointercancel', endHandlePress);
+  el.addEventListener('mouseenter', () => { if (!handlePressed) bridgeWaypoint(marker); });
+  el.addEventListener('mousemove', () => { if (!handlePressed) bridgeWaypoint(marker); });
+  el.addEventListener('mouseleave', clearWaypointBridge);
+
   marker.on('dragstart', () => {
     dragging[which] = true;
+    clearWaypointBridge();
     dragHints[which] = sectorPoint(which)?.i ?? null;
   });
   marker.on('drag', (e) => {
@@ -729,6 +805,7 @@ function createHandle(which) {
     dragging[which] = false;
     const pt = sectorPoint(which);
     if (pt) marker.setLngLat([pt.lon, pt.lat]);
+    bridgeWaypoint(marker);
   });
 
   layers[`${which}Handle`] = marker;

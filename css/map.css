@@ -262,6 +262,18 @@
   z-index: 750 !important;
 }
 
+/* The handle bridge (js/map/mapView.js): a sector handle parked on a named
+   waypoint owns the pointer there — it is the drag affordance at that exact
+   spot — so it surfaces the shadowed pin's name plate itself. The pin rises
+   like on hover but turns pointer-transparent: a hoverable pin above the
+   handle would steal the pointer back and flap between the two. */
+.map-waypoint-icon.is-bridged .map-waypoint-label { display: block; }
+
+.map-waypoint-icon.is-bridged {
+  z-index: 750 !important;
+  pointer-events: none;
+}
+
 /* Cooperative-gestures hint (touch devices): one finger scrolls the page,
    two fingers move the map. Purely informational — never blocks touches. */
 
