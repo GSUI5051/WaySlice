@@ -107,6 +107,7 @@ const lang_ko = {
   srcCyclosm: 'CyclOSM',
   srcTFOutdoor: 'Thunderforest 아웃도어',
   srcMapyOutdoor: 'Mapy 아웃도어',
+  srcEOXSentinel2: 'EOX Sentinel-2 무구름 2025',
   srcEsriImagery: 'Esri 위성 영상',
   srcMapyAerial: 'Mapy 항공 사진',
   srcOpenFreeMapPositron: 'OpenFreeMap 포지트론',

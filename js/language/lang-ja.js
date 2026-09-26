@@ -107,6 +107,7 @@ const lang_ja = {
   srcCyclosm: 'CyclOSM',
   srcTFOutdoor: 'Thunderforest アウトドア',
   srcMapyOutdoor: 'Mapy アウトドア',
+  srcEOXSentinel2: 'EOX Sentinel-2 クラウドレス 2025',
   srcEsriImagery: 'Esri 衛星画像',
   srcMapyAerial: 'Mapy 航空写真',
   srcOpenFreeMapPositron: 'OpenFreeMap ポジトロン',

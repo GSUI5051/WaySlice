@@ -98,6 +98,21 @@ export const MAP_SOURCES = [
     attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
   },
   {
+    id: 'EOXSentinel2',
+    labelKey: 'srcEOXSentinel2',
+    group: 'satellite',
+    // Sentinel-2 cloudless 2025 by EOX (tiles.maps.eox.at WMTS). The layer
+    // comes in two TileMatrixSets — WGS84 (EPSG:4326) and g/GoogleMapsCompatible
+    // (EPSG:3857) — and MapLibre renders in Web Mercator (its coordinate-system
+    // doc: EPSG:3857 is the display projection), so the _3857 layer variant is
+    // the only one that aligns. WMTS REST axis order {TileMatrix}/{TileRow}/
+    // {TileCol} = {z}/{y}/{x}, kept as with Esri. The server upsamples past
+    // the native z14 imagery and serves CORS `*`.
+    url: 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg',
+    maxZoom: 19,
+    attribution: '<a href="https://s2maps.eu" target="_blank">Sentinel-2 cloudless</a> by EOX IT Services (Contains modified Copernicus Sentinel data 2025)',
+  },
+  {
     id: 'esri-imagery',
     labelKey: 'srcEsriImagery',
     group: 'satellite',

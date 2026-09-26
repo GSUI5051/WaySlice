@@ -24,6 +24,7 @@ suite('basemap / catalog integrity', () => {
   test('street and minimal groups follow the documented selector order', () => {
     const idsFor = (group) => MAP_SOURCES.filter((s) => s.group === group).map((s) => s.id);
     assert.deepEqual(idsFor('street'), ['osm', 'OpenFreeMapBright', 'TFAtlas']);
+    assert.deepEqual(idsFor('satellite'), ['EOXSentinel2', 'esri-imagery', 'MapyAerial']);
     assert.deepEqual(idsFor('minimal'), ['OpenFreeMapPositron', 'OpenFreeMapDark', 'StadiaSmooth', 'StadiaSmoothDark']);
   });
 

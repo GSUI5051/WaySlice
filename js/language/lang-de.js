@@ -111,6 +111,7 @@ const lang_de = {
   srcCyclosm: 'CyclOSM',
   srcTFOutdoor: 'Thunderforest Outdoor',
   srcMapyOutdoor: 'Mapy Outdoor',
+  srcEOXSentinel2: 'EOX Sentinel-2 Wolkenfrei 2025',
   srcEsriImagery: 'Esri-Satellitenbilder',
   srcMapyAerial: 'Mapy Luftbild',
   srcOpenFreeMapPositron: 'OpenFreeMap Positron',

@@ -112,6 +112,7 @@ const lang_it = {
   srcCyclosm: 'CyclOSM',
   srcTFOutdoor: 'Thunderforest Outdoor',
   srcMapyOutdoor: 'Mapy Outdoor',
+  srcEOXSentinel2: 'EOX Sentinel-2 Senza nuvole 2025',
   srcEsriImagery: 'Immagini satellitari Esri',
   srcMapyAerial: 'Mapy Aerea',
   srcOpenFreeMapPositron: 'OpenFreeMap Positron',
