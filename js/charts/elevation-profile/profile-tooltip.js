@@ -66,8 +66,8 @@ function renderProbeBand(pt, xText) {
   // the same reading path the desktop hover uses.
   const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
   const defs = new Map(OVERLAY_METRICS.map((d) => [d.id, d]));
-  const cell = (text, colorToken, subText = null) =>
-    `<span class="readout-cell${subText != null ? ' has-sub' : ''}"${colorToken ? ` style="color: var(${colorToken})"` : ''}>` +
+  const cell = (text, textToken, subText = null) =>
+    `<span class="readout-cell${subText != null ? ' has-sub' : ''}"${textToken ? ` style="color: var(${textToken})"` : ''}>` +
     `<span class="readout-main">${text}</span>` +
     (subText != null ? `<span class="readout-sub">${subText}</span>` : '') +
     '</span>';
@@ -81,7 +81,7 @@ function renderProbeBand(pt, xText) {
     if (!shown.has(id)) return hasSensor ? unselected : blank;
     const def = defs.get(id);
     const val = valueOf(v);
-    return val != null ? cell(formatOverlayValue(def, val), def.colorToken, subText) : dash;
+    return val != null ? cell(formatOverlayValue(def, val), def.textToken, subText) : dash;
   };
 
   const speedId = selectedOverlays.find(
@@ -92,7 +92,7 @@ function renderProbeBand(pt, xText) {
     const speedCache = speedId === 'gap' ? gapSpeeds : speeds;
     const val = valueOf(speedCache?.[idx]);
     speedSlot = val != null
-      ? cell(formatOverlayValue(defs.get(speedId), val), defs.get(speedId).colorToken)
+      ? cell(formatOverlayValue(defs.get(speedId), val), defs.get(speedId).textToken)
       : dash;
   } else {
     // A speed series exists (recorded or derivable) but no family variant is
@@ -210,7 +210,7 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
     else if (id === 'gap' && gapSpeeds) v = gapSpeeds[idx];
     if (id === 'hr' && (v == null || !Number.isFinite(v))) {
       // No reading under the cursor: say so instead of a stale zone.
-      push(rowOf(id), `<span class="tip-ov" style="color: var(${def.colorToken})">${t('noHeartRateData')}</span>`);
+      push(rowOf(id), `<span class="tip-ov" style="color: var(${def.textToken})">${t('noHeartRateData')}</span>`);
       continue;
     }
     if (v == null || !Number.isFinite(v)) continue;
@@ -235,7 +235,7 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
         }
       }
     }
-    push(rowOf(id), `<span class="tip-ov" style="color: var(${def.colorToken})">${text}</span>`);
+    push(rowOf(id), `<span class="tip-ov" style="color: var(${def.textToken})">${text}</span>`);
   }
 
   if (isProbe) {

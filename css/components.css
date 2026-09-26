@@ -426,10 +426,10 @@
 
 .seg-stat { flex: none; color: var(--foreground-muted); }
 
-/* Row readings mirror the profile overlay series colors (tokens.css) —
+/* Row readings wear the series TEXT tokens (see tokens.css theme blocks) —
    pace rides the speed series, HR its own red — so list and chart agree. */
-.seg-stat.seg-stat-pace { color: var(--series-speed); }
-.seg-stat.seg-stat-hr { color: var(--series-hr); }
+.seg-stat.seg-stat-pace { color: var(--series-speed-text); }
+.seg-stat.seg-stat-hr { color: var(--series-hr-text); }
 
 .seg-details { padding: 0 4px 12px 30px; }
 

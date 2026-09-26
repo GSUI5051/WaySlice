@@ -44,6 +44,17 @@
      .btn's surface (4.93:1) and its hover fill (4.59:1). */
   --support-pink: #c92a7d;
 
+  /* Chart series colors as 11-12px text (tooltip values, the mobile readout
+     band, the canvas legend strip, segment stats): the theme-independent
+     graphics tokens miss 4.5:1 as small text, so text reads these per-theme
+     siblings instead — ≥4.5:1 on surface and the elevated tooltip sheet
+     (worst case quoted). */
+  --series-hr-text: #dc2626;      /* 4.66:1 */
+  --series-speed-text: #2563eb;   /* 4.99:1 */
+  --series-cadence-text: #0c7a55; /* 5.16:1 */
+  --series-temp-text: #a16207;    /* 4.75:1 */
+  --series-power-text: #9333ea;   /* 5.20:1 */
+
   /* Charts */
   /* The elevation curve is the chart's primary non-text graphic: the old
      #94a0ad measured 2.57:1 on surface, under WCAG 1.4.11's 3:1 floor.
@@ -108,6 +119,17 @@
   /* Brand pink clears dark surfaces as-is (5.10:1 on .btn's surface). */
   --support-pink: #e94bb4;
 
+  /* Chart series colors as 11-12px text (tooltip values, the mobile readout
+     band, the canvas legend strip, segment stats): the theme-independent
+     graphics tokens miss 4.5:1 as small text, so text reads these per-theme
+     siblings instead — ≥4.5:1 on surface and the elevated tooltip sheet
+     (worst case vs elevated quoted). */
+  --series-hr-text: #f87171;      /* 5.72:1 */
+  --series-speed-text: #60a5fa;   /* 6.22:1 */
+  --series-cadence-text: #10b981; /* 6.24:1 — the pre-rework graphics value */
+  --series-temp-text: #f59e0b;    /* 7.37:1 — the pre-rework graphics value */
+  --series-power-text: #c084fc;   /* 5.99:1 */
+
   /* Lightened from #4d5763 (2.38:1) to clear the same 3:1 floor: 3.17:1
      on the chart surface, the only background the curve renders on. */
   --profile-line: #5f6a76;
@@ -143,12 +165,19 @@
      deepened for the same 3:1 non-text floor (#10b981 2.45:1 and
      #f59e0b 2.07:1 on surface → #0e8f66 3.95:1, #c47d08 3.23:1); being
      theme-independent, the dark readings move with them (4.27:1 and
-     5.22:1, both previously passing and still clear of the floor). */
+     5.22:1, both previously passing and still clear of the floor).
+     Small TEXT renders the per-theme --series-*-text siblings instead
+     (see the theme blocks). */
   --series-hr: #ef4444;
   --series-speed: #3b82f6;
   --series-cadence: #0e8f66;
   --series-temp: #c47d08;
   --series-power: #a855f7;
+
+  /* The white facet of the sector handles (profile bar core, map grip dot) —
+     a cartographic constant over the colored handle, identical in both
+     themes like --map-handle-border. */
+  --handle-core: rgba(255, 255, 255, 0.95);
 
   /* Map layers */
   --map-track-casing: #ffffff;

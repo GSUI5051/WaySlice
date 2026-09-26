@@ -27,14 +27,17 @@ import {
   formatPace, formatSpeed, formatBpm, formatRpm, formatTemp, formatPower,
 } from '../../utils/format.js';
 
+/* colorToken drives graphics (curves, menu dots, zone bands); textToken is
+   its per-theme small-text sibling (readings in the tooltip, the mobile
+   readout band, the canvas legend strip, segment stats) — see tokens.css. */
 export const OVERLAY_METRICS = [
-  { id: 'hr', colorToken: '--series-hr', labelKey: 'legendHr', axis: 'bpm' },
-  { id: 'speed', colorToken: '--series-speed', labelKey: 'legendSpeed', axis: 'speed' },
-  { id: 'pace', colorToken: '--series-speed', labelKey: 'legendPace', axis: 'pace' },
-  { id: 'gap', colorToken: '--series-speed', labelKey: 'legendGap', axis: 'gap' },
-  { id: 'cad', colorToken: '--series-cadence', labelKey: 'cadence', axis: 'rpm' },
-  { id: 'temp', colorToken: '--series-temp', labelKey: 'legendTemp', axis: 'tempC' },
-  { id: 'power', colorToken: '--series-power', labelKey: 'legendPower', axis: 'power' },
+  { id: 'hr', colorToken: '--series-hr', textToken: '--series-hr-text', labelKey: 'legendHr', axis: 'bpm' },
+  { id: 'speed', colorToken: '--series-speed', textToken: '--series-speed-text', labelKey: 'legendSpeed', axis: 'speed' },
+  { id: 'pace', colorToken: '--series-speed', textToken: '--series-speed-text', labelKey: 'legendPace', axis: 'pace' },
+  { id: 'gap', colorToken: '--series-speed', textToken: '--series-speed-text', labelKey: 'legendGap', axis: 'gap' },
+  { id: 'cad', colorToken: '--series-cadence', textToken: '--series-cadence-text', labelKey: 'cadence', axis: 'rpm' },
+  { id: 'temp', colorToken: '--series-temp', textToken: '--series-temp-text', labelKey: 'legendTemp', axis: 'tempC' },
+  { id: 'power', colorToken: '--series-power', textToken: '--series-power-text', labelKey: 'legendPower', axis: 'power' },
 ];
 
 /** Speed and pace (and their grade-adjusted view) share one series; the

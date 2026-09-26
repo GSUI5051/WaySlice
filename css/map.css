@@ -152,7 +152,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--handle-core);
 }
 
 .map-handle-icon:focus-visible {

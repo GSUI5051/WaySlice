@@ -65,7 +65,7 @@
   inset-inline-start: calc(50% - 1.5px);
   width: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--handle-core);
 }
 
 #handle-start::before { background: var(--map-handle-start); }
