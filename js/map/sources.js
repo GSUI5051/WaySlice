@@ -8,9 +8,10 @@
  * @property {string} id
  * @property {string} labelKey      i18n key for the display name
  * @property {'street'|'outdoor'|'satellite'|'minimal'} group
- * @property {string} url           tile URL template ({z}/{x}/{y}, plus the
+ * @property {string} [url]         tile URL template ({z}/{x}/{y}, plus the
  *                                  Leaflet-era {s}/{r} markers where a provider
- *                                  offers them)
+ *                                  offers them); omitted by vector-only
+ *                                  providers that serve no raster tiles
  * @property {string} [overlayUrl]  transparent label overlay stacked on the base
  * @property {number} maxZoom
  * @property {string} attribution
@@ -35,6 +36,19 @@ export const MAP_SOURCES = [
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+  },
+  {
+    id: 'OpenFreeMapBright',
+    labelKey: 'srcOpenFreeMapBright',
+    group: 'street',
+    // OpenFreeMap (per openfreemap.org's quick start): free vector styles, no
+    // API key. Same shape as TFAtlas — the style JSON is self-contained and
+    // its TileJSON attribution (OpenFreeMap, © OpenMapTiles, data ©
+    // OpenStreetMap contributors) reaches the attribution control on its own.
+    // Planet tiles are native z14 with overzoom up to maxZoom.
+    styleUrl: 'https://tiles.openfreemap.org/styles/bright',
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
   },
   {
     id: 'TFAtlas',
@@ -98,6 +112,23 @@ export const MAP_SOURCES = [
     url: 'https://api.mapy.com/v1/maptiles/aerial/256/{z}/{x}/{y}?apikey=ZmLnzZY7g5dYIIPshyx5-anT4M2WPQYWKQd_Cmy8icE',
     maxZoom: 19,
     attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
+  },
+  {
+    id: 'OpenFreeMapPositron',
+    labelKey: 'srcOpenFreeMapPositron',
+    group: 'minimal',
+    styleUrl: 'https://tiles.openfreemap.org/styles/positron',
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+  },
+  {
+    id: 'OpenFreeMapDark',
+    labelKey: 'srcOpenFreeMapDark',
+    group: 'minimal',
+    styleUrl: 'https://tiles.openfreemap.org/styles/dark',
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+    hintKey: 'srcOpenFreeMapDarkHint',
   },
   {
     id: 'StadiaSmooth',

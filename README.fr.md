@@ -336,7 +336,7 @@ lisent tous — ajouter ou modifier une source ne demande aucun code d'interface
 | `url` | Gabarit de tuiles : `{z}` `{x}` `{y}`, optionnel `{s}` (nécessite `subdomains`) et `{r}` (retina). Attention à l'ordre des coordonnées du fournisseur — Esri utilise `{z}/{y}/{x}`. |
 | `overlayUrl` | Optionnel : gabarit d'une couche d'étiquettes transparente posée sur les tuiles de fond. |
 | `maxZoom` | Zoom maximal servi par le fournisseur. |
-| `attribution` | Exigée légalement par OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps et Esri — conservez-la. |
+| `attribution` | Exigée légalement par OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap et Esri — conservez-la. |
 | `subdomains`, `crossOrigin`, `hintKey` | Optionnels : rotation de sous-domaines ; `crossOrigin: false` pour les serveurs de tuiles sans en-têtes CORS ; ligne d'aide grise dans le sélecteur. |
 
 Ajoutez ensuite le nom affiché à **chaque** pack de langue — par exemple
@@ -400,7 +400,7 @@ les attributions des fournisseurs de cartes :
 - [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
-- Fonds de carte [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com)
+- Fonds de carte [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [OpenFreeMap](https://openfreemap.org), [Esri World Imagery](https://www.esri.com)
 - Icônes par [Lucide](https://lucide.dev) (ISC)
 
 ## Remerciements

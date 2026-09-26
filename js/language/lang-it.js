@@ -106,6 +106,7 @@ const lang_it = {
 
   // Map sources
   srcOsm: 'OpenStreetMap',
+  srcOpenFreeMapBright: 'OpenFreeMap Chiaro',
   srcTFAtlas: 'Mappa mondiale Thunderforest',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',
@@ -113,6 +114,9 @@ const lang_it = {
   srcMapyOutdoor: 'Mapy Outdoor',
   srcEsriImagery: 'Immagini satellitari Esri',
   srcMapyAerial: 'Mapy Aerea',
+  srcOpenFreeMapPositron: 'OpenFreeMap Positron',
+  srcOpenFreeMapDark: 'OpenFreeMap Scuro',
+  srcOpenFreeMapDarkHint: 'Mappa in stile scuro',
   srcStadiaSmooth: 'Stadia Smooth',
   srcStadiaSmoothDark: 'Stadia Smooth Scuro',
   srcStadiaSmoothDarkHint: 'Mappa in stile scuro',

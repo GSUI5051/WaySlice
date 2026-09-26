@@ -332,7 +332,7 @@ aggiungere o modificare una fonte non richiede codice di interfaccia.
 | `url` | Template dei tile: `{z}` `{x}` `{y}`, opzionalmente `{s}` (richiede `subdomains`) e `{r}` (retina). Attenzione all'ordine delle coordinate del provider — Esri usa `{z}/{y}/{x}`. |
 | `overlayUrl` | Opzionale: template di un livello etichette trasparente sopra i tile di base. |
 | `maxZoom` | Lo zoom massimo servito dal provider. |
-| `attribution` | Richiesta legalmente da OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps e Esri — conservala. |
+| `attribution` | Richiesta legalmente da OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap e Esri — conservala. |
 | `subdomains`, `crossOrigin`, `hintKey` | Opzionali: rotazione dei sottodomini; `crossOrigin: false` per i server di tile senza header CORS; riga di suggerimento grigia nel selettore. |
 
 Poi aggiungi il nome mostrato a **ogni** pacchetto lingua — `srcEsriTopo: 'Esri Topo',` in
@@ -393,7 +393,7 @@ intatte le attribuzioni dei fornitori di mappe:
 - [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
-- Mappe di base di [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com)
+- Mappe di base di [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [OpenFreeMap](https://openfreemap.org), [Esri World Imagery](https://www.esri.com)
 - Icone di [Lucide](https://lucide.dev) (ISC)
 
 ## Ringraziamenti

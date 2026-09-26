@@ -12,7 +12,7 @@ suite('basemap / catalog integrity', () => {
     const ids = MAP_SOURCES.map((s) => s.id);
     assert.equal(new Set(ids).size, ids.length, 'duplicate source ids');
     for (const s of MAP_SOURCES) {
-      assert.truthy(s.id && s.labelKey && s.group && s.url && s.maxZoom && s.attribution, `incomplete source: ${s.id}`);
+      assert.truthy(s.id && s.labelKey && s.group && (s.url || s.styleUrl) && s.maxZoom && s.attribution, `incomplete source: ${s.id}`);
     }
   });
 
@@ -21,12 +21,22 @@ suite('basemap / catalog integrity', () => {
     assert.deepEqual(grouped, MAP_SOURCES.map((s) => s.id).sort());
   });
 
+  test('street and minimal groups follow the documented selector order', () => {
+    const idsFor = (group) => MAP_SOURCES.filter((s) => s.group === group).map((s) => s.id);
+    assert.deepEqual(idsFor('street'), ['osm', 'OpenFreeMapBright', 'TFAtlas']);
+    assert.deepEqual(idsFor('minimal'), ['OpenFreeMapPositron', 'OpenFreeMapDark', 'StadiaSmooth', 'StadiaSmoothDark']);
+  });
+
   test('vector style sources point at their provider style endpoints', () => {
     const vector = MAP_SOURCES.filter((s) => s.styleUrl);
-    assert.deepEqual(vector.map((s) => s.id).sort(), ['StadiaSmooth', 'StadiaSmoothDark', 'TFAtlas']);
+    assert.deepEqual(vector.map((s) => s.id).sort(), ['OpenFreeMapBright', 'OpenFreeMapDark', 'OpenFreeMapPositron', 'StadiaSmooth', 'StadiaSmoothDark', 'TFAtlas']);
     for (const s of vector.filter((s) => s.id.startsWith('Stadia'))) {
       assert.truthy(s.styleUrl.startsWith('https://tiles-eu.stadiamaps.com/styles/'), `style host for ${s.id}`);
       assert.truthy(s.styleUrl.endsWith('.json'), `style file for ${s.id}`);
+    }
+    for (const s of vector.filter((s) => s.id.startsWith('OpenFreeMap'))) {
+      assert.truthy(s.styleUrl.startsWith('https://tiles.openfreemap.org/styles/'), `style host for ${s.id}`);
+      assert.truthy(!s.url, `vector-only provider serves no raster url: ${s.id}`);
     }
     for (const s of vector.filter((s) => s.id === 'TFAtlas')) {
       assert.truthy(s.styleUrl.startsWith('https://api.thunderforest.com/styles/'), `style host for ${s.id}`);

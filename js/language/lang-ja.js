@@ -101,6 +101,7 @@ const lang_ja = {
 
   // Map sources
   srcOsm: 'OpenStreetMap',
+  srcOpenFreeMapBright: 'OpenFreeMap ブライト',
   srcTFAtlas: 'Thunderforest 世界地図',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',
@@ -108,6 +109,9 @@ const lang_ja = {
   srcMapyOutdoor: 'Mapy アウトドア',
   srcEsriImagery: 'Esri 衛星画像',
   srcMapyAerial: 'Mapy 航空写真',
+  srcOpenFreeMapPositron: 'OpenFreeMap ポジトロン',
+  srcOpenFreeMapDark: 'OpenFreeMap ダーク',
+  srcOpenFreeMapDarkHint: 'ダークスタイルの地図',
   srcStadiaSmooth: 'Stadia スムース',
   srcStadiaSmoothDark: 'Stadia スムースダーク',
   srcStadiaSmoothDarkHint: 'ダークスタイルの地図',

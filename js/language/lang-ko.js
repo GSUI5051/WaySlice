@@ -101,6 +101,7 @@ const lang_ko = {
 
   // Map sources
   srcOsm: 'OpenStreetMap',
+  srcOpenFreeMapBright: 'OpenFreeMap 브라이트',
   srcTFAtlas: 'Thunderforest 세계 지도',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',
@@ -108,6 +109,9 @@ const lang_ko = {
   srcMapyOutdoor: 'Mapy 아웃도어',
   srcEsriImagery: 'Esri 위성 영상',
   srcMapyAerial: 'Mapy 항공 사진',
+  srcOpenFreeMapPositron: 'OpenFreeMap 포지트론',
+  srcOpenFreeMapDark: 'OpenFreeMap 다크',
+  srcOpenFreeMapDarkHint: '다크 스타일 지도',
   srcStadiaSmooth: 'Stadia 스무스',
   srcStadiaSmoothDark: 'Stadia 스무스 다크',
   srcStadiaSmoothDarkHint: '다크 스타일 지도',

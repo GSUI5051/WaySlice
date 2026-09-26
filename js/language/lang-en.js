@@ -104,6 +104,7 @@ const lang_en = {
 
   // Map sources
   srcOsm: 'OpenStreetMap',
+  srcOpenFreeMapBright: 'OpenFreeMap Bright',
   srcTFAtlas: 'Thunderforest World Map',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',
@@ -111,6 +112,9 @@ const lang_en = {
   srcMapyOutdoor: 'Mapy Outdoor',
   srcEsriImagery: 'Esri World Imagery',
   srcMapyAerial: 'Mapy Aerial',
+  srcOpenFreeMapPositron: 'OpenFreeMap Positron',
+  srcOpenFreeMapDark: 'OpenFreeMap Dark',
+  srcOpenFreeMapDarkHint: 'Dark-styled map',
   srcStadiaSmooth: 'Stadia Smooth',
   srcStadiaSmoothDark: 'Stadia Smooth Dark',
   srcStadiaSmoothDarkHint: 'Dark-styled map',

@@ -331,7 +331,7 @@ daraus — eine Quelle hinzuzufügen oder zu ändern verlangt keinen UI-Code.
 | `url` | Kachelvorlage: `{z}` `{x}` `{y}`, optional `{s}` (braucht `subdomains`) und `{r}` (Retina). Achte auf die Koordinatenreihenfolge des Anbieters — Esri nutzt `{z}/{y}/{x}`. |
 | `overlayUrl` | Optional: transparente Beschriftungsebene über den Basiskacheln. |
 | `maxZoom` | Höchste Zoomstufe, die der Anbieter liefert. |
-| `attribution` | Von OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps und Esri gesetzlich verlangt — lass sie stehen. |
+| `attribution` | Von OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap und Esri gesetzlich verlangt — lass sie stehen. |
 | `subdomains`, `crossOrigin`, `hintKey` | Optional: Subdomain-Rotation; `crossOrigin: false` für Kachelserver ohne CORS-Header; graue Hinweiszeile im Wähler. |
 
 Dann trag den Anzeigenamen in **jedes** Sprachpaket ein — `srcEsriTopo: 'Esri Topo',` in `lang-en.js`,
@@ -393,7 +393,7 @@ die Zuschreibungen der Kartenanbieter unangetastet:
 - [MapLibre GL JS](https://maplibre.org) (BSD-3-Clause)
 - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - [OpenTopoMap](https://opentopomap.org) (CC-BY-SA), [CyclOSM](https://github.com/cyclosm/cyclosm-cartocss-style)
-- Basiskarten von [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [Esri World Imagery](https://www.esri.com)
+- Basiskarten von [Thunderforest](https://www.thunderforest.com), [Mapy.com](https://mapy.com), [Stadia Maps](https://stadiamaps.com), [OpenFreeMap](https://openfreemap.org), [Esri World Imagery](https://www.esri.com)
 - Icons von [Lucide](https://lucide.dev) (ISC)
 
 ## Danksagung
