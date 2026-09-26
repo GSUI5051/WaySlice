@@ -71,6 +71,7 @@ const lang_de = {
   waypointsHide: 'Wegpunkte ausblenden',
   waypointSnap: 'Wegpunkt-Magnet',
   snappedToWaypoint: 'Am Wegpunkt eingerastet',
+  waypoint: 'Wegpunkt',
   panHint: 'Umschalttaste gedrückt halten und ziehen, um das Höhenprofil zu verschieben',
   profilePinchHint: 'Höhenprofil mit zwei Fingern zoomen',
   dblclickReset: 'Gesamten Track anzeigen',

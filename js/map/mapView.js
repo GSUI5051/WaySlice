@@ -484,12 +484,21 @@ function rebuildWaypoints() {
       label.textContent = w.name;
       el.appendChild(label);
     }
+    // Waypoints are interactive — clicking one pans the map and pins the
+    // profile line — so the marker is a keyboard-reachable button: Tab
+    // reaches it, Enter/Space pans, focus mirrors hover (nameplate + the
+    // profile's waypoint line) via the focus/blur listeners below.
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
+    el.setAttribute('aria-label', w.name || t('waypoint'));
     el.style.zIndex = '300';
     const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
       .setLngLat([w.lon, w.lat])
       .addTo(map);
     el.addEventListener('mouseover', () => emit('waypoint:hover', { dist: near.dist, name: w.name || null }));
     el.addEventListener('mouseout', () => emit('waypoint:hover', { dist: null }));
+    el.addEventListener('focus', () => emit('waypoint:hover', { dist: near.dist, name: w.name || null }));
+    el.addEventListener('blur', () => emit('waypoint:hover', { dist: null }));
     // Clicking a waypoint centers the viewport on it; panTo keeps the
     // current zoom level untouched. The profile (wide screens only) pans
     // its zoom window to the same waypoint and pins its line/readout
@@ -497,6 +506,11 @@ function rebuildWaypoints() {
     el.addEventListener('click', () => {
       map.panTo([w.lon, w.lat]);
       emit('waypoint:select', { dist: near.dist, name: w.name || null });
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      el.click();
     });
     return marker;
   });

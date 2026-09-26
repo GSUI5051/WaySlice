@@ -70,6 +70,7 @@ const lang_en = {
   waypointsHide: 'Hide waypoints',
   waypointSnap: 'Waypoint snap',
   snappedToWaypoint: 'Snapped to waypoint',
+  waypoint: 'Waypoint',
   panHint: 'Hold Shift and drag to view the profile',
   profilePinchHint: 'Pinch with two fingers to zoom the profile',
   dblclickReset: 'Show entire track',

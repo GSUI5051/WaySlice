@@ -207,6 +207,16 @@
   border-block-start-color: var(--surface-elevated);
 }
 
+/* Waypoint markers are keyboard buttons (Tab + Enter/Space, js/map/mapView.js):
+   focus wears the app's focus ring like the map handles, and a named
+   waypoint's plate shows on focus exactly as on hover. */
+.map-waypoint-icon:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.map-waypoint-icon:focus-visible .map-waypoint-label { display: block; }
+
 /* Cooperative-gestures hint (touch devices): one finger scrolls the page,
    two fingers move the map. Purely informational — never blocks touches. */
 

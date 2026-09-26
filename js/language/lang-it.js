@@ -72,6 +72,7 @@ const lang_it = {
   waypointsHide: 'Nascondi waypoint',
   waypointSnap: 'Aggancio ai waypoint',
   snappedToWaypoint: 'Agganciato al waypoint',
+  waypoint: 'Waypoint',
   panHint: 'Tieni premuto Maiusc e trascina per spostare il profilo',
   profilePinchHint: 'Pizzica con due dita per fare zoom sul profilo',
   dblclickReset: 'Mostra tutta la traccia',

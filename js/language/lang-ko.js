@@ -67,6 +67,7 @@ const lang_ko = {
   waypointsHide: '웨이포인트 숨기기',
   waypointSnap: '웨이포인트 스냅',
   snappedToWaypoint: '웨이포인트에 스냅됨',
+  waypoint: '웨이포인트',
   panHint: 'Shift를 누른 채 드래그하면 고도 프로필을 이동할 수 있습니다',
   profilePinchHint: '두 손가락으로 고도 프로필을 확대/축소하세요',
   dblclickReset: '전체 트랙 표시',

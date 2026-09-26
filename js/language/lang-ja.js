@@ -67,6 +67,7 @@ const lang_ja = {
   waypointsHide: 'ウェイポイントを隠す',
   waypointSnap: 'ウェイポイントにスナップ',
   snappedToWaypoint: 'ウェイポイントにスナップしました',
+  waypoint: 'ウェイポイント',
   panHint: 'Shift を押しながらドラッグすると、標高プロファイルを移動できます',
   profilePinchHint: '2 本の指でピンチして標高プロファイルを拡大・縮小できます',
   dblclickReset: 'トラック全体を表示',
