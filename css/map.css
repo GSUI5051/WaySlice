@@ -169,7 +169,9 @@
 
 /* Name plate for named waypoints (in place of Leaflet's bindTooltip
    direction: top, offset [0, -8]): self-drawn div above the pin, shown while
-   the pin is hovered; light-on-dark styling follows the old tooltip look. */
+   the pin is hovered. Themed like every other floating surface (the old
+   hard-coded white plate ignored the dark theme); the border stays the
+   plate's own color so the silhouette is unchanged. */
 .map-waypoint-label {
   display: none;
   position: absolute;
@@ -181,11 +183,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 4px 8px;
-  background: #fff;
-  border: 1px solid #fff;
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-elevated);
   border-radius: 3px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  color: #222;
+  color: var(--foreground);
   font-size: 12px;
   line-height: 1.4;
   text-align: center;
@@ -202,7 +204,7 @@
   inset-inline-start: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-block-start-color: #fff;
+  border-block-start-color: var(--surface-elevated);
 }
 
 /* Cooperative-gestures hint (touch devices): one finger scrolls the page,

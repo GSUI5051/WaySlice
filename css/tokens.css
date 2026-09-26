@@ -17,7 +17,9 @@
   /* Text */
   --foreground: #1b2027;
   --foreground-muted: #5b6570;
-  --foreground-faint: #8a939e;
+  /* Faint carries real 10.5–12px text (group labels, notes, hints): 4.86:1 on
+     surface, 4.56 on background, 5.03 on elevated sheets — all above AA. */
+  --foreground-faint: #67707a;
 
   /* Lines */
   --border: #e1e5ea;
@@ -27,7 +29,10 @@
   --primary: #1b2027;            /* primary buttons: ink on light */
   --primary-foreground: #ffffff;
   --accent: #e8590c;
-  --accent-strong: #d9480f;
+  /* Pressed chips and the badge render accent-strong as 11–12px text on
+     accent-soft: 4.66:1 there, 5.25:1 on surface — the former default
+     (#d9480f) sat just under the 4.5:1 AA floor on the soft blend. */
+  --accent-strong: #bf3c0c;
   --accent-soft: rgba(232, 89, 12, 0.10);
   --focus: #1971c2;
   --success: #2f9e44;
@@ -74,7 +79,9 @@
 
   --foreground: #e7eaee;
   --foreground-muted: #9aa4b0;
-  --foreground-faint: #68727e;
+  /* Same AA floor as the light theme: 5.04:1 on surface, 4.57 on the
+     elevated sheets the drawer and sheets render their small text on. */
+  --foreground-faint: #818b95;
 
   --border: #272e38;
   --border-strong: #3b4450;

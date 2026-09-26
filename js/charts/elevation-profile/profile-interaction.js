@@ -174,6 +174,9 @@ function showProfileToast(text) {
     toast = document.createElement('div');
     toast.id = 'profile-toast';
     toast.className = 'profile-toast';
+    // The hint text swaps while the pill is already on screen; the live
+    // region lets screen readers hear the snap/pan hint like sighted users.
+    toast.setAttribute('aria-live', 'polite');
     state.dom.root.appendChild(toast);
   }
   toast.textContent = text;
