@@ -86,7 +86,9 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   como chinchetas con su nombre en una ventana emergente — actívalos con el botón de chincheta situado
   bajo «Zoom a la traza». Al pasar el cursor sobre una chincheta se marca el punto correspondiente en
   el perfil altimétrico, y al hacer clic en ella el mapa se centra en ese punto sin cambiar el nivel de
-  zoom.
+  zoom. Las chinchetas también se manejan con el teclado: Tab se mueve entre ellas, Intro o Espacio
+  centra el mapa, y al enfocar una chincheta se muestra su ventana emergente con el nombre, igual que
+  al pasar el cursor.
 - **Zoom con rueda en el perfil (escritorio), zoom por pellizco (táctil).** Coloca el cursor sobre el
   perfil altimétrico y haz scroll para hacer zoom en su eje de distancia/tiempo alrededor del cursor;
   Mayús + arrastre para desplazarlo; en pantallas táctiles, un dedo desplaza y un pellizco de dos dedos hace zoom. Doble

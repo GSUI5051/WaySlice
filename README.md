@@ -80,7 +80,8 @@ capital letter, it means exactly this:
 - **Waypoints on map and profile.** GPX (`<wpt>`) and KML (`<Point>`) waypoints render as pins
   with name tooltips — toggle them with the pin button below "zoom to track". Hovering a pin
   marks the matching spot on the elevation profile, and clicking one centers the map on it without
-  changing the zoom level.
+  changing the zoom level. The pins work from the keyboard too: Tab moves between them, Enter or
+  Space centers the map, and focusing a pin shows its name tooltip the same way hovering does.
 - **Profile wheel zoom (desktop), pinch zoom (touch).** Hover the elevation profile and scroll to zoom its
   distance/time axis around the cursor; Shift-drag to pan; on touch, one finger pans and a two-finger
   pinch zooms the same way.

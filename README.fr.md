@@ -86,7 +86,9 @@ majuscule, il faut le prendre exactement au sens suivant :
 - **Waypoints sur la carte et le profil.** Les waypoints GPX (`<wpt>`) et KML (`<Point>`) sont
   affichés sous forme d'épingles avec leur nom en info-bulle — activez-les avec le bouton épingle
   sous « Cadrer sur la trace ». Survoler une épingle marque le point correspondant sur le profil
-  altimétrique, et cliquer dessus centre la carte dessus sans changer le niveau de zoom.
+  altimétrique, et cliquer dessus centre la carte dessus sans changer le niveau de zoom. Les épingles
+  se manipulent aussi au clavier : Tab passe de l'une à l)autre, Entrée ou Espace centre la carte, et
+  le focus sur une épingle affiche son info-bulle, comme au survol.
 - **Zoom molette du profil (bureau), zoom par pincement (tactile).** Survolez le profil altimétrique
   et faites défiler pour zoomer son axe distance/temps autour du curseur ; Maj + glisser pour
   déplacer ; sur tactile, un doigt déplace et un pincement à deux doigts fait de même. Double-cliquer n'importe où sur

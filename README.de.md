@@ -85,7 +85,9 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
 - **Wegpunkte auf Karte und Profil.** GPX- (`<wpt>`) und KML-Wegpunkte (`<Point>`) erscheinen als Pins
   mit Namens-Tooltip — ein- und ausschalten über den Pin-Button unter „Auf Track zoomen“. Fährst du mit
   der Maus über einen Pin, wird die passende Stelle im Höhenprofil markiert; ein Klick zentriert die
-  Karte darauf, ohne die Zoomstufe zu ändern.
+  Karte darauf, ohne die Zoomstufe zu ändern. Die Pins lassen sich auch per Tastatur bedienen: Tab
+  springt zwischen ihnen, Enter oder Leertaste zentriert die Karte, und ein fokussierter Pin zeigt
+  seinen Namens-Tooltip genauso wie beim Überfahren mit der Maus.
 - **Profil-Zoom mit dem Mausrad (Desktop), Pinch-Zoom (Touchscreen).** Fahre über das Höhenprofil
   und scrolle, um seine Distanz-/Zeitachse um den Zeiger herum zu zoomen; mit Umschalt + Ziehen
   verschiebst du es; am Touchscreen verschiebt ein Finger und zoomt ein Zwei-Finger-Pinch. Ein Doppelklick irgendwo auf das

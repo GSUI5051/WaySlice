@@ -85,7 +85,9 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
 - **Waypoint su mappa e profilo.** I waypoint GPX (`<wpt>`) e KML (`<Point>`) sono mostrati come
   puntine con il nome in una soffietta — attivale con il bottone a puntina sotto «Zoom sulla traccia».
   Passando sopra una puntina, il punto corrispondente viene marcato sul profilo altimetrico;
-  cliccandola la mappa si centra su di essa senza cambiare il livello di zoom.
+  cliccandola la mappa si centra su di essa senza cambiare il livello di zoom. Le puntine funzionano
+  anche da tastiera: Tab passa da una all'altra, Invio o Spazio centra la mappa e una puntina con il
+  focus mostra la sua soffietta, come al passaggio del mouse.
 - **Zoom a rotella del profilo (desktop), zoom a pizzico (touch).** Passa col cursore sul profilo
   altimetrico e scorri per ingrandire l'asse distanza/tempo attorno al cursore; Maiusc + trascinamento
   per spostarlo; sul touch, un dito sposta e un pizzico di due dita fa zoom. Un doppio clic in un punto qualsiasi del
