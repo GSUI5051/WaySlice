@@ -499,7 +499,10 @@ function currentHoverXv() {
  * the left-hand elevation labels (10px mono, middle), with the rows sitting
  * exactly on the top/bottom grid lines so both axes read level. Labels
  * render in the series TEXT tokens (per-theme, AA for small text) and are
- * haloed with the surface color so they stay legible over the curves.
+ * haloed with the surface color so they stay legible over the curves. The
+ * strip stays pinned to the plot edge and deliberately does NOT dodge the
+ * sector handles — a handle bar may cross the values; that overlap is
+ * accepted by design (user decision, 2026-09-27).
  * @private
  */
 function drawOverlayAxes(entries, haloColor, yTop, yBottom) {
@@ -521,26 +524,7 @@ function drawOverlayAxes(entries, haloColor, yTop, yBottom) {
     };
   });
   const totalW = columns.reduce((sum, c) => sum + c.w, 0) + GAP * (columns.length - 1);
-  // Right-align to the plot edge, but never under a sector handle: each
-  // handle paints a ~3px bar (plus its shadow) centered on its boundary x,
-  // so the strip's right edge steps left of any handle whose bar would
-  // cross the text block. A window too narrow for the shifted block falls
-  // back to the same left-pad floor the unshifted layout had.
-  let rightEdge = state.plot.x0 + state.plot.w - PAD;
-  const xEnd = state.xs[state.xs.length - 1];
-  const v0 = state.view ? state.view.start : 0;
-  const v1 = state.view ? state.view.end : xEnd;
-  const vw = Math.max(v1 - v0, 1e-9);
-  const { start, end } = sectorStore.get();
-  for (const boundary of [start, end]) {
-    const xv = distToX(boundary, state.track, state.xMode);
-    if (xv < v0 || xv > v1) continue; // the handle hides outside the window
-    const px = state.plot.x0 + ((xv - v0) / vw) * state.plot.w;
-    if (px + 10 > rightEdge - totalW && px - 10 < rightEdge) {
-      rightEdge = Math.max(state.plot.x0 + PAD, px - 16);
-    }
-  }
-  let x = Math.max(state.plot.x0 + PAD, rightEdge - totalW);
+  let x = Math.max(state.plot.x0 + PAD, state.plot.x0 + state.plot.w - PAD - totalW);
   for (const col of columns) {
     const label = (text, ty) => {
       ctx.lineWidth = 3;
