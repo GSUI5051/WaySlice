@@ -717,6 +717,12 @@ function createHandle(which) {
     const near = nearestOnTrack(track, lat, lng, dragHints[which]);
     dragHints[which] = near.i;
     moveBoundary(which, near.dist);
+    // The handle stays glued to the track for the whole drag: MapLibre parks
+    // the marker at the cursor before firing 'drag', so re-pinning it to the
+    // boundary's on-track point here wins the paint — the cursor may wander
+    // off the line, the handle may not. dragend's snap becomes a no-op.
+    const pt = pointAtDistance(track, near.dist);
+    if (pt) marker.setLngLat([pt.lon, pt.lat]);
     autoPanToward(e.originalEvent, el);
   });
   marker.on('dragend', () => {
