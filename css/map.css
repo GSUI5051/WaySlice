@@ -26,6 +26,13 @@
   z-index: var(--z-map-controls);
 }
 
+/* The scale bar rides the same corner level as the other controls: the
+   vendor corner containers sit at z-index 2, under the map markers —
+   Leaflet's control container floated above every marker. */
+.maplibregl-ctrl-bottom-left {
+  z-index: var(--z-map-controls);
+}
+
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
   margin-inline-end: 12px;
   border: 1px solid var(--border) !important;
@@ -239,6 +246,17 @@
 }
 
 .map-waypoint-icon:focus-visible .map-waypoint-label { display: block; }
+
+/* A hovered (or keyboard-focused) pin rises above the sector handles so its
+   name plate paints over them — Leaflet showed the plate from tooltipPane
+   (650), above the whole marker pane (600). The plate lives inside the
+   pin's transform stacking context now, so the pin itself has to move; it
+   stays under the button columns (800). !important beats the inline
+   z-index: 300 the marker is created with. */
+.map-waypoint-icon:hover,
+.map-waypoint-icon:focus-visible {
+  z-index: 750 !important;
+}
 
 /* Cooperative-gestures hint (touch devices): one finger scrolls the page,
    two fingers move the map. Purely informational — never blocks touches. */

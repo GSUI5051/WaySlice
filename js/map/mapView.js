@@ -698,7 +698,15 @@ function createHandle(which) {
     anchor: 'center',
     draggable: true,
   }).setLngLat([0, 0]).addTo(map);
-  el.style.zIndex = '1000';
+  // Marker stacking order on the map, lowest first: waypoint pins 300,
+  // hover dot 500, these handles 700, then the button columns at
+  // --z-map-controls (800). A handle must stay grabbable above the track
+  // (the whole canvas, and every marker with it, paints under the DOM) and
+  // above the smaller markers, but must slide UNDER the buttons where they
+  // overlap — 1000 covered the zoom and fit buttons. Marker z-index applies
+  // because MapLibre positions markers with a transform (transformed
+  // elements honor z-index like positioned ones).
+  el.style.zIndex = '700';
 
   marker.on('dragstart', () => {
     dragging[which] = true;
