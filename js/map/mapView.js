@@ -238,6 +238,7 @@ function createMapInstance() {
   // profile's waypoint line (marker clicks are plain DOM above the canvas and
   // never reach the map).
   map.on('click', (e) => {
+    if (fromMarker(e)) return;
     if (track && map.getLayer('track-hit')
         && map.queryRenderedFeatures(e.point, { layers: ['track-hit'] }).length) {
       onTrackClick(e);
@@ -246,6 +247,7 @@ function createMapInstance() {
     emit('waypoint:deselect');
   });
   map.on('mousemove', (e) => {
+    if (fromMarker(e)) return;
     if (!track || !map.getLayer('track-hit')) return;
     if (map.queryRenderedFeatures(e.point, { layers: ['track-hit'] }).length) onTrackHover(e);
     else showHover(null);
@@ -741,6 +743,19 @@ function onTrackClick(e) {
   const { start, end } = sectorStore.get();
   const which = Math.abs(near.dist - start) <= Math.abs(end - near.dist) ? 'start' : 'end';
   moveBoundary(which, near.dist);
+}
+
+/** @private True when a map event's DOM target lives inside a MapLibre
+ *  marker (waypoint pin, sector handle). Markers own their interactions —
+ *  pins emit waypoint:hover and select, handles drag — and their mouse
+ *  events must not also run the map's track hover/click pipeline, or a
+ *  hover:dist with origin 'map' overwrites the pin's waypoint hover and the
+ *  profile loses its violet waypoint line. Leaflet's interactive layers had
+ *  this isolation built in; delegated MapLibre events bubble instead, so
+ *  the guard is explicit. */
+function fromMarker(e) {
+  const target = e.originalEvent && e.originalEvent.target;
+  return target instanceof Element && !!target.closest('.maplibregl-marker');
 }
 
 /** @private Track hover → hover dot + profile crosshair. */
