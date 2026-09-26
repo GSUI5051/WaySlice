@@ -109,6 +109,7 @@ const lang_es = {
   // Map sources
   srcOsm: 'OpenStreetMap',
   srcOpenFreeMapBright: 'OpenFreeMap Claro',
+  srcStadiaOSMBright: 'Stadia OSM Claro',
   srcTFAtlas: 'Mapa mundial de Thunderforest',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',

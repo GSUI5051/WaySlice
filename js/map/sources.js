@@ -51,6 +51,19 @@ export const MAP_SOURCES = [
     attribution: '&copy; <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
   },
   {
+    id: 'StadiaOSMBright',
+    labelKey: 'srcStadiaOSMBright',
+    group: 'street',
+    // Classic OSM Bright (docs.stadiamaps.com MapLibre tutorial pattern),
+    // same Direct Access shape as the other Stadia styles: style JSON is
+    // keyless on localhost / domain-authed in production — no apikey here,
+    // unchanged from its siblings. No legacy raster url either: Stadia's
+    // raster tile endpoint 401s without a key, and styleUrl always wins.
+    styleUrl: 'https://tiles-eu.stadiamaps.com/styles/osm_bright.json',
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+  },
+  {
     id: 'TFAtlas',
     labelKey: 'srcTFAtlas',
     group: 'street',

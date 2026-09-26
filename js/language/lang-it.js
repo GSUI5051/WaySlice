@@ -107,6 +107,7 @@ const lang_it = {
   // Map sources
   srcOsm: 'OpenStreetMap',
   srcOpenFreeMapBright: 'OpenFreeMap Chiaro',
+  srcStadiaOSMBright: 'Stadia OSM Chiaro',
   srcTFAtlas: 'Mappa mondiale Thunderforest',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',

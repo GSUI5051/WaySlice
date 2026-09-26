@@ -106,6 +106,7 @@ const lang_de = {
   // Map sources
   srcOsm: 'OpenStreetMap',
   srcOpenFreeMapBright: 'OpenFreeMap Hell',
+  srcStadiaOSMBright: 'Stadia OSM Hell',
   srcTFAtlas: 'Thunderforest Weltkarte',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',

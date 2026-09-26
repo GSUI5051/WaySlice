@@ -102,6 +102,7 @@ const lang_ja = {
   // Map sources
   srcOsm: 'OpenStreetMap',
   srcOpenFreeMapBright: 'OpenFreeMap ブライト',
+  srcStadiaOSMBright: 'Stadia OSM ブライト',
   srcTFAtlas: 'Thunderforest 世界地図',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',

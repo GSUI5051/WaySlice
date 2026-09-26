@@ -102,6 +102,7 @@ const lang_ko = {
   // Map sources
   srcOsm: 'OpenStreetMap',
   srcOpenFreeMapBright: 'OpenFreeMap 브라이트',
+  srcStadiaOSMBright: 'Stadia OSM 브라이트',
   srcTFAtlas: 'Thunderforest 세계 지도',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',

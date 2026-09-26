@@ -23,14 +23,14 @@ suite('basemap / catalog integrity', () => {
 
   test('street and minimal groups follow the documented selector order', () => {
     const idsFor = (group) => MAP_SOURCES.filter((s) => s.group === group).map((s) => s.id);
-    assert.deepEqual(idsFor('street'), ['osm', 'OpenFreeMapBright', 'TFAtlas']);
+    assert.deepEqual(idsFor('street'), ['osm', 'OpenFreeMapBright', 'StadiaOSMBright', 'TFAtlas']);
     assert.deepEqual(idsFor('satellite'), ['EOXSentinel2', 'esri-imagery', 'MapyAerial']);
     assert.deepEqual(idsFor('minimal'), ['OpenFreeMapPositron', 'OpenFreeMapDark', 'StadiaSmooth', 'StadiaSmoothDark']);
   });
 
   test('vector style sources point at their provider style endpoints', () => {
     const vector = MAP_SOURCES.filter((s) => s.styleUrl);
-    assert.deepEqual(vector.map((s) => s.id).sort(), ['OpenFreeMapBright', 'OpenFreeMapDark', 'OpenFreeMapPositron', 'StadiaSmooth', 'StadiaSmoothDark', 'TFAtlas']);
+    assert.deepEqual(vector.map((s) => s.id).sort(), ['OpenFreeMapBright', 'OpenFreeMapDark', 'OpenFreeMapPositron', 'StadiaOSMBright', 'StadiaSmooth', 'StadiaSmoothDark', 'TFAtlas']);
     for (const s of vector.filter((s) => s.id.startsWith('Stadia'))) {
       assert.truthy(s.styleUrl.startsWith('https://tiles-eu.stadiamaps.com/styles/'), `style host for ${s.id}`);
       assert.truthy(s.styleUrl.endsWith('.json'), `style file for ${s.id}`);

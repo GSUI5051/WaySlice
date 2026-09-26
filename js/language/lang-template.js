@@ -105,6 +105,7 @@ const lang_en = {
   // Map sources
   srcOsm: 'OpenStreetMap',
   srcOpenFreeMapBright: 'OpenFreeMap Bright',
+  srcStadiaOSMBright: 'Stadia OSM Bright',
   srcTFAtlas: 'Thunderforest World Map',
   srcOpenTopoMap: 'OpenTopoMap',
   srcCyclosm: 'CyclOSM',
