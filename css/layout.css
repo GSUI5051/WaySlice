@@ -125,7 +125,7 @@
 /* Support (Ko-fi) link — heart + label in the Ko-fi pink, wearing the same
    forms as the GitHub link: full heart+label while the header is bare, a 34 px
    icon-only square once a track is loaded (see also the phone block below). */
-#btn-support { color: #e94bb4; padding-inline: 10px; text-decoration: none; }
+#btn-support { color: var(--support-pink); padding-inline: 10px; text-decoration: none; }
 
 #btn-support.is-loaded { width: 34px; padding: 0; justify-content: center; }
 

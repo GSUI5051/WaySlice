@@ -39,6 +39,11 @@
   --danger: #e03131;
   --backdrop: rgba(15, 20, 26, 0.42);
 
+  /* The support link keeps the Ko-fi pink as its brand color; the light
+     theme's value is deepened just enough that the 13px label clears AA on
+     .btn's surface (4.93:1) and its hover fill (4.59:1). */
+  --support-pink: #c92a7d;
+
   /* Charts */
   --profile-line: #94a0ad;
   --profile-grid: #e3e7eb;
@@ -95,6 +100,9 @@
   --success: #51cf66;
   --danger: #ff6b6b;
   --backdrop: rgba(0, 0, 0, 0.55);
+
+  /* Brand pink clears dark surfaces as-is (5.10:1 on .btn's surface). */
+  --support-pink: #e94bb4;
 
   --profile-line: #4d5763;
   --profile-grid: #232a33;
