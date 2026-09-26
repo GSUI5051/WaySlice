@@ -13,31 +13,54 @@
    .map-gesture-hint overlay (js/map/gestures.js) — keep only the latter. */
 .maplibregl-cooperative-gesture-screen { display: none; }
 
-.maplibregl-ctrl-group {
+/* The zoom pair keeps MapLibre's single two-button group — the bordered
+   vertical column with the internal divider, unchanged in structure and
+   size. Its COLORS are not decided here: js/map/mapView.js puts the shared
+   .btn/.btn-elevated classes on the two buttons — the same component
+   classes that color the #map-fit column — so both themes always follow
+   one source. This file owns only the group's geometry and frame, plus
+   the stacking: the corner container swaps the vendor z-index 2 for
+   --z-map-controls, the level #map-fit already uses, so the two columns
+   stack identically against the map markers. */
+.maplibregl-ctrl-bottom-right {
+  z-index: var(--z-map-controls);
+}
+
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
+  margin-inline-end: 12px;
   border: 1px solid var(--border) !important;
   border-radius: var(--radius-m) !important;
   overflow: hidden;
   box-shadow: var(--shadow-1);
+  /* MapLibre hard-codes the group's background white. The buttons cover it
+     except a hairline at the rounded corners, invisible in the light theme
+     and a white fleck in the dark one — read the token instead. */
+  background: var(--surface-elevated);
 }
 
-/* The zoom bar's right edge lines up with the #map-fit button column above
-   (both 12px off the pane edge); MapLibre's default margin is 10px. */
-.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
-  margin-inline-end: 12px;
+/* Hovering either button deepens the shared frame — the group-frame
+   equivalent of .btn:hover's border-color. */
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group:has(button:hover) {
+  border-color: var(--border-strong) !important;
 }
 
-.maplibregl-ctrl-group button {
+/* Geometry only: the frame owns the border and radius, and the buttons keep
+   the vendor 32px squares (.btn's 34px height, padding, inline-flex display
+   and per-button border do not apply inside the group). */
+.maplibregl-ctrl-group .btn {
+  display: block;
   width: 32px !important;
   height: 32px !important;
-  background-color: var(--surface-elevated) !important;
-  color: var(--foreground) !important;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
 }
 
-.maplibregl-ctrl-group button + button {
-  border-block-start: 1px solid var(--border) !important;
+/* The divider is the one border a button carries, so it must out-rank
+   .btn's border: 0 above. */
+.maplibregl-ctrl-group .btn + .btn {
+  border-block-start: 1px solid var(--border);
 }
-
-.maplibregl-ctrl-group button:hover { background-color: var(--surface-hover) !important; }
 
 /* The zoom glyphs join the app's Lucide icon family (plus/minus, 24-grid,
    2px stroke — same set the #map-fit buttons use) via a mask so they take

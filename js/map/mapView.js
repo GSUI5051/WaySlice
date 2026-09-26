@@ -217,6 +217,12 @@ function createMapInstance() {
   // zoom bar above it, mirroring the Leaflet layout.
   map.addControl(new maplibregl.AttributionControl({ compact: false }), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false, showZoom: true }), 'bottom-right');
+  // The zoom buttons join the .btn/.btn-elevated family, so their colors are
+  // decided by the same component classes as the #map-fit column — light and
+  // dark alike. css/map.css owns only this group's geometry and frame.
+  for (const b of map.getContainer().querySelectorAll('.maplibregl-ctrl-group button')) {
+    b.classList.add('btn', 'btn-elevated');
+  }
   refreshScaleControl();
   armStyleGate(false);
 

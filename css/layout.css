@@ -299,7 +299,7 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
        free space goes negative and the 44vh growth limit is never reached.
        The floor must hold the full right-edge control stack without overlap —
        the 12px-inset #map-fit column (4 × 34px buttons + 3 × 8px gaps =
-       172px) above Leaflet's zoom bar + attribution (~95px) needs ≥267px;
+       172px) above MapLibre's zoom bar + attribution (~95px) needs ≥267px;
        304px keeps ~37px of live map between them and matches the touch
        profile module's height. */
     grid-template-rows: minmax(304px, 44vh) auto auto;
