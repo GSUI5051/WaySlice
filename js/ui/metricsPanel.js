@@ -9,7 +9,7 @@
 import { trackStore } from '../core/stores.js';
 import { sectorStore, resetSector, isEntireTrack } from '../sector/sectorStore.js';
 import { computeSectorMetrics } from '../metrics/sectorMetrics.js';
-import { computeHeartRateZoneStats } from '../metrics/heartRateStats.js';
+import { computeHeartRateZoneStats, zoneSharePct } from '../metrics/heartRateStats.js';
 import { zoneDisplayRange } from '../metrics/heartRateZones.js';
 import { t } from '../language/language.js';
 import { on, emit } from '../core/events.js';
@@ -249,15 +249,10 @@ export function hrZonesGroupHtml(track, start, end) {
       </div>
     `;
   }
-  // The percentage denominator EXCLUDES below-B1 time: those readings are
-  // "not counted" (like pauses), so they must not silently dilute the zone
-  // shares either — a track whose heart rate almost never reaches Zone 1
-  // would otherwise show single-digit percentages for all its zone time.
-  // noHr stays in the denominator: per spec, missing readings are one of the
-  // reasons the zone shares need not sum to 100 %.
-  const denominator = Math.max(stats.moving - stats.below, 0);
+  // The share rule (denominator excludes below-Z1 time, noHr stays in) lives
+  // in zoneSharePct — the text exports render the same numbers.
   const rows = stats.zones.map((zone, i) => {
-    const pct = denominator > 0 ? Math.round((zone.seconds / denominator) * 100) : 0;
+    const pct = zoneSharePct(zone.seconds, stats);
     // Integer readout of the continuous bounds: [ceil(lo), ceil(hi) - 1] —
     // adjacent zones read as strictly consecutive whole bpm values.
     const d = zoneDisplayRange(zone);

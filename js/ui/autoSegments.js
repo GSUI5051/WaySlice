@@ -16,6 +16,7 @@ import { t } from '../language/language.js';
 import { icon } from './icons.js';
 import { trackStore } from '../core/stores.js';
 import { on } from '../core/events.js';
+import { escapeHtml } from '../utils/escapeHtml.js';
 import { setRange } from '../sector/sectorStore.js';
 import { computeSectorMetrics } from '../metrics/sectorMetrics.js';
 import { splitByLength, splitByGrade, splitByWaypoints, segmentType } from '../metrics/autoSegments.js';
@@ -273,13 +274,6 @@ function buildItem(track, range, index, hasHr) {
 
   item.append(row, details);
   return item;
-}
-
-/** @private Minimal HTML escaping for file-sourced strings in innerHTML. */
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
 // Live language / unit switches re-render the open sheet in place.

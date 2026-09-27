@@ -8,6 +8,7 @@
  */
 import { ParseError, PARSE_ERROR_KEYS } from './parseError.js';
 import { parseXmlDocument } from './xmlDocument.js';
+import { timeOrNull } from './eleGaps.js';
 
 /**
  * @param {string} text  GPX document text
@@ -120,11 +121,4 @@ function numberOrNull(text) {
   if (text == null) return null;
   const n = Number(text.trim());
   return Number.isFinite(n) ? n : null;
-}
-
-/** @private */
-function timeOrNull(text) {
-  if (text == null) return null;
-  const t = Date.parse(text.trim());
-  return Number.isFinite(t) ? t : null;
 }

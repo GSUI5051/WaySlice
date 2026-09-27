@@ -51,7 +51,7 @@ interaction → state, data, render(scheduleSync만), tooltip, ../viewport-gestu
 render      → state, data, tooltip(drawHover가 showTooltipAt 호출)
 tooltip     → state, data
 data        → 이 디렉터리 내 의존 없음(외부 geo / metrics / utils만)
-state       → 의존 없음
+state       → 이 디렉터리 내 의존 없음(../utils/layout에서 isWideLayout 재노출)
 ```
 
 `profile-data.js`는 의존 그래프의 최하층: 이 디렉터리의 어떤 파일도 import하지 않습니다——

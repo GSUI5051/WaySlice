@@ -24,9 +24,9 @@
  * are pure and unit-tested.
  */
 import { trackStore } from '../core/stores.js';
-import { sectorStore } from '../sector/sectorStore.js';
+import { sectorStore, isEntireTrack } from '../sector/sectorStore.js';
 import { computeSectorMetrics } from '../metrics/sectorMetrics.js';
-import { computeHeartRateZoneStats } from '../metrics/heartRateStats.js';
+import { computeHeartRateZoneStats, zoneSharePct } from '../metrics/heartRateStats.js';
 import { zoneDisplayRange } from '../metrics/heartRateZones.js';
 import { createMenu } from '../ui/menus.js';
 import { t } from '../language/language.js';
@@ -122,10 +122,9 @@ function hrZoneGroup(track, start, end) {
   if (!track.hasTime) return { title, note: t('noTimestampData') };
   const stats = computeHeartRateZoneStats(track, start, end);
   if (!stats) return { title, note: t('noHeartRateData') };
-  // Same denominator as the panel: below-Z1 time is excluded from the shares.
-  const denominator = Math.max(stats.moving - stats.below, 0);
   const rows = stats.zones.map((zone, i) => {
-    const pct = denominator > 0 ? Math.round((zone.seconds / denominator) * 100) : 0;
+    // Same share rule as the panel: zoneSharePct excludes below-Z1 time.
+    const pct = zoneSharePct(zone.seconds, stats);
     const d = zoneDisplayRange(zone);
     return [t('zoneN', { n: i + 1 }), formatBpmRange(d.lo, d.hi), formatPercent(pct), formatDuration(zone.seconds)];
   });
@@ -251,11 +250,11 @@ const METADATA_RANGE_FORMAT = new Intl.NumberFormat('en-US', {
  * the labels and dot-decimal numbers stay parseable in any tool regardless
  * of the UI language. The km/mi unit follows the active UNIT SYSTEM only.
  * A whole-track export carries just the source file; a sector adds its range
- * (whole-track rule mirrors sectorStore.isEntireTrack's 0.5 m tolerance).
+ * (the whole-track rule is sectorStore.isEntireTrack with explicit inputs).
  * @private
  */
 function metadataXml(track, range) {
-  const entire = range.start <= 0.5 && range.end >= track.totalDistance - 0.5;
+  const entire = isEntireTrack(range, track.totalDistance);
   let desc = `Source: ${track.sourceName ?? track.name}`;
   if (!entire) {
     const imperial = getUnitSystem() === 'imperial';

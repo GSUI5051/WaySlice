@@ -17,6 +17,7 @@
 import {
   getUnitSystem,
   metersToFeet,
+  METERS_PER_MILE,
   mpsToKmh,
   mpsToMph,
   MPH_PER_MPS,

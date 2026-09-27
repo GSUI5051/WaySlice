@@ -28,6 +28,7 @@ import { sectorStore } from '../../sector/sectorStore.js';
 import { pointAtDistance } from '../../geo/interpolate.js';
 import { loadHeartRateSettings } from '../../metrics/heartRateSettings.js';
 import { getHeartRateDisplay } from '../../metrics/heartRateDisplay.js';
+import { cssToken } from '../../utils/cssToken.js';
 import { computeZoneBounds, classifyHr } from '../../metrics/heartRateZones.js';
 import { t } from '../../language/language.js';
 import {
@@ -346,12 +347,6 @@ function sampleVisibleOverlays(visible, cols, xEnd) {
   };
 }
 
-/** Reads a themed design token from outside sync() (which caches its own
- *  colors per frame). Waypoint layers share the map's tokens. */
-function tokenColor(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
 /**
  * Waypoint annotations on the profile — the map's pins in profile form: a
  * violet dot riding the elevation curve (mid-height when the track has no
@@ -362,8 +357,8 @@ function tokenColor(name) {
  */
 function drawWaypointPins(v0, v1, x, y) {
   if (!state.waypointsShown || !state.profileWaypoints.length) return;
-  const cWaypoint = tokenColor('--map-waypoint');
-  const ring = tokenColor('--map-handle-border');
+  const cWaypoint = cssToken('--map-waypoint');
+  const ring = cssToken('--map-handle-border');
   ctx.save();
   ctx.beginPath();
   ctx.rect(state.plot.x0, state.plot.y0, state.plot.w, state.plot.h);
@@ -640,7 +635,7 @@ function drawHover(lineColor, dotColor) {
     const xv = distToX(state.pinnedWaypoint.dist, track, state.xMode);
     if (xv >= v0 && xv <= v1) {
       const px = x0 + ((xv - v0) / vw) * w;
-      ctx.strokeStyle = tokenColor('--map-waypoint');
+      ctx.strokeStyle = cssToken('--map-waypoint');
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(px, y0);
@@ -676,7 +671,7 @@ function drawHover(lineColor, dotColor) {
   }
   const px = x0 + ((xv - v0) / vw) * w;
   const isWaypoint = !probe && hoverOrigin === 'waypoint';
-  const hoverLineColor = isWaypoint ? tokenColor('--map-waypoint') : lineColor;
+  const hoverLineColor = isWaypoint ? cssToken('--map-waypoint') : lineColor;
   ctx.strokeStyle = hoverLineColor;
   ctx.lineWidth = isWaypoint ? 3 : 1;
   ctx.beginPath();
@@ -716,7 +711,7 @@ function drawHover(lineColor, dotColor) {
     if (a != null && b != null) {
       const bpm = a + (b - a) * t;
       const py = overlayYOf(bpm, lo, hi);
-      ctx.fillStyle = tokenColor('--series-hr');
+      ctx.fillStyle = cssToken('--series-hr');
       ctx.beginPath();
       ctx.arc(px, py, 4, 0, Math.PI * 2);
       ctx.fill();

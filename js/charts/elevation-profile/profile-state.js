@@ -20,10 +20,8 @@
  * overlay metric definitions live in profile-data.js.
  */
 
-/** The desktop-wide layout breakpoint (matches menus.js / layout.css). The
- *  profile's overlays-menu placement and waypoint-click panning are
- *  wide-screen features only. */
-export const isWideLayout = () => window.matchMedia('(min-width: 1100px)').matches;
+/** The desktop-wide layout breakpoint — shared with menus.js (utils/layout.js). */
+export { isWideLayout } from '../../utils/layout.js';
 
 export const state = {
   /** DOM assets — assigned once by initProfile (index.js). */

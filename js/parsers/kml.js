@@ -12,6 +12,7 @@
  */
 import { ParseError, PARSE_ERROR_KEYS } from './parseError.js';
 import { parseXmlDocument } from './xmlDocument.js';
+import { timeOrNull } from './eleGaps.js';
 
 /**
  * @param {string} text  KML document text
@@ -121,11 +122,4 @@ function descriptionText(value) {
     .trim();
   if (text.length > 140) return text.slice(0, 139).trimEnd() + '…';
   return text;
-}
-
-/** @private */
-function timeOrNull(text) {
-  if (text == null) return null;
-  const t = Date.parse(text.trim());
-  return Number.isFinite(t) ? t : null;
 }

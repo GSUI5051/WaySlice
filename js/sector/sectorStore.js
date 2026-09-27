@@ -42,6 +42,27 @@ export function moveBoundary(which, dist) {
   }
 }
 
+/**
+ * Keyboard action for a sector-boundary handle. Arrow keys nudge by
+ * (shift ? 10 : 1) × max(total/400, 10) meters; Home snaps to the track
+ * start (start handle) or the current start (end handle); End to the current
+ * end (start handle) or the track end (end handle). Null for other keys —
+ * the caller owns preventDefault/stopPropagation policy.
+ * @param {'start'|'end'} which
+ * @param {KeyboardEvent} e
+ * @param {number} total
+ * @returns {{delta?: number, to?: number}|null}
+ */
+export function boundaryKeyAction(which, e, total) {
+  const step = (e.shiftKey ? 10 : 1) * Math.max(total / 400, 10);
+  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') return { delta: step };
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') return { delta: -step };
+  const { start, end } = sectorStore.get();
+  if (e.key === 'Home') return { to: which === 'start' ? 0 : start };
+  if (e.key === 'End') return { to: which === 'end' ? total : end };
+  return null;
+}
+
 /** Sets both boundaries at once (profile rubber-band selection). */
 export function setRange(start, end) {
   let lo = clamp(Math.min(start, end), 0, total);
@@ -54,10 +75,15 @@ export function setRange(start, end) {
   sectorStore.set({ start: lo, end: hi });
 }
 
-/** True when the current selection covers (almost) the whole track. */
-export function isEntireTrack() {
-  const { start, end } = sectorStore.get();
-  return start <= 0.5 && end >= total - 0.5;
+/**
+ * True when the given selection covers (almost) the whole track — 0.5 m of
+ * tolerance per end. Defaults to the live selection; the exporter passes its
+ * own range and total so the GPX metadata never depends on store timing.
+ * @param {{start: number, end: number}} [range]
+ * @param {number} [total]
+ */
+export function isEntireTrack(range = sectorStore.get(), total = getTrackTotal()) {
+  return range.start <= 0.5 && range.end >= total - 0.5;
 }
 
 /** @private */

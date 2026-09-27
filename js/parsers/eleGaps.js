@@ -42,3 +42,16 @@ export function numberFromText(el) {
   const value = Number(text);
   return Number.isFinite(value) ? value : null;
 }
+
+/**
+ * ISO 8601 / RFC 3339 text → unix ms, null when unparsable. Shared by the
+ * GPX / KML / TCX readers; the FIT reader keeps its own variant because
+ * fit-parser hands it Date instances.
+ * @param {string|null} text
+ * @returns {number|null}
+ */
+export function timeOrNull(text) {
+  if (text == null) return null;
+  const t = Date.parse(text.trim());
+  return Number.isFinite(t) ? t : null;
+}

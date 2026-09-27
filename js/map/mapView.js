@@ -18,11 +18,12 @@
  * (zoom-to-track / zoom-to-sector buttons) still fly.
  */
 /* global maplibregl */
-import { sectorStore, moveBoundary, getTrackTotal } from '../sector/sectorStore.js';
+import { sectorStore, moveBoundary, getTrackTotal, boundaryKeyAction } from '../sector/sectorStore.js';
 import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
 import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
 import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
+import { cssToken } from '../utils/cssToken.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
 import { formatDistanceShort } from '../utils/format.js';
 import { getUnitSystem } from '../units/units.js';
@@ -113,27 +114,22 @@ function switchStyle(style, fn, contentful = true) {
  * MapLibre takes ownership of what it is handed. */
 const minimalStyle = () => ({ version: 8, sources: {}, layers: [] });
 
-/** Reads a themed design token (map layer colors live in css/tokens.css). */
-function themeColor(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
 /** Re-styles track, sector, handle and waypoint colors after a theme flip. */
 function applyMapTheme() {
   if (!map || !map.getLayer('track-line')) return;
-  map.setPaintProperty('track-casing', 'line-color', themeColor('--map-track-casing'));
-  map.setPaintProperty('track-line', 'line-color', themeColor('--map-track'));
-  map.setPaintProperty('sector-line', 'line-color', themeColor('--map-sector'));
+  map.setPaintProperty('track-casing', 'line-color', cssToken('--map-track-casing'));
+  map.setPaintProperty('track-line', 'line-color', cssToken('--map-track'));
+  map.setPaintProperty('sector-line', 'line-color', cssToken('--map-sector'));
   for (const which of ['start', 'end']) {
     const el = layers[`${which}Handle`]?.getElement()?.querySelector('.map-handle');
     if (el) {
-      el.style.setProperty('--handle-color', themeColor(which === 'start' ? '--map-handle-start' : '--map-handle-end'));
+      el.style.setProperty('--handle-color', cssToken(which === 'start' ? '--map-handle-start' : '--map-handle-end'));
     }
   }
   if (layers.waypoints) {
     for (const marker of layers.waypoints) {
       const el = marker.getElement()?.querySelector('.map-waypoint');
-      if (el) el.style.setProperty('--waypoint-color', themeColor('--map-waypoint'));
+      if (el) el.style.setProperty('--waypoint-color', cssToken('--map-waypoint'));
     }
   }
 }
@@ -418,15 +414,15 @@ function hangTrackGeometry() {
     // widened twin carries the pointer events (Leaflet's path hit tolerance).
     map.addLayer({
       id: 'track-casing', type: 'line', source: 'track', layout: lineLayout,
-      paint: { 'line-color': themeColor('--map-track-casing'), 'line-width': 8, 'line-opacity': 0.9 },
+      paint: { 'line-color': cssToken('--map-track-casing'), 'line-width': 8, 'line-opacity': 0.9 },
     });
     map.addLayer({
       id: 'track-line', type: 'line', source: 'track', layout: lineLayout,
-      paint: { 'line-color': themeColor('--map-track'), 'line-width': 4, 'line-opacity': 0.95 },
+      paint: { 'line-color': cssToken('--map-track'), 'line-width': 4, 'line-opacity': 0.95 },
     });
     map.addLayer({
       id: 'sector-line', type: 'line', source: 'sector', layout: lineLayout,
-      paint: { 'line-color': themeColor('--map-sector'), 'line-width': 6, 'line-opacity': 1 },
+      paint: { 'line-color': cssToken('--map-sector'), 'line-width': 6, 'line-opacity': 1 },
     });
     map.addLayer({
       id: 'track-hit', type: 'line', source: 'track', layout: lineLayout,
@@ -486,7 +482,7 @@ function rebuildWaypoints() {
     hint = near.i;
     const el = document.createElement('div');
     el.className = 'map-waypoint-icon';
-    el.innerHTML = `<div class="map-waypoint" style="--waypoint-color:${themeColor('--map-waypoint')}"></div>`;
+    el.innerHTML = `<div class="map-waypoint" style="--waypoint-color:${cssToken('--map-waypoint')}"></div>`;
     // Name plate in place of Leaflet's bindTooltip(direction: 'top'): a
     // self-drawn div above the pin, shown on hover via css/map.css.
     if (w.name) {
@@ -727,7 +723,7 @@ function autoPanToward(originalEvent, el) {
 /** @private Creates one draggable sector boundary handle. */
 function createHandle(which) {
   const isStart = which === 'start';
-  const color = themeColor(isStart ? '--map-handle-start' : '--map-handle-end');
+  const color = cssToken(isStart ? '--map-handle-start' : '--map-handle-end');
   const el = document.createElement('div');
   el.className = `map-handle-icon map-handle-${which}`;
   el.innerHTML = `<div class="map-handle" style="--handle-color:${color}"><span class="map-handle-grip"></span></div>`;
@@ -805,18 +801,16 @@ function createHandle(which) {
 
 /** @private Keyboard nudging of a boundary (focusable via the icon element). */
 function onHandleKey(which, e) {
-  const stepBase = Math.max(getTrackTotal() / 400, 10);
-  const step = (e.shiftKey ? 10 : 1) * stepBase;
-  let delta = 0;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') delta = step;
-  else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') delta = -step;
-  else if (e.key === 'Home') { moveBoundary(which, which === 'start' ? 0 : sectorStore.get().start); e.preventDefault(); e.stopImmediatePropagation(); return; }
-  else if (e.key === 'End') { moveBoundary(which, which === 'end' ? getTrackTotal() : sectorStore.get().end); e.preventDefault(); e.stopImmediatePropagation(); return; }
-  else return;
+  const action = boundaryKeyAction(which, e, getTrackTotal());
+  if (!action) return;
   e.preventDefault();
   e.stopImmediatePropagation();
+  if (action.to !== undefined) {
+    moveBoundary(which, action.to);
+    return;
+  }
   const { start, end } = sectorStore.get();
-  moveBoundary(which, (which === 'start' ? start : end) + delta);
+  moveBoundary(which, (which === 'start' ? start : end) + action.delta);
 }
 
 /** @private Clicking the track moves the nearest boundary to the click. */

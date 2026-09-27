@@ -21,7 +21,7 @@
  *  - TCX carries no waypoints; the array is empty, matching the FIT path.
  */
 import { ParseError, PARSE_ERROR_KEYS } from './parseError.js';
-import { fillElevationGaps, numberFromText } from './eleGaps.js';
+import { fillElevationGaps, numberFromText, timeOrNull } from './eleGaps.js';
 import { parseXmlDocument } from './xmlDocument.js';
 
 /**
@@ -105,11 +105,4 @@ function first(el, localName) {
 /** @private Text of the first descendant localName as a finite number. */
 function childNumber(el, localName) {
   return numberFromText(first(el, localName));
-}
-
-/** @private ISO 8601 / RFC 3339 text → unix ms, null when unparsable. */
-function timeOrNull(text) {
-  if (text == null) return null;
-  const t = Date.parse(text.trim());
-  return Number.isFinite(t) ? t : null;
 }

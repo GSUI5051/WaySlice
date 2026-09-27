@@ -32,6 +32,7 @@ import { getHeartRateDisplay } from '../../metrics/heartRateDisplay.js';
 import { computeZoneBounds, classifyHr } from '../../metrics/heartRateZones.js';
 import { t } from '../../language/language.js';
 import { formatDuration, formatDistanceShort, formatElevation } from '../../utils/format.js';
+import { escapeHtml } from '../../utils/escapeHtml.js';
 import { state } from './profile-state.js';
 import { OVERLAY_METRICS, SPEED_FAMILY, distToX, formatOverlayValue } from './profile-data.js';
 
@@ -313,11 +314,4 @@ export function hideTooltip(force = false) {
   if (state.probe && !force) return;
   const { tooltip } = state.dom;
   if (tooltip) tooltip.hidden = true;
-}
-
-/** Waypoint names come from file data — never trust them into HTML. */
-function escapeHtml(text) {
-  return text.replace(/[&<>"']/g, (ch) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
-  ));
 }

@@ -125,3 +125,18 @@ export function computeHeartRateZoneStats(track, startDist, endDist, settings = 
     zones: bounds.zones.map((z, i) => ({ lo: z.lo, hi: z.hi, seconds: seconds[i] })),
   };
 }
+
+/**
+ * One zone's share of zone-counted moving time as an integer percent — the
+ * denominator excludes below-Z1 time (those readings are "not counted" like
+ * pauses and must not dilute the shares), while noHr time stays in it, which
+ * is one reason the five shares need not sum to 100 %. Both the metrics
+ * panel's Heart Rate Zones group and the text exports render this rule.
+ * @param {number} seconds  the zone's seconds
+ * @param {{moving: number, below: number}} stats  computeHeartRateZoneStats result
+ * @returns {number} integer percent (0 when nothing counts)
+ */
+export function zoneSharePct(seconds, stats) {
+  const denominator = Math.max(stats.moving - stats.below, 0);
+  return denominator > 0 ? Math.round((seconds / denominator) * 100) : 0;
+}

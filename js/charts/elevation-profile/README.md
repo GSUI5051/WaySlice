@@ -52,7 +52,7 @@ interaction → state, data, render (scheduleSync only), tooltip, ../viewport-ge
 render      → state, data, tooltip (showTooltipAt, called from drawHover)
 tooltip     → state, data
 data        → nothing in this directory (only geo / metrics / utils outside it)
-state       → nothing
+state       → nothing in this directory (re-exports isWideLayout from ../utils/layout)
 ```
 
 `profile-data.js` is the bottom of the graph: it imports nothing from this directory, which

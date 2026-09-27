@@ -52,7 +52,7 @@ interaction → state、data、render（scheduleSync のみ）、tooltip、../vi
 render      → state、data、tooltip（drawHover が showTooltipAt を呼ぶ）
 tooltip     → state、data
 data        → このディレクトリ内には依存なし（外の geo / metrics / utils のみ）
-state       → 依存なし
+state       → 依存なし（このディレクトリ内では。../utils/layout から isWideLayout を再エクスポート）
 ```
 
 `profile-data.js` は依存グラフの最下層：このディレクトリ内のどのファイルも import しない——

@@ -20,6 +20,7 @@ import { t } from '../../language/language.js';
 import { emit } from '../../core/events.js';
 import {
   sectorStore, moveBoundary, setRange, resetSector, getTrackTotal, MIN_SECTOR_M,
+  boundaryKeyAction,
 } from '../../sector/sectorStore.js';
 import { createMultiSelectMenu } from '../../ui/menus.js';
 import { state, isWideLayout } from './profile-state.js';
@@ -693,17 +694,15 @@ export function wireHandles() {
     });
     el.addEventListener('keydown', (e) => {
       if (!state.track) return;
-      const total = getTrackTotal();
-      const step = (e.shiftKey ? 10 : 1) * Math.max(total / 400, 10);
-      let delta = 0;
-      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') delta = step;
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') delta = -step;
-      else if (e.key === 'Home') { moveBoundary(which, which === 'start' ? 0 : sectorStore.get().start); e.preventDefault(); return; }
-      else if (e.key === 'End') { moveBoundary(which, which === 'end' ? total : sectorStore.get().end); e.preventDefault(); return; }
-      else return;
+      const action = boundaryKeyAction(which, e, getTrackTotal());
+      if (!action) return;
       e.preventDefault();
+      if (action.to !== undefined) {
+        moveBoundary(which, action.to);
+        return;
+      }
       const { start, end } = sectorStore.get();
-      moveBoundary(which, (which === 'start' ? start : end) + delta);
+      moveBoundary(which, (which === 'start' ? start : end) + action.delta);
     });
   }
 }

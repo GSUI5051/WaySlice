@@ -9,12 +9,9 @@
  * Arrow/Enter/Space/Escape/Home/End keyboard support, click-outside close.
  */
 import { icon } from './icons.js';
+import { isWideLayout } from '../utils/layout.js';
 
 const isNarrow = () => window.matchMedia('(max-width: 720px)').matches;
-// Wide layout (the desktop grid in layout.css): menu subgroups open as
-// flyouts beside the panel. Below this breakpoint — narrow desktop windows
-// and phones alike — subgroups render inline as an indented group instead.
-const isWideLayout = () => window.matchMedia('(min-width: 1100px)').matches;
 
 /**
  * @param {{
