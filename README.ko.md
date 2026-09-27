@@ -233,10 +233,9 @@ vendor/fit-parser/      벤더링된 fit-parser 툴킷(FIT 디코딩, MIT) + buf
 | `labelKey` | 표시 이름의 i18n 키. |
 | `group` | `street`, `outdoor`, `satellite`, `minimal` 중 하나. |
 | `url` | 타일 템플릿: `{z}` `{x}` `{y}`, 선택적 `{s}`(`subdomains` 필요)와 `{r}`(레티나). 좌표 순서는 제공자마다 다릅니다 — Esri는 `{z}/{y}/{x}`를 씁니다. |
-| `overlayUrl` | 선택 사항: 베이스 타일 위에 얹는 투명 라벨 레이어. |
 | `maxZoom` | 제공자가 제공하는 최대 줌 레벨. |
 | `attribution` | OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap, EOX, Esri가 법적으로 요구합니다 — 그대로 두세요. |
-| `subdomains`, `crossOrigin`, `hintKey` | 선택 사항: 서브도메인 로테이션 / CORS 헤더를 보내지 않는 제공자는 `crossOrigin: false` / 선택 메뉴의 회색 힌트 줄. |
+| `subdomains`, `hintKey` | 선택 사항: 서브도메인 로테이션 / 선택 메뉴의 회색 힌트 줄. |
 
 다음으로 **모든** 언어 팩에 표시 이름을 추가하세요 — `srcEsriTopo: 'Esri 지형도',`를 `lang-en.js`, `lang-fr.js`, `lang-ko.js`, `lang-ja.js`, `lang-de.js`, `lang-es.js`, `lang-it.js`, `lang-template.js`에 넣습니다. 키가 빠져 있는 동안은 언어 완전성 테스트가 계속 실패하는데, 이것은 의도된 설계입니다.
 

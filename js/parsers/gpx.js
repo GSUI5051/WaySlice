@@ -14,12 +14,7 @@ import { parseXmlDocument } from './xmlDocument.js';
  * @returns {import('../types.js').GpxDocument} points + waypoints
  */
 export function parseGPX(text) {
-  let doc;
-  try {
-    doc = parseXmlDocument(text);
-  } catch (err) {
-    throw new ParseError(PARSE_ERROR_KEYS.invalid, String(err));
-  }
+  const doc = parseXmlDocument(text);
   if (doc.getElementsByTagName('parsererror').length > 0) {
     throw new ParseError(PARSE_ERROR_KEYS.invalid, 'XML parsererror');
   }

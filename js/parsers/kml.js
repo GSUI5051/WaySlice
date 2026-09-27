@@ -18,12 +18,7 @@ import { parseXmlDocument } from './xmlDocument.js';
  * @returns {import('../types.js').ParsedFile}
  */
 export function parseKML(text) {
-  let doc;
-  try {
-    doc = parseXmlDocument(text);
-  } catch (err) {
-    throw new ParseError(PARSE_ERROR_KEYS.invalid, String(err));
-  }
+  const doc = parseXmlDocument(text);
   if (doc.getElementsByTagName('parsererror').length > 0) {
     throw new ParseError(PARSE_ERROR_KEYS.invalid, 'XML parsererror');
   }

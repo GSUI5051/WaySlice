@@ -337,10 +337,9 @@ añadir o editar una fuente no requiere código de interfaz.
 | `labelKey` | Clave i18n del nombre mostrado. |
 | `group` | Uno de `street`, `outdoor`, `satellite`, `minimal`. |
 | `url` | Plantilla de teselas: `{z}` `{x}` `{y}`, opcionalmente `{s}` (requiere `subdomains`) y `{r}` (retina). Atento al orden de coordenadas del proveedor — Esri usa `{z}/{y}/{x}`. |
-| `overlayUrl` | Opcional: plantilla de una capa de etiquetas transparente sobre las teselas base. |
 | `maxZoom` | El zoom máximo que sirve el proveedor. |
 | `attribution` | Lo exigen legalmente OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap, EOX y Esri — consérvala. |
-| `subdomains`, `crossOrigin`, `hintKey` | Opcionales: rotación de subdominios; `crossOrigin: false` para servidores de teselas sin cabeceras CORS; línea de pista gris en el selector. |
+| `subdomains`, `hintKey` | Opcionales: rotación de subdominios; línea de pista gris en el selector. |
 
 A continuación añade el nombre mostrado a **todos** los paquetes de idioma — `srcEsriTopo: 'Esri Topo',`
 en `lang-en.js`, `lang-fr.js`, `lang-ko.js`, `lang-ja.js`,

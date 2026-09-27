@@ -20,5 +20,4 @@ export const PARSE_ERROR_KEYS = {
   unsupported: 'errorUnsupportedType',
   noTrack: 'errorNoTrackPoints',
   kmzNoKml: 'errorKmzNoKml',
-  readFailed: 'errorFileRead',
 };

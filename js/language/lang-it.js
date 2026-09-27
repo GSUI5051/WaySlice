@@ -33,7 +33,6 @@ const lang_it = {
   errorUnsupportedType: 'Tipo di file non supportato. Usa un file GPX, FIT, TCX, KML o KMZ.',
   errorNoTrackPoints: 'Il file non contiene una traccia utilizzabile con almeno due punti.',
   errorKmzNoKml: 'Nessun file KML di traccia trovato in questo archivio KMZ.',
-  errorFileRead: 'Impossibile leggere il file.',
 
   // Header controls
   mapSource: 'Mappa',

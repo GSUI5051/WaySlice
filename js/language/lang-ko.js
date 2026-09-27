@@ -28,7 +28,6 @@ const lang_ko = {
   errorUnsupportedType: '지원하지 않는 형식입니다. GPX, FIT, TCX, KML 또는 KMZ 파일을 사용하세요.',
   errorNoTrackPoints: '파일 안에 점 2개 이상으로 이루어진 사용 가능한 트랙이 없습니다.',
   errorKmzNoKml: '이 KMZ 아카이브에서 KML 트랙 파일을 찾을 수 없습니다.',
-  errorFileRead: '파일을 읽지 못했습니다.',
 
   // Header controls
   mapSource: '지도',

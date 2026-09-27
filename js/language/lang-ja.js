@@ -28,7 +28,6 @@ const lang_ja = {
   errorUnsupportedType: '対応していない形式です。GPX・FIT・TCX・KML・KMZ をご利用ください。',
   errorNoTrackPoints: '2 点以上のトラックが含まれていません。',
   errorKmzNoKml: 'KMZ 内に KML ファイルが見つかりません。',
-  errorFileRead: 'ファイルの読み込みに失敗しました。',
 
   // Header controls
   mapSource: '地図',

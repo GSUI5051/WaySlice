@@ -312,10 +312,9 @@ source needs no UI code.
 | `labelKey` | i18n key of the display name. |
 | `group` | One of `street`, `outdoor`, `satellite`, `minimal`. |
 | `url` | Tile template: `{z}` `{x}` `{y}`, optional `{s}` (needs `subdomains`) and `{r}` (retina). Mind the provider's coordinate order — Esri uses `{z}/{y}/{x}`. |
-| `overlayUrl` | Optional transparent label overlay drawn above the base tiles. |
 | `maxZoom` | Highest zoom the provider serves. |
 | `attribution` | Legally required by OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap, EOX and Esri — keep it. |
-| `subdomains`, `crossOrigin`, `hintKey` | Optional: subdomain rotation; `crossOrigin: false` for tile servers that send no CORS headers; grey hint line in the selector. |
+| `subdomains`, `hintKey` | Optional: subdomain rotation; grey hint line in the selector. |
 
 Then add the display name to **every** language pack — `srcEsriTopo: 'Esri Topo',` in
 `lang-en.js`, `lang-fr.js`, `lang-ko.js`, `lang-ja.js`, `lang-de.js`,

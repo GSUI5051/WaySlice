@@ -18,7 +18,7 @@
  * (zoom-to-track / zoom-to-sector buttons) still fly.
  */
 /* global maplibregl */
-import { sectorStore, moveBoundary, getTrackTotal, isEntireTrack } from '../sector/sectorStore.js';
+import { sectorStore, moveBoundary, getTrackTotal } from '../sector/sectorStore.js';
 import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
 import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
@@ -363,17 +363,9 @@ function setSource(source) {
 function addRasterLayers(source) {
   const beforeId = map.getLayer('track-casing') ? 'track-casing' : undefined;
   if (map.getLayer('basemap-layer')) map.removeLayer('basemap-layer');
-  if (map.getLayer('basemap-overlay-layer')) map.removeLayer('basemap-overlay-layer');
   if (map.getSource('basemap')) map.removeSource('basemap');
-  if (map.getSource('basemap-overlay')) map.removeSource('basemap-overlay');
   map.addSource('basemap', createRasterSource(source));
   map.addLayer({ id: 'basemap-layer', type: 'raster', source: 'basemap' }, beforeId);
-  // Sources may pair their base tiles with a transparent label overlay;
-  // insertion order keeps it above the base and below the track's layers.
-  if (source.overlayUrl) {
-    map.addSource('basemap-overlay', createRasterSource(source, source.overlayUrl));
-    map.addLayer({ id: 'basemap-overlay-layer', type: 'raster', source: 'basemap-overlay' }, beforeId);
-  }
 }
 
 /**
@@ -883,7 +875,6 @@ function syncSector() {
   // Sector highlight: original points inside the range, stride-thinned for
   // display; interpolated boundary points replace the first/last entries.
   const pts = track.points;
-  const slice = [];
   const s = pointAtDistance(track, start);
   const e = pointAtDistance(track, end);
   if (s && e) {
@@ -910,6 +901,4 @@ function syncSector() {
       el.setAttribute('aria-label', t(which === 'start' ? 'sectorStart' : 'sectorEnd'));
     }
   }
-
-  emit('sector:visuals', { entire: isEntireTrack() });
 }

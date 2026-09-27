@@ -336,10 +336,9 @@ lisent tous — ajouter ou modifier une source ne demande aucun code d'interface
 | `labelKey` | Clé i18n du nom affiché. |
 | `group` | Un de `street`, `outdoor`, `satellite`, `minimal`. |
 | `url` | Gabarit de tuiles : `{z}` `{x}` `{y}`, optionnel `{s}` (nécessite `subdomains`) et `{r}` (retina). Attention à l'ordre des coordonnées du fournisseur — Esri utilise `{z}/{y}/{x}`. |
-| `overlayUrl` | Optionnel : gabarit d'une couche d'étiquettes transparente posée sur les tuiles de fond. |
 | `maxZoom` | Zoom maximal servi par le fournisseur. |
 | `attribution` | Exigée légalement par OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap, EOX et Esri — conservez-la. |
-| `subdomains`, `crossOrigin`, `hintKey` | Optionnels : rotation de sous-domaines ; `crossOrigin: false` pour les serveurs de tuiles sans en-têtes CORS ; ligne d'aide grise dans le sélecteur. |
+| `subdomains`, `hintKey` | Optionnels : rotation de sous-domaines ; ligne d'aide grise dans le sélecteur. |
 
 Ajoutez ensuite le nom affiché à **chaque** pack de langue — par exemple
 `srcEsriTopo: 'Esri Topo',` dans `lang-en.js`, `lang-fr.js`, `lang-ko.js`, `lang-ja.js`, `lang-de.js`, `lang-es.js`, `lang-it.js` et `lang-template.js`. Le test de complétude des langues reste rouge

@@ -5,11 +5,11 @@
  * not swallow single-finger swipes: one finger scrolls the page, two fingers
  * pan/zoom the map.
  *
- * Mechanism: `initMap` disables `dragging` but keeps `touchZoom`, so the
- * container ends up with Leaflet's `leaflet-touch-zoom` class
- * (`touch-action: pan-x pan-y`) — the browser scrolls the page on one-finger
- * swipes, while two-finger gestures are claimed by Leaflet's TouchZoom
- * handler (preventDefault) and drive pinch-zoom + two-finger panning.
+ * Mechanism: `createMapInstance` passes `cooperativeGestures` on touch
+ * devices, which puts the canvas container on `touch-action: pan-x pan-y` —
+ * the browser scrolls the page on one-finger swipes, while two-finger
+ * gestures are claimed by MapLibre (preventDefault) and drive pinch-zoom +
+ * two-finger panning.
  *
  * This module adds the brief "use two fingers" hint shown when a single
  * finger touches the map. Fine-pointer (mouse) environments never enter

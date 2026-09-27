@@ -12,7 +12,6 @@
  *                                  Leaflet-era {s}/{r} markers where a provider
  *                                  offers them); omitted by vector-only
  *                                  providers that serve no raster tiles
- * @property {string} [overlayUrl]  transparent label overlay stacked on the base
  * @property {number} maxZoom
  * @property {string} attribution
  * @property {string[]} [subdomains]
@@ -20,10 +19,6 @@
  *                                rendered via map.setStyle instead of a raster
  *                                source; attribution then comes from the
  *                                style's TileJSON and needs no raster `url`
- * @property {boolean} [crossOrigin] not supported by MapLibre: raster tiles are
- *                                   uploaded as WebGL textures, which the browser
- *                                   security model restricts to CORS-enabled
- *                                   providers, and there is no opt-out
  * @property {string} [hintKey]     optional i18n key for a hint line
  */
 
@@ -67,7 +62,6 @@ export const MAP_SOURCES = [
     id: 'TFAtlas',
     labelKey: 'srcTFAtlas',
     group: 'street',
-    url: 'https://api.thunderforest.com/atlas/{z}/{x}/{y}{r}.png?apikey=8008601e01cf4f2aaf9a8ad4a3867e4a',
     // Vector Styles API (per thunderforest.com's MapLibre tutorial): the
     // style JSON is self-contained — its glyphs, sprite and TileJSON all
     // carry the apikey, and its source attribution (© Thunderforest ©
@@ -162,7 +156,6 @@ export const MAP_SOURCES = [
     id: 'StadiaSmooth',
     labelKey: 'srcStadiaSmooth',
     group: 'minimal',
-    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
     styleUrl: 'https://tiles-eu.stadiamaps.com/styles/alidade_smooth.json',
     maxZoom: 20,
     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
@@ -171,7 +164,6 @@ export const MAP_SOURCES = [
     id: 'StadiaSmoothDark',
     labelKey: 'srcStadiaSmoothDark',
     group: 'minimal',
-    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
     styleUrl: 'https://tiles-eu.stadiamaps.com/styles/alidade_smooth_dark.json',
     maxZoom: 20,
     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
@@ -222,7 +214,6 @@ export function groupedSources() {
 
 /**
  * Converts a catalog template into a MapLibre raster source definition.
- * Sources with a label overlay get a second call with `source.overlayUrl`.
  *
  * MapLibre expands neither {s} nor {r}: subdomains become parallel complete
  * URLs in the `tiles` array, and {r} becomes '@2x' on high-DPI screens

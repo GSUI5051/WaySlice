@@ -114,9 +114,9 @@
 }
 
 /* No track, no map chrome: while the state overlay is up the map area shows
-   only the state card. (components.css carries the same rule keyed on the
-   old .leaflet-* classes; this is the MapLibre counterpart.) Attribution
-   stays — tiles render beneath it and the providers require the credit. */
+   only the state card. (components.css carries the counterpart that hides
+   the app's own #map-fit column.) Attribution stays — tiles render beneath
+   it and the providers require the credit. */
 #map-pane:has(#overlay-state:not([hidden])) .maplibregl-ctrl-group,
 #map-pane:has(#overlay-state:not([hidden])) .maplibregl-ctrl-scale {
   display: none;

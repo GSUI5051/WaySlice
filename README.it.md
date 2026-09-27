@@ -332,10 +332,9 @@ aggiungere o modificare una fonte non richiede codice di interfaccia.
 | `labelKey` | Chiave i18n del nome mostrato. |
 | `group` | Uno tra `street`, `outdoor`, `satellite`, `minimal`. |
 | `url` | Template dei tile: `{z}` `{x}` `{y}`, opzionalmente `{s}` (richiede `subdomains`) e `{r}` (retina). Attenzione all'ordine delle coordinate del provider — Esri usa `{z}/{y}/{x}`. |
-| `overlayUrl` | Opzionale: template di un livello etichette trasparente sopra i tile di base. |
 | `maxZoom` | Lo zoom massimo servito dal provider. |
 | `attribution` | Richiesta legalmente da OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap, EOX e Esri — conservala. |
-| `subdomains`, `crossOrigin`, `hintKey` | Opzionali: rotazione dei sottodomini; `crossOrigin: false` per i server di tile senza header CORS; riga di suggerimento grigia nel selettore. |
+| `subdomains`, `hintKey` | Opzionali: rotazione dei sottodomini; riga di suggerimento grigia nel selettore. |
 
 Poi aggiungi il nome mostrato a **ogni** pacchetto lingua — `srcEsriTopo: 'Esri Topo',` in
 `lang-en.js`, `lang-fr.js`, `lang-ko.js`, `lang-ja.js`, `lang-de.js`,

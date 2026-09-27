@@ -331,10 +331,9 @@ daraus — eine Quelle hinzuzufügen oder zu ändern verlangt keinen UI-Code.
 | `labelKey` | i18n-Schlüssel des Anzeigenamens. |
 | `group` | Einer aus `street`, `outdoor`, `satellite`, `minimal`. |
 | `url` | Kachelvorlage: `{z}` `{x}` `{y}`, optional `{s}` (braucht `subdomains`) und `{r}` (Retina). Achte auf die Koordinatenreihenfolge des Anbieters — Esri nutzt `{z}/{y}/{x}`. |
-| `overlayUrl` | Optional: transparente Beschriftungsebene über den Basiskacheln. |
 | `maxZoom` | Höchste Zoomstufe, die der Anbieter liefert. |
 | `attribution` | Von OSM, OpenTopoMap, Thunderforest, Mapy, Stadia Maps, OpenFreeMap, EOX und Esri gesetzlich verlangt — lass sie stehen. |
-| `subdomains`, `crossOrigin`, `hintKey` | Optional: Subdomain-Rotation; `crossOrigin: false` für Kachelserver ohne CORS-Header; graue Hinweiszeile im Wähler. |
+| `subdomains`, `hintKey` | Optional: Subdomain-Rotation; graue Hinweiszeile im Wähler. |
 
 Dann trag den Anzeigenamen in **jedes** Sprachpaket ein — `srcEsriTopo: 'Esri Topo',` in `lang-en.js`,
 `lang-fr.js`, `lang-ko.js`, `lang-ja.js`, `lang-de.js`, `lang-es.js`,

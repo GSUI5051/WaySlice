@@ -233,10 +233,9 @@ WaySlice の翻訳システムは意図的に依存関係のない設計です�
 | `labelKey` | 表示名の翻訳キー |
 | `group` | `street` / `outdoor` / `satellite` / `minimal` のいずれか |
 | `url` | タイル URL テンプレート: `{z}` `{x}` `{y}`、任意で `{s}`（`subdomains` が必要）と `{r}`（高解像度ディスプレイ）。プロバイダーによって座標の順序が違う点に注意 — Esri 系は `{z}/{y}/{x}` |
-| `overlayUrl` | 任意。ベースタイルの上に重ねる透明な注記レイヤー |
 | `maxZoom` | プロバイダーが提供する最大ズーム |
 | `attribution` | OSM・OpenTopoMap・Thunderforest・Mapy・Stadia Maps・OpenFreeMap・EOX・Esri が法的に要求する帰属表示です。必ず維持してください |
-| `subdomains` / `crossOrigin` / `hintKey` | 任意: サブドメインのローテーション / CORS ヘッダーを返さないプロバイダーは `crossOrigin: false` / セレクター内のグレーのヒント行 |
+| `subdomains` / `hintKey` | 任意: サブドメインのローテーション / セレクター内のグレーのヒント行 |
 
 次に、**すべての**言語パックに表示名を追加します — `srcEsriTopo: 'Esri 地形図',` のように `lang-en.js`・`lang-fr.js`・`lang-ko.js`・`lang-ja.js`・`lang-de.js`・`lang-es.js`・`lang-it.js`・`lang-template.js` へ。キーが欠けている間は言語完全性のテストが失敗します。これは意図的な設計です。
 

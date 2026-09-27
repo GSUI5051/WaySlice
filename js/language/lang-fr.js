@@ -30,7 +30,6 @@ const lang_fr = {
   errorUnsupportedType: 'Type de fichier non pris en charge. Utilisez un fichier GPX, FIT, TCX, KML ou KMZ.',
   errorNoTrackPoints: 'Le fichier ne contient pas de trace exploitable avec au moins deux points.',
   errorKmzNoKml: 'Aucun fichier de trace KML trouvé dans cette archive KMZ.',
-  errorFileRead: 'Le fichier n’a pas pu être lu.',
 
   // Header controls
   mapSource: 'Carte',
