@@ -23,9 +23,9 @@ export const Y_BINS = 64;
 /** Fewer valid pairs than this: not enough for a distribution (empty state). */
 export const MIN_PAIR_SAMPLES = 10;
 /** Quantile bounds of the drawn domain — the robust-outlier guard. */
-export const DOMAIN_QUANTILE = 0.002;
+const DOMAIN_QUANTILE = 0.002;
 /** Relative padding added around the quantile range. */
-export const DOMAIN_PAD = 0.04;
+const DOMAIN_PAD = 0.04;
 
 /**
  * Bins valid samples into the density grid.

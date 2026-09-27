@@ -1,6 +1,5 @@
 /**
- * Whole-track statistics — simply the sector metrics of the full range,
- * plus the sector store's default state helpers.
+ * Whole-track statistics — simply the sector metrics of the full range.
  */
 import { computeSectorMetrics } from './sectorMetrics.js';
 

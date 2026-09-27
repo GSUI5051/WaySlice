@@ -108,7 +108,7 @@ function setState(state, html) {
 }
 
 /** @private */
-export function showEmpty() {
+function showEmpty() {
   setState('empty', `
     <div class="state-card">
       <div class="state-brand"><img src="icons/favicon.svg" alt=""></div>
@@ -122,7 +122,7 @@ export function showEmpty() {
 }
 
 /** @private */
-export function showLoading() {
+function showLoading() {
   setState('loading', `
     <div class="state-card">
       <div class="spinner" role="status" aria-label="${t('parsingTrack')}"></div>

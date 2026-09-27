@@ -39,8 +39,6 @@
 .btn-ghost { border-color: transparent; background: transparent; }
 .btn-ghost:hover:not(:disabled) { background: var(--surface-hover); border-color: transparent; }
 
-.btn-caret .icon { width: 14px; height: 14px; color: var(--foreground-faint); }
-
 .btn-elevated {
   background: var(--surface-elevated);
   border-color: var(--border);

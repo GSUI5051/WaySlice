@@ -11,7 +11,7 @@ import { parseXmlDocument } from './xmlDocument.js';
 
 /**
  * @param {string} text  GPX document text
- * @returns {import('../types.js').GpxDocument} points + waypoints
+ * @returns {import('../types.js').ParsedFile} points + waypoints
  */
 export function parseGPX(text) {
   const doc = parseXmlDocument(text);

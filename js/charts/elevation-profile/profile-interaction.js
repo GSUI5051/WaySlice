@@ -198,7 +198,7 @@ export function refreshControls() {
 
 /** x-axis mode switch (rebuilds the per-point caches; drops the zoom
  *  window — x units change from meters to milliseconds). */
-export function setXMode(mode) {
+function setXMode(mode) {
   if (mode === state.xMode) return;
   if (mode === 'time' && (!state.track || !state.track.hasTime)) return;
   state.xMode = mode;
@@ -213,7 +213,7 @@ export function setXMode(mode) {
  * Overlay toggling — the pure transition lives in profile-data
  * (applyOverlayToggle); this applies it to the chart state.
  */
-export function toggleOverlay(id) {
+function toggleOverlay(id) {
   const result = applyOverlayToggle(state.selectedOverlays, id, maxOverlays(), lastSpeedVariant);
   if (result) {
     state.selectedOverlays = result.selected;

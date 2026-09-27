@@ -18,7 +18,7 @@ import { emit } from '../core/events.js';
 import { LANGUAGE_CATALOG } from './langs.js';
 
 const STORAGE_KEY = 'wayslice-language';
-export const FALLBACK_LANGUAGE = 'en';
+const FALLBACK_LANGUAGE = 'en';
 
 /** Packs whose module has been imported — dict available. */
 const registry = new Map();

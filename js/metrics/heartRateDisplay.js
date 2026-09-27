@@ -26,7 +26,7 @@ import { emit } from '../core/events.js';
 const STORAGE_KEY = 'wayslice-hr-display';
 
 /** @type {{showZones: boolean, highlight: boolean}} */
-export const DEFAULT_HEART_RATE_DISPLAY = Object.freeze({
+const DEFAULT_HEART_RATE_DISPLAY = Object.freeze({
   showZones: true,
   highlight: true,
 });

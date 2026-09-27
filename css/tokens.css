@@ -61,7 +61,6 @@
      The deepened slate reads 3.49:1 on surface, 3.62:1 on the elevated
      tooltip sheet. */
   --profile-line: #7c8894;
-  --profile-grid: #e3e7eb;
   --sector-mask-brightness: 0.72;  /* transparent mask over the area outside the sector handles */
 
   /* Dual-variable density ramp — low → high density, one ramp per theme.
@@ -133,7 +132,6 @@
   /* Lightened from #4d5763 (2.38:1) to clear the same 3:1 floor: 3.17:1
      on the chart surface, the only background the curve renders on. */
   --profile-line: #5f6a76;
-  --profile-grid: #232a33;
   --sector-mask-brightness: 0.55;  /* transparent mask over the area outside the sector handles */
 
   /* Dual-variable density ramp — the dark theme's brighter accent reads as
@@ -203,8 +201,6 @@
 
   /* Motion — named easings only; the browser-default `ease` is not used */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-fast: 120ms;
   --dur-normal: 240ms;
 }

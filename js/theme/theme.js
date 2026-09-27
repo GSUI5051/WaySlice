@@ -33,11 +33,6 @@ export function resolve(preference, systemPrefersDark) {
   return systemPrefersDark ? 'dark' : 'light';
 }
 
-/** The concrete theme currently applied to the document. */
-export function getResolved() {
-  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-}
-
 /**
  * Applies a preference: persists it, updates <html data-theme> and
  * color-scheme, refreshes the browser UI color, and notifies the app.

@@ -43,7 +43,7 @@ export function setSheetTitle(title) {
 }
 
 /** Closes the sheet if open. */
-export function closeSheet() {
+function closeSheet() {
   if (typeof dialog.close === 'function') dialog.close();
   else dialog.removeAttribute('open');
 }

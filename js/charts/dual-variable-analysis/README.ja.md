@@ -35,7 +35,7 @@ DOM 契約: `.profile-controls` 内の `#btn-dual-variable`。`#dual-variable-di
 | `index.js` | オーケストレーター: ボタンとダイアログの配線、選択 → 分析 → 結果/空状態のステートマシン、セレクトの動的制約、イベント面（言語 / 単位 / テーマ / トラックストア / セクターストア） | `initDualVariableAnalysis` |
 | `metrics.js` | 純粋な指標レジストリ: id、ラベルキー、単位ゲッター、共有フォーマッター、表示↔生値の目盛り変換、有効な組み合わせテーブル | `METRICS`、`getMetric`、`isPairAllowed`、`partnersOf` |
 | `samples.js` | 純粋なデータ層: トラックごとに 1 つのサンプルテーブル。各物理量は指標パネルの機構で生成（データルールを参照）、利用可否、有限値ペアの抽出 | `buildAnalysisSamples`、`metricAvailability`、`extractPair` |
-| `densityCalculator.js` | 純粋な密度計算: ロバストな分位数ドメイン、固定グリッドの 2D ビンニング、相対密度の正規化 | `computeDensity`、`relativeDensity`（定数 `X_BINS`、`Y_BINS`、`MIN_PAIR_SAMPLES`、`DOMAIN_QUANTILE`、`DOMAIN_PAD`） |
+| `densityCalculator.js` | 純粋な密度計算: ロバストな分位数ドメイン、固定グリッドの 2D ビンニング、相対密度の正規化 | `computeDensity`、`relativeDensity`（定数 `X_BINS`、`Y_BINS`、`MIN_PAIR_SAMPLES`） |
 | `densityRenderer.js` | キャンバス描画のすべて: プロット + 目盛りグリッド + 拡大表示する密度ビットマップ + ホバー強調 + 軸タイトル。テーマ色 LUT。ヒットテストのジオメトリ。軸ごとの可視ウィンドウ（ズーム/パンのビューポート） | `initRenderer`、`setData`、`clearData`、`refresh`、`resize`、`render`、`hitTest`、`setHover`、`viewportAxes`、`getViewport`、`isViewportZoomed`、`resetViewport` |
 | `interaction.js` | 統合された Pointer Events 経路（ホバー、タップ/長押し、タッチ読み取りのピン留め）+ **共有**のタッチジェスチャを 'two-finger' パンモードで（1 本の指は読み取り、2 本の指はピンチとパン、ダブルタップで復帰 —— `../viewport-gestures.js` から）。描画はしない | `wireInteraction`、`clearInteraction` |
 | `tooltip.js` | tooltip の DOM ノード、3 行の内容（X / Y / 相対密度）、タッチとマウスの 2 種類の配置ロジック（純粋関数 `computeTooltipPlacement`） | `initTooltip`、`computeTooltipPlacement`、`showTooltipAt`、`hideTooltip` |

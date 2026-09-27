@@ -5,11 +5,9 @@
 import { emit } from '../core/events.js';
 import { t } from '../language/language.js';
 
-export const UNIT_SYSTEMS = Object.freeze({ metric: 'metric', imperial: 'imperial' });
-export const UNIT_STORAGE_KEY = 'wayslice-units';
+const UNIT_STORAGE_KEY = 'wayslice-units';
 export const METERS_PER_MILE = 1609.344;
 export const METERS_PER_FOOT = 0.3048;
-export const FEET_PER_MILE = 5280;
 export const MPH_PER_MPS = 2.2369362920544;
 
 let current = 'metric';

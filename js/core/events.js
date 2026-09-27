@@ -33,7 +33,7 @@ export function createStore(initial) {
 }
 
 /** Global EventTarget for transient app events. */
-export const bus = new EventTarget();
+const bus = new EventTarget();
 
 /** Emits a custom event on the app bus. */
 export function emit(type, detail) {

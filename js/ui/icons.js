@@ -56,5 +56,3 @@ export function icon(name) {
     'aria-hidden="true" focusable="false">' + body + '</svg>'
   );
 }
-
-export const ICON_NAMES = Object.keys(ICONS);

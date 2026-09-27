@@ -119,7 +119,7 @@ function render() {
       <span class="flex-spacer"></span>
       <button type="button" class="btn btn-ghost btn-icon" id="btn-reset-sector"
               title="${t('resetSector')}" aria-label="${t('resetSector')}">${icon('rotate-ccw')}</button>
-      <button type="button" class="btn btn-ghost btn-small metrics-details-btn" id="btn-details-2"
+      <button type="button" class="btn btn-ghost btn-small" id="btn-details-2"
               title="${t('allMetrics')}">${t('allMetrics')}</button>
     </div>
     <div class="sector-range num" aria-hidden="true">

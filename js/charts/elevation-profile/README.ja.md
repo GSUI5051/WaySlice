@@ -40,8 +40,8 @@ DOM 契約：`#profile-body` の中に `#profile-canvas`、`#profile-tooltip`、
 | `index.js` | オーケストレーション：DOM 組み立て、外部イベント、トラックのライフサイクル、リサイズ処理 | `initProfile`、`setProfileTrack` |
 | `profile-state.js` | チャートインスタンス 1 個分の共有ミュータブル状態（`state`）+ `isWideLayout` | `state`、`isWideLayout` |
 | `profile-data.js` | 純粋計算：ポイント別キャッシュ、ダウンサンプリング、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`sampleOverlay`、`sampleElevation`、`seriesExtremes`、`distToX`、`xToDist`、`clientXtoX`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle` |
-| `profile-render.js` | Canvas 描画のすべて：`sync()` の描画パスと各レイヤー、`scheduleSync`、ハンドル / マスク配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`positionHandles`、`refreshHandleLabels` |
-| `profile-interaction.js` | 3 つの入力経路（ヘッダーコントロール、キャンバスポインター——ホバー / ドラッグ選択 / ズームとタッチプローブのジェスチャ、セクターハンドル）+ toast + ウェイポイントスナップ。タッチのピンチ/パン/ダブルタップの状態機械はここにはありません（双変数チャートも動かす共有モジュール `js/charts/viewport-gestures.js` です）。描画はしない | `wireControls`、`wirePointer`、`wireHandles`、`setXMode`、`toggleOverlay`、`refreshControls`、`refreshSnapToggle`、`unpinWaypoint` |
+| `profile-render.js` | Canvas 描画のすべて：`sync()` の描画パスと各レイヤー、`scheduleSync`、ハンドル / マスク配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`refreshHandleLabels` |
+| `profile-interaction.js` | 3 つの入力経路（ヘッダーコントロール、キャンバスポインター——ホバー / ドラッグ選択 / ズームとタッチプローブのジェスチャ、セクターハンドル）+ toast + ウェイポイントスナップ。タッチのピンチ/パン/ダブルタップの状態機械はここにはありません（双変数チャートも動かす共有モジュール `js/charts/viewport-gestures.js` です）。描画はしない | `wireControls`、`wirePointer`、`wireHandles`、`refreshControls`、`refreshSnapToggle`、`unpinWaypoint` |
 | `profile-tooltip.js` | ホバー tooltip とタッチプローブ読み取りの DOM と内容 | `showTooltipAt`、`hideTooltip`、`resetProbeReadout` |
 
 依存グラフ（矢印 = import。現在の import 文に対照済み。循環なしを維持）：

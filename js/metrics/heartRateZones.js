@@ -43,7 +43,7 @@
  * A heart rate below B1 belongs to NO zone (classifyHr → 0); the statistics
  * report those seconds separately.
  */
-import { validateSettings, HR_MODES } from './heartRateSettings.js';
+import { validateSettings } from './heartRateSettings.js';
 
 /** @private The five continuous bpm boundaries B1..B5 of a settings object.
  *  Callers gate on validateSettings first. */
@@ -125,9 +125,4 @@ export function zoneDisplayRange(zone) {
     lo: Math.ceil(zone.lo),
     hi: zone.hi == null ? null : Math.ceil(zone.hi) - 1,
   };
-}
-
-/** Mode key guard shared by the UI. @param {string} mode @returns {boolean} */
-export function isHrMode(mode) {
-  return HR_MODES.includes(mode);
 }

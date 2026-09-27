@@ -1,23 +1,21 @@
 /**
  * Shared JSDoc type definitions for WaySlice.
  *
- * The internal data model is format-agnostic: GPX, KML and KMZ parsers all
- * produce the same `TrackPoint` array. Fields reserved for future FIT / TCX
- * telemetry support are already declared here so the model does not have to
- * change later.
+ * The internal data model is format-agnostic: the GPX, FIT, TCX, KML and
+ * KMZ parsers all produce the same `TrackPoint` array.
  *
  * @typedef {Object} TrackPoint
  * @property {number} lat                      WGS84 latitude, degrees.
  * @property {number} lon                      WGS84 longitude, degrees.
  * @property {number|null} [ele]               Elevation in meters (missing when the source has none).
  * @property {number|null} [time]              Unix timestamp in milliseconds (missing when the source has none).
- * @property {number|null} [hr]                Heart rate, bpm (reserved for FIT/TCX).
- * @property {number|null} [cad]               Cadence, rpm (reserved for FIT/TCX).
- * @property {number|null} [power]             Power, watts (reserved for FIT/TCX).
- * @property {number|null} [temp]              Temperature, °C (reserved for FIT/TCX).
- * @property {number|null} [speed]             Speed, m/s (reserved for FIT/TCX).
- * @property {number|null} [distance]          Cumulative distance, m (reserved for FIT/TCX).
- * @property {number|null} [lap]               Lap index (reserved for FIT/TCX).
+ * @property {number|null} [hr]                Heart rate, bpm.
+ * @property {number|null} [cad]               Cadence, rpm.
+ * @property {number|null} [power]             Power, watts.
+ * @property {number|null} [temp]              Temperature, °C.
+ * @property {number|null} [speed]             Speed, m/s.
+ * @property {number|null} [distance]          Cumulative distance, m.
+ * @property {number|null} [lap]               Lap index.
  */
 
 /**
@@ -96,6 +94,7 @@
  * @property {number|null} moving              Sum of segment durations outside pauses (speed < 0.5 km/h sustained ≥ 10 s), seconds.
  * @property {number|null} avgSpeed            Mean of per-segment moving speeds kept within μ ± 3σ (GPS spikes excluded), m/s.
  * @property {number|null} avgPace              Per-km inverse of the filtered average speed, seconds per kilometer.
+ * @property {number|null} avgGap              Grade-adjusted pace (GAP): mean effort pace over the sector's cleaned moving segments, seconds per kilometer (null without elevation or timestamps).
  * @property {number|null} maxSpeed            Highest per-point speed in the sector after the source-based clean (5 s sliding-window smooth for recorded speeds, 3σ interpolation for computed ones) — the same series the elevation profile's speed curve draws, m/s.
  * @property {number|null} vam                 Vertical ascent speed, gain per hour of climbing time (the filtered elevation trend rising, pause seconds excluded), m/h.
  * @property {number|null} vdm                 Vertical descent speed, loss per hour of descending time (the filtered elevation trend falling, pause seconds excluded), m/h.

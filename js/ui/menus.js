@@ -224,7 +224,7 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
     const flyoutParent = isParent && isWideLayout();
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'menu-item' + (flyoutParent ? ' menu-item-parent' : '');
+    btn.className = 'menu-item';
     btn.setAttribute('role', 'menuitemcheckbox');
     btn.setAttribute('aria-checked', String(!!item.checked));
     btn.disabled = !!item.disabled;
@@ -287,7 +287,7 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
   const openFlyout = (anchorRow, children) => {
     closeFlyout();
     flyout = document.createElement('div');
-    flyout.className = 'menu-panel menu-panel-fit menu-flyout';
+    flyout.className = 'menu-panel menu-panel-fit';
     flyout.setAttribute('role', 'menu');
     for (const child of children) flyout.appendChild(buildRow(child));
     flyoutAnchor = anchorRow;
@@ -467,7 +467,6 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
  */
 export function renderOptionList(items, onPick, role = 'radio') {
   const wrap = document.createElement('div');
-  wrap.className = 'option-list';
   wrap.setAttribute('role', role === 'radio' ? 'radiogroup' : 'menu');
   for (const item of items) {
     if (item.kind === 'label') {

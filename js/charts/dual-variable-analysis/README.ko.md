@@ -35,7 +35,7 @@ DOM 계약: `.profile-controls` 안의 `#btn-dual-variable`. `#dual-variable-dia
 | `index.js` | 오케스트레이터: 버튼·대화상자 연결, 선택 → 분석 → 결과/빈 상태의 상태 머신, 셀렉트 동적 제약, 이벤트 면(언어 / 단위 / 테마 / 트랙 스토어 / 구간 스토어) | `initDualVariableAnalysis` |
 | `metrics.js` | 순수 지표 레지스트리: id, 레이블 키, 단위 게터, 공용 포매터, 표시↔원본 눈금 변환, 유효 조합 테이블 | `METRICS`, `getMetric`, `isPairAllowed`, `partnersOf` |
 | `samples.js` | 순수 데이터 계층: 트랙별로 하나의 샘플 테이블. 각 물리량은 지표 패널의 메커니즘으로 생성(데이터 규칙 참조), 가용성, 유한값 쌍 추출 | `buildAnalysisSamples`, `metricAvailability`, `extractPair` |
-| `densityCalculator.js` | 순수 밀도 계산: 강건한 분위수 도메인, 고정 그리드 2D 빈닝, 상대 밀도 정규화 | `computeDensity`, `relativeDensity`(상수 `X_BINS`, `Y_BINS`, `MIN_PAIR_SAMPLES`, `DOMAIN_QUANTILE`, `DOMAIN_PAD`) |
+| `densityCalculator.js` | 순수 밀도 계산: 강건한 분위수 도메인, 고정 그리드 2D 빈닝, 상대 밀도 정규화 | `computeDensity`, `relativeDensity`(상수 `X_BINS`, `Y_BINS`, `MIN_PAIR_SAMPLES`) |
 | `densityRenderer.js` | 캔버스 그리기 전부: 플롯 + 눈금 그리드 + 늘려 그리는 밀도 비트맵 + 호버 강조 + 축 제목. 테마 색 LUT. 히트 테스트 지오메트리. 축별 가시 창(확대/이동 뷰포트) | `initRenderer`, `setData`, `clearData`, `refresh`, `resize`, `render`, `hitTest`, `setHover`, `viewportAxes`, `getViewport`, `isViewportZoomed`, `resetViewport` |
 | `interaction.js` | 통합된 Pointer Events 경로(호버, 터치 탭/길게 누르기, 터치 읽기 고정) + **공용** 터치 제스처를 'two-finger' 이동 모드로(한 손가락은 읽기, 두 손가락은 핀치와 이동, 두 번 탭은 초기화 — `../viewport-gestures.js`에서). 그리지 않음 | `wireInteraction`, `clearInteraction` |
 | `tooltip.js` | tooltip DOM 노드, 3행 내용(X / Y / 상대 밀도), 터치·마우스 두 가지 배치 사다리(순수 함수 `computeTooltipPlacement`) | `initTooltip`, `computeTooltipPlacement`, `showTooltipAt`, `hideTooltip` |

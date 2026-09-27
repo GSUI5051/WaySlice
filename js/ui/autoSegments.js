@@ -153,7 +153,6 @@ function buildToolbar(track) {
       // The input speaks the active distance unit — labelled so the number
       // is never ambiguous (unit switches re-render and convert it).
       Object.assign(document.createElement('span'), {
-        className: 'seg-custom-unit',
         textContent: distanceUnit(),
       }),
     );

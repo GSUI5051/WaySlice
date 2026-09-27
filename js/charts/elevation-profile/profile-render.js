@@ -589,7 +589,7 @@ function placeMasks() {
 }
 
 /** @private Positions the DOM handles + their ARIA values. */
-export function positionHandles() {
+function positionHandles() {
   if (!state.track) return;
   const xEnd = state.xs[state.xs.length - 1];
   const v0 = state.view ? state.view.start : 0;
