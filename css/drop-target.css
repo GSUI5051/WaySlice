@@ -1,0 +1,29 @@
+/* Drop target — the full-viewport drag-and-drop overlay. */
+
+#drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--backdrop);
+  padding: 18px;
+}
+
+#drop-overlay[hidden] { display: none; }
+
+.drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 34px 44px;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-l);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.drop-card .icon { width: 26px; height: 26px; color: var(--accent); }

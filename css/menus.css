@@ -1,0 +1,126 @@
+/* Menus / popovers — the .menu trigger, its fixed .menu-panel and items,
+   plus the backdrop and the narrow-screen bottom-sheet restyle. */
+
+.menu { position: relative; display: inline-flex; }
+
+.menu-panel {
+  position: fixed;
+  z-index: var(--z-menu);
+  min-width: 230px;
+  max-height: min(430px, 62vh);
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-2);
+}
+
+.menu-group-label {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--foreground-faint);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: var(--radius-s);
+  text-align: start;
+  font-size: 13.5px;
+}
+
+.menu-item:hover:not(:disabled),
+.menu-item:focus-visible { background: var(--surface-hover); }
+
+.menu-item[aria-checked="true"] { font-weight: 600; }
+.menu-item[aria-checked="true"] .menu-item-label { color: var(--foreground); }
+
+.menu-item-icon { display: inline-flex; color: var(--foreground-muted); }
+.menu-item[aria-checked="true"] .menu-item-icon { color: var(--accent); }
+
+.menu-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--dot-color, var(--foreground-muted));
+}
+
+.menu-item-label { flex: 1 1 auto; min-width: 0; }
+
+.menu-item-hint {
+  font-size: 11.5px;
+  color: var(--foreground-faint);
+}
+
+.menu-item-check { display: inline-flex; color: var(--accent); }
+.menu-item-check .icon { width: 15px; height: 15px; }
+
+/* Export menu: three centered action rows — no icons, no checkmarks, the
+   label itself is the whole row and reads centered in every language. */
+.menu-panel-export .menu-item { justify-content: center; }
+.menu-panel-export .menu-item-label { flex: 0 1 auto; text-align: center; }
+
+/* Fit-content menus (the overlays popover): hug the longest item instead of
+   the shared 230px floor. Desktop only — narrow screens restyle the panel
+   into a full-width bottom sheet, where inset-inline must keep controlling
+   the width. Right-edge anchoring to the trigger is in menus.js. */
+@media (min-width: 721px) {
+  .menu-panel.menu-panel-fit {
+    min-width: 0;
+    width: max-content;
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* Submenu group (the overlays menu's speed entry). Wide screens open a
+   flyout beside the panel; below the 1100px layout breakpoint the two
+   variants render inline under the row as an indented group. Which of the
+   two is built is decided in menus.js — these styles only dress the DOM. */
+
+.menu-item-caret {
+  display: inline-flex;
+  color: var(--foreground-faint);
+}
+
+.menu-item-caret .icon { width: 14px; height: 14px; }
+
+.menu-item[aria-expanded="true"] .menu-item-caret { color: var(--foreground); }
+
+/* Inline subtree: a thin guide line drops from under the parent row's label
+   so the variants read as its children (the classic tree look). */
+.menu-sublist {
+  display: flex;
+  flex-direction: column;
+  margin-inline-start: 19px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--border);
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-backdrop);
+  background: var(--backdrop);
+}
+
+/* Narrow screens: menus become bottom sheets. */
+@media (max-width: 720px) {
+  .menu-panel {
+    inset-inline: 0;
+    inset-block: auto 0;
+    max-height: 72vh;
+    border-radius: var(--radius-l) var(--radius-l) 0 0;
+    border-block-start: 1px solid var(--border);
+    padding-block-end: calc(10px + env(safe-area-inset-bottom, 0px));
+    box-shadow: var(--shadow-2);
+  }
+}

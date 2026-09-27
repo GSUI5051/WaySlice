@@ -55,7 +55,19 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
+  <!-- Split per-component stylesheets; this order is the cascade — a later
+       file wins at equal specificity (map/profile/story keep their slots). -->
+  <link rel="stylesheet" href="css/buttons.css">
+  <link rel="stylesheet" href="css/menus.css">
+  <link rel="stylesheet" href="css/sheet.css">
+  <link rel="stylesheet" href="css/drawer.css">
+  <link rel="stylesheet" href="css/segments.css">
+  <link rel="stylesheet" href="css/metrics.css">
+  <link rel="stylesheet" href="css/popovers.css">
+  <link rel="stylesheet" href="css/hrzones.css">
+  <link rel="stylesheet" href="css/dualvar.css">
+  <link rel="stylesheet" href="css/state-overlay.css">
+  <link rel="stylesheet" href="css/drop-target.css">
   <link rel="stylesheet" href="css/map.css">
   <link rel="stylesheet" href="css/profile.css">
   <link rel="stylesheet" href="css/story.css">

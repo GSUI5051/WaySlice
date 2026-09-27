@@ -1,0 +1,208 @@
+/* Dual-variable analysis — the analysis dialog: form, chart frame, tooltip
+   and the empty/loading overlay states. */
+
+/* A little wider than the shared sheet — the density plot wants the room.
+   The compound selector out-specifies the `.sheet` mobile restyle in
+   css/sheet.css, so mobile restores the full-width bottom sheet explicitly
+   (same pattern as .sheet.hrzones). */
+.sheet.dualvar { width: min(680px, calc(100vw - 32px)); }
+
+@media (max-width: 720px) {
+  .sheet.dualvar { width: 100%; }
+}
+
+.dualvar-desc {
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  padding-block: 4px 10px;
+}
+
+/* One field per row, full width — the two dropdowns never sit side by side
+   (spec §3): a phone column cannot fit two selects without shrinking their
+   touch targets. */
+.dualvar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-block-end: 12px;
+}
+
+.dualvar-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--foreground-muted);
+}
+
+.dualvar-field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.dualvar-field select:disabled { opacity: 0.55; }
+
+/* Quantities the track lacks stay listed at reduced visual weight, their
+   reason in the label text — supported, just not on this track. */
+.dualvar-field select option:disabled {
+  color: var(--foreground-faint);
+  font-style: italic;
+}
+
+.dualvar-note {
+  font-size: 12px;
+  color: var(--foreground-faint);
+  padding-block: 2px 8px;
+}
+
+.dualvar-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-block-start: 2px;
+}
+
+/* The Analyze button hugs the CURRENT language's rendered text (the .btn
+   padding is the only sizing) — no min-width keyed to the longest word. */
+
+/* Result view: selection summary + reselect, then the chart frame. */
+.dualvar-result-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 2px 10px;
+}
+
+.dualvar-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--foreground-muted);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dualvar-summary-arrow { display: inline-flex; color: var(--accent); }
+.dualvar-summary-arrow .icon { width: 14px; height: 14px; }
+
+.dualvar-result-head .btn { margin-inline-start: auto; }
+
+/* Desktop: the two ANALYSIS windows share one fixed height — the .sheet cap
+   min(76vh, 720px) — so the dual-variable dialog and the auto-split list are
+   exactly as tall on every track (the auto-split sheet is otherwise
+   content-sized and drifts with the segment count). The chart fills the room
+   under the summary row instead of its clamp() height. The metrics details
+   sheet (the same #sheet element, no .seg-list inside) and every narrow-screen
+   bottom sheet stay content-sized.
+   display:flex is scoped to [open]: an author display on the CLOSED dialog
+   overrides the UA's closed-dialog display:none and lays the box out as a
+   608px phantom in the page flow — that inflated document scrollHeight and
+   collapsed the overlays menu's positionOverride once already. */
+@media (min-width: 721px) {
+  #sheet:has(.seg-list),
+  .sheet.dualvar {
+    height: min(76vh, 720px);
+  }
+
+  #sheet[open]:has(.seg-list),
+  .sheet.dualvar[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #sheet[open]:has(.seg-list) .sheet-body,
+  .sheet.dualvar[open] .sheet-body {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sheet.dualvar[open] #dualvar-result-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sheet.dualvar .dualvar-chart { flex: 1; }
+}
+
+.dualvar-chart {
+  position: relative;
+  height: clamp(240px, 46vh, 420px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface-muted);
+  overflow: hidden;
+  /* The canvas reads pointers; the frame must not scroll out from under a
+     finger dragging across it. */
+  touch-action: none;
+}
+
+#dualvar-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Same floating surface as .profile-tooltip, positioned in VIEWPORT-fixed
+   coordinates over the whole dialog body — the chart's plot area and card
+   only resolve data coordinates and never clip or bound the box (see
+   tooltip.js's placement ladder). Lives inside the dialog so the modal's
+   top layer stacks it above everything. */
+.dualvar-tooltip {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border-radius: var(--radius-s);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  font-size: 11.5px;
+  color: var(--foreground);
+  pointer-events: none;
+  z-index: 5;
+  min-width: 130px;
+}
+
+.dualvar-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dualvar-tip-label { color: var(--foreground-faint); font-weight: 550; }
+
+.dualvar-tip-value { font-weight: 650; white-space: nowrap; }
+
+/* Empty / loading states overlay the plot — never a blank canvas. */
+.dualvar-empty,
+.dualvar-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  background: color-mix(in srgb, var(--surface-muted) 55%, transparent);
+  font-size: 13px;
+  color: var(--foreground-muted);
+}
+
+.dualvar-empty-icon { display: inline-flex; color: var(--foreground-faint); }
+.dualvar-empty-icon .icon { width: 24px; height: 24px; }

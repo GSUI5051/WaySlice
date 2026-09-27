@@ -1,0 +1,18 @@
+/* Hint popover — the floating text surface shared by the metrics hint rows
+   and the compact file chip. */
+
+/* Same floating surface as .menu-panel: elevated background, hairline
+   border, menu radius and shadow — just text inside. */
+.hint-popover {
+  position: fixed;
+  z-index: var(--z-menu);
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 8px 10px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-2);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--foreground-muted);
+}

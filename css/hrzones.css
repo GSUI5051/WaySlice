@@ -1,0 +1,155 @@
+/* Heart Rate Zones — the zone editor sheet (settings drawer entry) and the
+   zone time distribution rows in the metrics panel + details sheet. */
+
+/* The zone editor (settings drawer entry): the shared sheet, a little wider
+   for the zone grid. The compound selector OUT-SPECIFIES the `.sheet` mobile
+   restyle (css/sheet.css), so mobile must restore the full-width bottom
+   sheet explicitly. */
+.sheet.hrzones { width: min(620px, calc(100vw - 32px)); }
+
+@media (max-width: 720px) {
+  .sheet.hrzones { width: 100%; }
+}
+
+.hrzones-modes { padding-block: 2px 10px; }
+
+.hrzones-desc {
+  font-size: 11.5px;
+  color: var(--foreground-faint);
+  margin: 0 0 10px;
+}
+
+.hrzones-params { padding-block-end: 8px; }
+
+.hrzones-param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.hrzones-param-label {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  min-width: 0;
+}
+
+.hrzones-input {
+  width: 72px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+  text-align: end;
+}
+
+.hrzones-input:disabled { opacity: 0.55; }
+
+.hrzones-unit {
+  flex: none;
+  font-size: 11px;
+  color: var(--foreground-faint);
+  min-width: 2.2em;
+}
+
+.hrzones-zones { border-block-start: 1px solid var(--border); }
+
+.hrzones-zone {
+  display: grid;
+  grid-template-columns: 4.6em minmax(0, 1fr) auto 72px 2.2em;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 7px 0;
+  border-block-end: 1px solid var(--border);
+}
+
+.hrzones-zone-name { font-weight: 600; font-size: 12.5px; }
+
+.hrzones-zone-range {
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hrzones-zone-pct {
+  font-size: 11.5px;
+  color: var(--foreground-faint);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .hrzones-zone { grid-template-columns: 4.2em minmax(0, 1fr) auto 60px 2em; gap: 4px 6px; }
+  .hrzones-input { width: 60px; }
+}
+
+.hrzones-error {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+/* Zone time distribution in the metrics panel + the details sheet. */
+
+.hrzone-rows { padding: 6px 0 2px; }
+
+.hrzone-row { padding: 4px 0 6px; }
+
+.hrzone-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.hrzone-name { flex: none; font-weight: 600; }
+
+.hrzone-range {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--foreground-muted);
+}
+
+.hrzone-pct {
+  flex: none;
+  min-width: 2.6em;
+  text-align: end;
+  font-weight: 600;
+}
+
+.hrzone-time {
+  flex: none;
+  min-width: 3.6em;
+  text-align: end;
+  color: var(--foreground-muted);
+}
+
+.hrzone-bar {
+  margin-block-start: 4px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+/* Bars wear the per-zone Zepp palette (tokens.css, themed per mode) — one
+   hue per zone so the five rows read as a spectrum, not five equal bars. */
+.hrzone-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.hrzone-rows .hrzone-row:nth-child(1) .hrzone-bar-fill { background: var(--hr-zone-1); }
+.hrzone-rows .hrzone-row:nth-child(2) .hrzone-bar-fill { background: var(--hr-zone-2); }
+.hrzone-rows .hrzone-row:nth-child(3) .hrzone-bar-fill { background: var(--hr-zone-3); }
+.hrzone-rows .hrzone-row:nth-child(4) .hrzone-bar-fill { background: var(--hr-zone-4); }
+.hrzone-rows .hrzone-row:nth-child(5) .hrzone-bar-fill { background: var(--hr-zone-5); }

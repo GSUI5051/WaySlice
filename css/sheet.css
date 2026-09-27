@@ -1,0 +1,47 @@
+/* Sheet dialog — the shared <dialog class="sheet"> surface; the metrics
+   details, auto segments, HR zones and dual-variable dialogs all live in it. */
+
+.sheet {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  padding: 0;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(76vh, 720px);
+  box-shadow: var(--shadow-2);
+}
+
+.sheet::backdrop { background: var(--backdrop); }
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-block-end: 1px solid var(--border);
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--surface-elevated);
+}
+
+.sheet-head h2 { font-size: 15px; }
+.sheet-head .btn { margin-inline-start: auto; }
+
+.sheet-body {
+  padding: 6px 16px 18px;
+  overflow-y: auto;
+  max-height: calc(min(76vh, 720px) - 60px);
+}
+
+@media (max-width: 720px) {
+  .sheet {
+    inset-inline: 0;
+    inset-block: auto 0;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: var(--radius-l) var(--radius-l) 0 0;
+    padding-block-end: env(safe-area-inset-bottom, 0px);
+  }
+}

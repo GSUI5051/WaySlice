@@ -1,0 +1,179 @@
+/* Auto segments sheet — toolbar chips, the segment list rows and their
+   narrow-screen two-line grid. */
+
+.seg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 12px;
+}
+
+.seg-chip {
+  min-height: 28px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--foreground-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.seg-chip:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
+
+.seg-chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
+.seg-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--foreground-muted);
+}
+
+.seg-custom input {
+  width: 68px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.seg-list { border-block-start: 1px solid var(--border); }
+
+.seg-item { border-block-end: 1px solid var(--border); }
+
+.seg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 4px;
+  text-align: start;
+  font-size: 13px;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.seg-row:hover { background: var(--surface-hover); }
+
+/* Collapsed: chevron-down (can expand); expanded: rotated to chevron-up
+   (can collapse). Expanding rotates counter-clockwise (0 → −180°),
+   collapsing back clockwise; fixed 250 ms (deliberately not a duration
+   token). */
+.seg-chevron {
+  display: inline-flex;
+  color: var(--foreground-faint);
+  transition: transform 250ms var(--ease-out);
+}
+
+.seg-chevron .icon { width: 14px; height: 14px; }
+
+.seg-item.open .seg-chevron { transform: rotate(-180deg); }
+
+.seg-name { font-weight: 600; flex: none; }
+
+/* Type capsule between name and range: icon-only pill classifying the
+   stretch. Climb/descent ride the map handle direction tokens (start green,
+   end red); flat and mixed stay muted. */
+.seg-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.seg-type .icon { width: 12px; height: 12px; }
+
+.seg-type-climb { color: var(--success); }
+.seg-type-descent { color: var(--danger); }
+.seg-type-flat, .seg-type-mixed { color: var(--foreground-muted); }
+
+/* Time/pace/HR ride in one container so the narrow-screen grid can move the
+   cluster to the second line as a block. Wide rows: pinned to the far edge,
+   so the type capsule hugs the range instead of the stats. */
+.seg-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  margin-inline-start: auto;
+}
+
+/* The capsule's text label only exists on narrow (bottom-sheet) screens. */
+.seg-type-label { display: none; }
+
+.seg-range {
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+  color: var(--foreground-muted);
+}
+
+.seg-stat { flex: none; color: var(--foreground-muted); }
+
+/* Row readings wear the series TEXT tokens (see tokens.css theme blocks) —
+   pace rides the speed series, HR its own red — so list and chart agree. */
+.seg-stat.seg-stat-pace { color: var(--series-speed-text); }
+.seg-stat.seg-stat-hr { color: var(--series-hr-text); }
+
+.seg-details { padding: 0 4px 12px 30px; }
+
+/* The Heart Rate Zones group (rendered by the metrics panel's shared
+   builder) below the segment's label/value rows. */
+.seg-details .metric-group { margin-block-start: 10px; }
+
+.seg-details-title {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--foreground-faint);
+  margin-block-end: 2px;
+}
+
+/* Narrow screens (bottom sheet): each row splits into two lines — range and
+   the type capsule (which gains its text label) on the first line, the
+   time/pace/HR cluster on the second, left-aligned with the range's start
+   (the stats share the range's grid column). The chevron + segment name
+   pair spans both lines as one vertically centered unit. */
+@media (max-width: 720px) {
+  .seg-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas:
+      "chev name range type"
+      "chev name stats stats";
+    align-items: center;
+    row-gap: 2px;
+    column-gap: 10px;
+  }
+
+  .seg-chevron { grid-area: chev; align-self: center; }
+  .seg-name { grid-area: name; align-self: center; }
+  .seg-range { grid-area: range; }
+  .seg-type {
+    grid-area: type;
+    justify-self: end;
+    column-gap: 5px;
+    padding-inline: 6px 9px;
+  }
+  .seg-type-label { display: inline; }
+  .seg-stats { grid-area: stats; margin-inline-start: 0; }
+}

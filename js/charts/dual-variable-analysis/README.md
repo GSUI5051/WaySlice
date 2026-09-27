@@ -138,7 +138,7 @@ the other.
   and the hit-test (`hitTest`) — must go through the same flip decision; a new drawing path
   that maps an axis directly will silently disagree with the tooltip.
 - **Desktop dialog height is FIXED to the shared `.sheet` cap** (`min(76vh, 720px)`,
-  components.css, ≥721px only): the auto-split list and the dual-variable dialog are always
+  dualvar.css, ≥721px only): the auto-split list and the dual-variable dialog are always
   exactly as tall, on every track — both would otherwise be content-sized and drift with the
   segment count. The chart fills the room under the summary row (flex, overriding its clamp
   height), and the chart's ResizeObserver re-renders on the resulting resize. The metrics

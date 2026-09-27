@@ -1,0 +1,74 @@
+/* Settings drawer — the full-height end-pinned <dialog> for map source /
+   theme / language / units, plus the section headers used inside it. */
+
+/* The settings surface (map source / theme / language / units) on every
+   viewport: a <dialog> pinned to the inline end and stretched full height.
+   The panel parks off-canvas via transform; [open] plus @starting-style
+   slides it in, and `allow-discrete` on display/overlay keeps it in the
+   top layer while the slide-out runs (without support it just toggles).
+   Logical inset pins it right in LTR, left in RTL; the slide direction
+   itself stays physical until an RTL language ships. */
+.drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline: auto 0;
+  /* The dialog UA sheet sets height: fit-content, which would let the panel
+     grow past the viewport (top/bottom insets alone don't stretch it) —
+     height: auto restores the inset-driven full-height stretch. */
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  width: min(320px, calc(100vw - 56px));
+  max-width: none;
+  max-height: none;
+  border: none;
+  border-inline-start: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  box-shadow: var(--shadow-2);
+  transform: translateX(calc(100% + 24px));
+  transition: transform var(--dur-normal) var(--ease-out),
+    overlay var(--dur-normal) allow-discrete,
+    display var(--dur-normal) allow-discrete;
+}
+
+.drawer[open] { transform: none; }
+
+@starting-style { .drawer[open] { transform: translateX(calc(100% + 24px)); } }
+
+.drawer::backdrop { background: var(--backdrop); }
+
+.drawer-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 12px 10px;
+  padding-inline: 16px 12px;
+  border-block-end: 1px solid var(--border);
+}
+
+.drawer-head h2 { font-size: 15px; }
+.drawer-head .btn { margin-inline-start: auto; }
+
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.drawer-section { margin-block-start: 16px; }
+.drawer-section:first-child { margin-block-start: 6px; }
+
+.drawer-section-title {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--foreground-faint);
+  margin-block-end: 2px;
+}

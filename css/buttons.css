@@ -1,0 +1,44 @@
+/* Buttons — the shared .btn element and its size/variant modifiers. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+  font-weight: 550;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
+.btn:active:not(:disabled) { background: var(--surface-muted); }
+
+.btn-primary {
+  background: var(--primary);
+  border-color: transparent;
+  color: var(--primary-foreground);
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary); filter: brightness(1.1); }
+.btn-primary:active:not(:disabled) { filter: brightness(0.95); }
+
+.btn-icon { width: 34px; padding: 0; justify-content: center; }
+.btn-small { height: 28px; padding: 0 10px; font-size: 12px; }
+.btn-large { height: 40px; padding: 0 18px; font-size: 14px; }
+
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-hover); border-color: transparent; }
+
+.btn-elevated {
+  background: var(--surface-elevated);
+  border-color: var(--border);
+  box-shadow: var(--shadow-1);
+}
+
+.btn-icon-slot { display: inline-flex; align-items: center; }
+.btn-icon-slot .icon { width: 16px; height: 16px; }
