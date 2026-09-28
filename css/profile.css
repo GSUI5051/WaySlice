@@ -19,6 +19,13 @@
   touch-action: none;
 }
 
+/* 空态（未加载轨迹）的画布没有任何手势可接管——probe/pinch/pan 全部随
+   setProfileTrack 才挂上——touch-action: none 在这里只会吞掉页面滚动：
+   手机上这个 304px 高的模块是屏幕中段最大的一块「滑不动的死区」。放行
+   竖向平移，上滑交给页面；.has-track 一挂本规则即失效，轨迹态的
+   touch-action: none 原样保留。 */
+#profile-body:not(.has-track) #profile-canvas { touch-action: pan-y; }
+
 /* Handles only make sense once a track is loaded. */
 #profile-body:not(.has-track) .profile-handle { display: none; }
 
