@@ -331,6 +331,31 @@ function groupNote(unavailable, reason) {
 /** Click hit extension beyond the icon's outer circle, px. @private */
 const HINT_HIT_EXTEND_PX = 30;
 
+/**
+ * Nearest element to a click point among `selectors` matches whose extended
+ * hit radius contains it — the fat-finger scheme shared with the segment
+ * rows' chevrons (autoSegments.js). Zero-size rects (unrendered/collapsed
+ * elements) never match; `radiusOf(el, rect)` decides what counts as a hit;
+ * `visible(el)` gates hidden or covered elements out. Nearest center wins.
+ */
+export function nearestHitTarget(selectors, x, y, { radiusOf, visible = () => true }) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const el of document.querySelectorAll(selectors)) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) continue;
+    if (!visible(el)) continue;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(x - cx, y - cy);
+    if (dist <= radiusOf(el, rect) && dist < bestDist) {
+      best = el;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
 /** The one open popover element, null when closed. @private */
 let hintPopover = null;
 /** The button it is anchored to, null when closed. @private */
@@ -380,41 +405,33 @@ function wireHintPopovers() {
 
 /**
  * @private The hint button whose extended hit radius contains the point,
- * nearest center wins — null when none does. Hidden rows (collapsed segment
- * details) report zero-size rects and never match. Two STRICT-VISIBILITY
- * gates keep the touch extension from hijacking clicks aimed at another
- * surface, however close that surface floats to an icon:
- *   1. the icon is genuinely VISIBLE — its center's topmost painted element
- *      is the icon itself, not the settings drawer, a dialog backdrop or any
- *      other cover;
- *   2. the click landed inside the icon's OWN surface root (the metrics pane,
- *      or the dialog the icon lives in) — a click on the elevation profile's
- *      canvas, the map or a drawer row was aimed elsewhere.
+ * nearest center wins — the shared scan lives in nearestHitTarget; the
+ * icon-specific radius and the two strict-visibility gates are below.
  */
 function hintBtnNear(x, y, clickTarget) {
-  let best = null;
-  let bestDist = Infinity;
-  for (const btn of document.querySelectorAll('.metric-hint-btn')) {
-    const rect = btn.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) continue;
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const top = document.elementFromPoint(cx, cy);
-    if (!top || !btn.contains(top)) continue;
-    const root = btn.closest('dialog, #metrics-pane');
-    if (!root || !root.contains(clickTarget)) continue;
-    const svg = btn.querySelector('svg');
+  return nearestHitTarget('.metric-hint-btn', x, y, {
     // The icon's outer circle ≈ half its rendered box (the drawn circle of
     // the Lucide glyph fills the viewBox), extended by a fixed touch margin.
-    const iconRadius = (svg ? svg.clientWidth : rect.width) / 2;
-    const hitRadius = iconRadius + HINT_HIT_EXTEND_PX;
-    const dist = Math.hypot(x - cx, y - cy);
-    if (dist <= hitRadius && dist < bestDist) {
-      best = btn;
-      bestDist = dist;
-    }
-  }
-  return best;
+    radiusOf: (btn, rect) => {
+      const svg = btn.querySelector('svg');
+      return (svg ? svg.clientWidth : rect.width) / 2 + HINT_HIT_EXTEND_PX;
+    },
+    // Two STRICT-VISIBILITY gates keep the touch extension from hijacking
+    // clicks aimed at another surface, however close that surface floats to
+    // an icon: the icon is genuinely VISIBLE (its center's topmost painted
+    // element is the icon itself, not the settings drawer, a dialog backdrop
+    // or any other cover), and the click landed inside the icon's OWN
+    // surface root (the metrics pane, or the dialog the icon lives in) — a
+    // click on the elevation profile's canvas, the map or a drawer row was
+    // aimed elsewhere.
+    visible: (btn) => {
+      const rect = btn.getBoundingClientRect();
+      const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      if (!top || !btn.contains(top)) return false;
+      const root = btn.closest('dialog, #metrics-pane');
+      return !!root && root.contains(clickTarget);
+    },
+  });
 }
 
 /** @private Opens the singleton popover for one hint button. */

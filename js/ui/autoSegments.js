@@ -21,7 +21,7 @@ import { setRange } from '../sector/sectorStore.js';
 import { computeSectorMetrics } from '../metrics/sectorMetrics.js';
 import { splitByLength, splitByGrade, splitByWaypoints, segmentType } from '../metrics/autoSegments.js';
 import { openSheet, setSheetTitle } from './sheets.js';
-import { row as metricRow, hrZonesGroupHtml } from './metricsPanel.js';
+import { row as metricRow, hrZonesGroupHtml, nearestHitTarget } from './metricsPanel.js';
 import {
   formatDistance, formatDistanceShort, formatElevation,
   formatPace, formatVam, formatDuration, formatBpm,
@@ -87,23 +87,15 @@ export function initAutoSegments(autoSegmentsButton) {
 
 /**
  * @private A click landing within the chevron's half box + 30 px toggles its
- * row — nearest chevron wins, zero-size rects (closed sheet) are skipped.
- * Clicks that already landed on a row are left to the row's own handler, so
- * the extension only claims dead zones around the icon.
+ * row — nearest chevron wins (shared scan: nearestHitTarget). Clicks that
+ * already landed on a row are left to the row's own handler, so the
+ * extension only claims dead zones around the icon.
  */
 function handleChevronTaps(e) {
   if (e.target.closest('.seg-row')) return;
-  let best = null;
-  let bestDist = Infinity;
-  for (const el of document.querySelectorAll('.seg-list .seg-chevron')) {
-    const r = el.getBoundingClientRect();
-    if (!r.width && !r.height) continue;
-    const d = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
-    if (d <= Math.max(r.width, r.height) / 2 + CHEVRON_HIT_EXTEND_PX && d < bestDist) {
-      best = el;
-      bestDist = d;
-    }
-  }
+  const best = nearestHitTarget('.seg-list .seg-chevron', e.clientX, e.clientY, {
+    radiusOf: (_el, r) => Math.max(r.width, r.height) / 2 + CHEVRON_HIT_EXTEND_PX,
+  });
   best?.closest('.seg-row')?.click();
 }
 
