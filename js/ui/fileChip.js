@@ -65,11 +65,7 @@ export function initFileChip(headerEl) {
     closeFileChipPopover();
     refreshFileChipMode();
   };
-  if ('ResizeObserver' in window) {
-    new ResizeObserver(onGeometryChange).observe(headerEl);
-  } else {
-    window.addEventListener('resize', onGeometryChange);
-  }
+  new ResizeObserver(onGeometryChange).observe(headerEl);
 }
 
 /**

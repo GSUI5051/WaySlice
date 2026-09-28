@@ -33,8 +33,7 @@ export function openDetailsSheet() {
  */
 export function openSheet(title) {
   titleEl.textContent = title;
-  if (typeof dialog.showModal === 'function') dialog.showModal();
-  else dialog.setAttribute('open', '');
+  dialog.showModal();
 }
 
 /** Re-titles the open sheet (live language switch while it stays open). */
@@ -44,6 +43,5 @@ export function setSheetTitle(title) {
 
 /** Closes the sheet if open. */
 function closeSheet() {
-  if (typeof dialog.close === 'function') dialog.close();
-  else dialog.removeAttribute('open');
+  dialog.close();
 }

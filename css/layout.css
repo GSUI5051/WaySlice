@@ -63,8 +63,6 @@
 
 .file-chip #file-meta { white-space: nowrap; }
 
-.file-chip[hidden] { display: none; }
-
 /* The chip has exactly two modes — the full line, or a lone info button —
    and WHICH one applies is measured in js/ui/fileChip.js (scrollWidth vs
    the space the flexbox actually left the chip), never hard-coded here: no
@@ -225,8 +223,6 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   font-size: 12px;
   color: var(--foreground-faint);
 }
-
-.profile-note[hidden] { display: none; }
 
 /* X-axis mode + overlay controls (top-right of the chart header). */
 

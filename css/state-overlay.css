@@ -16,8 +16,6 @@
   pointer-events: none;
 }
 
-.overlay-state[hidden] { display: none; }
-
 .overlay-state .state-card { pointer-events: auto; }
 
 /* No track, no map chrome: while the state overlay is up the map area shows

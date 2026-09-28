@@ -33,8 +33,6 @@
   color: var(--accent-strong);
 }
 
-.badge[hidden] { display: none; }
-
 .sector-range {
   display: flex;
   align-items: center;

@@ -69,8 +69,7 @@ export function openHeartZonesDialog() {
   settings = loadHeartRateSettings();
   errorKey = '';
   render();
-  if (typeof dialog.showModal === 'function') dialog.showModal();
-  else dialog.setAttribute('open', '');
+  dialog.showModal();
 }
 
 /** @private Full rebuild of the editor body. */

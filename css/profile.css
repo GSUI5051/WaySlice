@@ -96,8 +96,6 @@
   z-index: 3;
 }
 
-.profile-mask[hidden] { display: none; }
-
 /* The hover readout. The node lives inside #profile-body and is
    absolutely positioned there, so it tracks the workspace scroll natively
    (no scroll-driven repositioning). It anchors its bottom edge to the chart
@@ -126,8 +124,6 @@
 .tip-sep { color: var(--foreground-faint); }
 
 .tip-ov { font-weight: 650; }
-
-.profile-tooltip[hidden] { display: none; }
 
 /* Probe fallback on fine-pointer devices (touchscreen laptops, desktop
    browsers faking touch): floats above the profile module's top edge (its

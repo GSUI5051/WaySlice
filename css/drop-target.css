@@ -11,8 +11,6 @@
   padding: 18px;
 }
 
-#drop-overlay[hidden] { display: none; }
-
 .drop-card {
   display: flex;
   flex-direction: column;

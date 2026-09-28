@@ -262,13 +262,11 @@ function createMapInstance() {
   // Keep MapLibre in sync with responsive layout changes. (MapLibre also
   // tracks the container itself, but the explicit resize keeps the
   // zero-size-layout deferral in fitTrack/fitSector honest.)
-  if ('ResizeObserver' in window) {
-    let first = true;
-    new ResizeObserver(() => {
-      if (first) { first = false; return; }
-      map.resize();
-    }).observe(container);
-  }
+  let first = true;
+  new ResizeObserver(() => {
+    if (first) { first = false; return; }
+    map.resize();
+  }).observe(container);
 }
 
 /** @private Loads the saved basemap after the initial fit has landed. The
