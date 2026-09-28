@@ -298,7 +298,15 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
        172px) above MapLibre's zoom bar + attribution (~95px) needs ≥267px;
        304px keeps ~37px of live map between them and matches the touch
        profile module's height. */
-    grid-template-rows: minmax(304px, 44vh) auto auto;
+    grid-template-rows: minmax(304px, 44vh) min-content auto;
+    /* The profile row is min-content, not auto, on purpose: align-content's
+       stretch splits the leftover space EQUALLY among auto rows, and the
+       fixed-height profile pane would not grow with its stretched row — the
+       unpainted remainder showed as a strip of body --background between the
+       profile module and the metrics pane (thicker on taller viewports). A
+       min-content row tracks the pane's own 240/304px height (single source)
+       and is not stretchable, so the metrics row absorbs all the slack with
+       its surface paint and the two modules stay flush. */
     grid-template-areas:
       "map"
       "profile"
