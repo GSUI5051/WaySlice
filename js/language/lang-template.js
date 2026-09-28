@@ -1,9 +1,11 @@
 /**
- * English — canonical language pack.
- *
- * Every other language pack must define exactly these keys. English is the
- * fallback for missing translations, so this file is also the terminology
- * reference: keep technical terms (Sector, 3D Distance, Grade, …) consistent.
+ * Copy-me template for new language packs — the key set is byte-identical to
+ * `lang-en.js`, the pack the runtime actually loads (see langs.js). To
+ * contribute a language: copy this file to `lang-<code>.js`, translate the
+ * values, and point the `register(...)` call at the bottom at the new code
+ * and native name. Keep every key — the fallback chain and the suite's
+ * parity checks need the full set — and keep technical terms (Sector,
+ * 3D Distance, Grade, …) consistent with the English terminology.
  */
 import { register } from './language.js';
 
@@ -130,7 +132,7 @@ const lang_en = {
   sectorEnd: 'Sector end',
 
   // Auto segments
-  autoSegments: 'Auto split',
+  autoSegments: 'Auto slice',
   segmentsList: 'Sector list',
   segmentN: 'Sector {n}',
   segmentDetails: 'Sector details',

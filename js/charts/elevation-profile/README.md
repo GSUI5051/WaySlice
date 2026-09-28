@@ -243,9 +243,10 @@ conversion, add it there as a pure function with explicit parameters.
 ## Testing
 
 **Automated** — `tests/index.html` (serve the repo root, e.g. `python -m http.server`).
-The suite does not import this module (it is canvas/DOM work); it is the regression net for
-the shared math (`metrics/`, `geo/`) and for `tests/suite-viewport.js` (the shared zoom/pan
-window math + the double-tap rule). Expected: all green.
+The suite imports this module's pure data layer directly (`tests/suite-profileData.js` over
+`profile-data.js` — caches, sampling, conversions); the Canvas/DOM parts are outside the suite.
+It is also the regression net for the shared math (`metrics/`, `geo/`) and for
+`tests/suite-viewport.js` (the shared zoom/pan window math + the double-tap rule). Expected: all green.
 
 **Manual** — load a real-world GPX track with a full sensor set (elevation, timestamps, heart rate, cadence), then
 replay at least:

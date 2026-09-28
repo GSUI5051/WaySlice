@@ -228,8 +228,9 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 ## テスト
 
 **自動** — `tests/index.html`（リポジトリルートを serve、例：`python -m http.server`）。
-スイートはこのモジュールを直接 import しない（Canvas/DOM の仕事のため）。共有数学
-（`metrics/`、`geo/`）と `tests/suite-viewport.js`（共有のズーム/パンのウィンドウ計算とダブルタップの規則）の回帰ネットとして機能する。期待値：全緑。
+スイートはこのモジュールの純粋データ層（`profile-data.js`——キャッシュ、サンプリング、座標変換）を
+`tests/suite-profileData.js` で直接 import します。Canvas/DOM の部分はスイートの外です。共有数学
+（`metrics/`、`geo/`）と `tests/suite-viewport.js`（共有のズーム/パンのウィンドウ計算とダブルタップの規則）の回帰ネットとしても機能する。期待値：全緑。
 
 **手動** — 標高・タイムスタンプ・心拍・ケイデンスを備えた実トラックの GPX を読み込み、少なくとも
 次を再生する：

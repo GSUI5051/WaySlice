@@ -219,9 +219,10 @@ tap 판정, 차트 밖 tap 기록)를 소유.
 
 ## 테스트
 
-**자동** — `tests/index.html`(저장소 루트를 serve, 예: `python -m http.server`). 스위트는 이
-모듈을 직접 import하지 않습니다(Canvas/DOM 작업이므로). 공유 수학(`metrics/`, `geo/`)의 회귀
-안전망이며, 공용 `tests/suite-viewport.js`(확대/이동 창 계산과 두 번 탭 규칙)의 회귀 안전망입니다. 기대값: 전부 통과.
+**자동** — `tests/index.html`(저장소 루트를 serve, 예: `python -m http.server`). 스위트는 이 모듈의
+순수 데이터 레이어(`profile-data.js`——캐시, 샘플링, 좌표 변환)를 `tests/suite-profileData.js`로 직접
+import합니다. Canvas/DOM 부분은 스위트 밖입니다. 공유 수학(`metrics/`, `geo/`)의 회귀
+안전망이며, 공용 `tests/suite-viewport.js`(확대/이동 창 계산과 두 번 탭 규칙)의 회귀 안전망이기도 합니다. 기대값: 전부 통과.
 
 **수동** — 고도·타임스탬프·심박·케이던스를 갖춘 실제 트랙의 GPX를 로드한 뒤 최소한 다음을
 재생:
