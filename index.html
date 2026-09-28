@@ -312,10 +312,13 @@
   </dialog>
 
   <!-- Author's story (settings drawer, About section → author's story).
-       The content is the standalone /story/story.html page hosted in an
-       iframe, so the page keeps its own language pack in /story.
+       The content is the standalone /about/story.html page hosted in an
+       iframe, so the page keeps its own language pack in /about.
        Desktop presents the same window as the dual-variable analysis; on
-       phones it becomes an 80 vh popup (css/story.css). -->
+       phones it becomes an 80 vh popup (css/story.css). The same window
+       also hosts the About section's privacy entry — openStoryDialog('privacy')
+       swaps the iframe to /about/privacy.html (own pack, like the story
+       page) and retitles the sheet head. -->
   <dialog id="story-dialog" class="sheet story" aria-labelledby="story-title">
     <div class="sheet-head">
       <h2 id="story-title" data-i18n="storyQuotes">Story</h2>

@@ -1,7 +1,7 @@
 /* Story — the "author's story" popup and the standalone story page.
    One file serves both consumers: index.html loads it for the story dialog
-   chrome (the drawer's About section opens it), /story/story.html loads it
-   for the page typography. The page-side rules are all scoped under
+   chrome (the drawer's About section opens it), /about/story.html and
+   /about/privacy.html load it for the page typography. The page-side rules are all scoped under
    .story-page so they can never touch the app. Layout: desktop presents the
    same window as the dual-variable analysis dialog; phones get an 80 vh
    popup instead. */

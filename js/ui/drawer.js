@@ -191,8 +191,9 @@ function section(titleKey, buildItems, onPick) {
 }
 
 /**
- * @private The About section — the author's story entry. An action row like
- * the zone editor's: it opens the story dialog on top of the drawer, which
+ * @private The About section — the author's story entry and the privacy
+ * entry. Action rows like the zone editor's: each opens the story dialog
+ * (the privacy entry passes the privacy page) on top of the drawer, which
  * stays open so the user returns straight into their other settings.
  */
 function aboutSection() {
@@ -219,5 +220,24 @@ function aboutSection() {
   row.appendChild(label);
   row.addEventListener('click', openStoryDialog);
   wrap.appendChild(row);
+
+  // The privacy entry shares the story dialog's window; its label and
+  // content are English-only literals, like the story content itself.
+  const privacy = document.createElement('button');
+  privacy.type = 'button';
+  privacy.className = 'menu-item';
+  privacy.dataset.value = 'privacy';
+  privacy.setAttribute('aria-haspopup', 'dialog');
+  privacy.setAttribute('aria-expanded', 'false');
+  const pic = document.createElement('span');
+  pic.className = 'menu-item-icon';
+  pic.innerHTML = icon('shield-check');
+  privacy.appendChild(pic);
+  const plabel = document.createElement('span');
+  plabel.className = 'menu-item-label';
+  plabel.textContent = 'Privacy';
+  privacy.appendChild(plabel);
+  privacy.addEventListener('click', () => openStoryDialog('privacy'));
+  wrap.appendChild(privacy);
   return wrap;
 }
