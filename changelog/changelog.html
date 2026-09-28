@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="WaySlice changelog — what changed in the analyzer, day by day, from the git history.">
+  <title>WaySlice — Changelog</title>
+  <link rel="canonical" href="https://wayslice.com/changelog/changelog.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="WaySlice">
+  <meta property="og:title" content="WaySlice — Changelog">
+  <meta property="og:description" content="What changed in the analyzer, day by day, from the git history.">
+  <meta property="og:url" content="https://wayslice.com/changelog/changelog.html">
+  <meta property="og:image" content="https://wayslice.com/screenshots/overview.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="../icons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="../icons/favicon.svg" type="image/svg+xml">
+  <script>
+    // Theme boot — the same pre-paint script story.html runs, so the
+    // changelog page follows the app's theme preference (localStorage
+    // 'wayslice-theme', "system" via prefers-color-scheme) with no flash.
+    (function () {
+      try {
+        var pref = localStorage.getItem('wayslice-theme');
+        if (pref !== 'light' && pref !== 'dark') pref = 'system';
+        var dark = pref === 'dark' ||
+          (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var root = document.documentElement;
+        root.dataset.theme = dark ? 'dark' : 'light';
+        root.dataset.themePref = pref;
+        root.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (e) { /* no storage — system default below */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/story.css">
+</head>
+<body class="story-page">
+  <noscript>
+    <p>The WaySlice changelog — what changed in the analyzer, day by day.
+    Enable JavaScript to read it.</p>
+  </noscript>
+  <!-- The article is rendered by changelog-lang.js from the page's own
+       content pack (changelog-en.js), exactly the way story.html is
+       rendered by story-lang.js. The anchor ids match story.html's on
+       purpose: they are page-local (the pages never share a document) and
+       css/story.css keys its embedded-mode rules on #story-sections. When
+       the page runs inside the app's story dialog iframe, the dialog chrome
+       carries the title and the page's own header hides. -->
+  <main class="story-doc">
+    <header class="story-page-head">
+      <h1 id="story-page-title">WaySlice</h1>
+      <p class="story-tagline" id="story-page-tagline"></p>
+      <p class="story-lede" id="story-page-lede"></p>
+    </header>
+    <div id="story-sections"></div>
+  </main>
+  <script type="module" src="./changelog-lang.js"></script>
+</body>
+</html>

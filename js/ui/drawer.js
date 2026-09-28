@@ -191,10 +191,10 @@ function section(titleKey, buildItems, onPick) {
 }
 
 /**
- * @private The About section — the author's story entry and the privacy
- * entry. Action rows like the zone editor's: each opens the story dialog
- * (the privacy entry passes the privacy page) on top of the drawer, which
- * stays open so the user returns straight into their other settings.
+ * @private The About section — the author's story, changelog and privacy
+ * entries. Action rows like the zone editor's: each opens the story dialog
+ * (the changelog and privacy entries pass their page) on top of the drawer,
+ * which stays open so the user returns straight into their other settings.
  */
 function aboutSection() {
   const wrap = document.createElement('div');
@@ -220,6 +220,25 @@ function aboutSection() {
   row.appendChild(label);
   row.addEventListener('click', openStoryDialog);
   wrap.appendChild(row);
+
+  // The changelog entry shares the story dialog's window; its label and
+  // content are English-only literals, like the story content itself.
+  const changelog = document.createElement('button');
+  changelog.type = 'button';
+  changelog.className = 'menu-item';
+  changelog.dataset.value = 'changelog';
+  changelog.setAttribute('aria-haspopup', 'dialog');
+  changelog.setAttribute('aria-expanded', 'false');
+  const cic = document.createElement('span');
+  cic.className = 'menu-item-icon';
+  cic.innerHTML = icon('file-clock');
+  changelog.appendChild(cic);
+  const clabel = document.createElement('span');
+  clabel.className = 'menu-item-label';
+  clabel.textContent = 'Changelog';
+  changelog.appendChild(clabel);
+  changelog.addEventListener('click', () => openStoryDialog('changelog'));
+  wrap.appendChild(changelog);
 
   // The privacy entry shares the story dialog's window; its label and
   // content are English-only literals, like the story content itself.
