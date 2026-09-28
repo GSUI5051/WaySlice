@@ -79,7 +79,7 @@ fully computed series take the 3σ clean (`cleanComputedSpeeds`: outliers replac
 the nearest kept neighbors); rest-stop zeros are data and take part in the window mean.
 Chart view: `xMode` (`'distance' | 'time'`), `view` (`{start,end}` or `null` = full track),
 `plot` (`{x0,y0,w,h}` in CSS px).
-Overlays: `selectedOverlays` (selection order), `hiddenOverlays` (Set of temporarily hidden ids).
+Overlays: `selectedOverlays` (selection order).
 Hover: `hoverDist`, `hoverX`, `hoverOrigin` (`'profile' | 'map' | 'waypoint'`),
 `waypointHover`, `pinnedWaypoint`.
 Touch probe: `probe` (`{dist}` while active, else `null`) — the mobile equivalent of the
@@ -224,7 +224,7 @@ conversion, add it there as a pure function with explicit parameters.
 3. Overlay family rule: speed/pace/GAP are one series with one slot. In
    `applyOverlayToggle` a sibling variant **replaces** the selected one even when all slots
    are full — the sibling check must come before the slot-cap check. `toggleOverlay`
-   applies the returned `{selected, unhide}` to `state` and updates `lastSpeedVariant`.
+   applies the returned `{selected}` to `state` and updates `lastSpeedVariant`.
 4. Import depth: modules live one directory deeper than the old flat file — `menus.js` is
    `../../ui/menus.js`, stores are `../../core/…`, NOT `../…`.
 5. No new libraries, no globals: ES modules only, same as the rest of the project.

@@ -62,7 +62,7 @@ function probeBandVisible() {
  * family variant.
  */
 function renderProbeBand(pt, xText) {
-  const { track, selectedOverlays, hiddenOverlays, speeds, gapSpeeds, dom } = state;
+  const { track, selectedOverlays, speeds, gapSpeeds, dom } = state;
   // Nearest track point to the probe position carries the sensor readings —
   // the same reading path the desktop hover uses.
   const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
@@ -77,7 +77,7 @@ function renderProbeBand(pt, xText) {
   const unselected = `<span class="readout-cell is-unselected">${t('notSelected')}</span>`;
   const valueOf = (v) => (v != null && Number.isFinite(v) ? v : null);
   // Exactly the overlays the renderer draws — the band mirrors the chart.
-  const shown = new Set(selectedOverlays.filter((id) => !hiddenOverlays.has(id)));
+  const shown = new Set(selectedOverlays);
   const sensor = (id, v, hasSensor, subText = null) => {
     if (!shown.has(id)) return hasSensor ? unselected : blank;
     const def = defs.get(id);
@@ -86,7 +86,7 @@ function renderProbeBand(pt, xText) {
   };
 
   const speedId = selectedOverlays.find(
-    (id) => SPEED_FAMILY.includes(id) && !hiddenOverlays.has(id),
+    (id) => SPEED_FAMILY.includes(id),
   ) ?? null;
   let speedSlot;
   if (speedId) {
@@ -148,7 +148,7 @@ function renderProbeBand(pt, xText) {
  * device) are ignored — the readout belongs to the probe.
  */
 export function showTooltipAt(dist, xv = null, name = null, opts = null) {
-  const { track, xMode, selectedOverlays, hiddenOverlays, speeds, gapSpeeds, view, xs, plot, dom } = state;
+  const { track, xMode, selectedOverlays, speeds, gapSpeeds, view, xs, plot, dom } = state;
   const tooltip = dom.tooltip;
   if (!track || !tooltip) return;
   const isProbe = !!(opts && opts.probe);
@@ -200,7 +200,6 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
   const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
   const defs = new Map(OVERLAY_METRICS.map((d) => [d.id, d]));
   for (const id of selectedOverlays) {
-    if (hiddenOverlays.has(id)) continue;
     const def = defs.get(id);
     let v = null;
     if (id === 'hr') v = track.points[idx].hr;

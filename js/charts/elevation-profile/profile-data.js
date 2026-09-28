@@ -297,22 +297,22 @@ export function formatOverlayValue(def, v) {
  * @param {string} id  toggled overlay id or 'speed-family'
  * @param {number} maxN  overlay slot cap
  * @param {string} speedVariant  the family variant to (re)select
- * @returns {{selected: string[], unhide: string[]}|null}
- *   the new selection plus ids to drop from the hidden set, or null when the
- *   toggle is a no-op (every slot already taken and the id not selected)
+ * @returns {{selected: string[]}|null}
+ *   the new selection, or null when the toggle is a no-op (every slot
+ *   already taken and the id not selected)
  */
 export function applyOverlayToggle(selected, id, maxN, speedVariant) {
   if (id === 'speed-family') {
     if (selected.some((v) => SPEED_FAMILY.includes(v))) {
-      return { selected: selected.filter((v) => !SPEED_FAMILY.includes(v)), unhide: [...SPEED_FAMILY] };
+      return { selected: selected.filter((v) => !SPEED_FAMILY.includes(v)) };
     }
     if (selected.length < maxN) {
-      return { selected: [...selected, speedVariant], unhide: [speedVariant] };
+      return { selected: [...selected, speedVariant] };
     }
     return null;
   }
   if (selected.includes(id)) {
-    return { selected: selected.filter((v) => v !== id), unhide: [id] };
+    return { selected: selected.filter((v) => v !== id) };
   }
   // A sibling variant replacing the selected one (pace over speed, GAP over
   // pace…) never needs a free slot — the family keeps its single slot.
@@ -323,5 +323,5 @@ export function applyOverlayToggle(selected, id, maxN, speedVariant) {
   const out = [...selected];
   if (sibling) out.splice(out.indexOf(sibling), 1, id);
   else out.push(id);
-  return { selected: out, unhide: [id] };
+  return { selected: out };
 }

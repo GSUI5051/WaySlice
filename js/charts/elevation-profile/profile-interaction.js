@@ -218,7 +218,6 @@ function toggleOverlay(id) {
   const result = applyOverlayToggle(state.selectedOverlays, id, maxOverlays(), lastSpeedVariant);
   if (result) {
     state.selectedOverlays = result.selected;
-    for (const unhidden of result.unhide) state.hiddenOverlays.delete(unhidden);
     if (SPEED_FAMILY.includes(id)) lastSpeedVariant = id;
   }
   scheduleSync();

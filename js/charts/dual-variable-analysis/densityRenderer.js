@@ -30,6 +30,7 @@
  * interaction layer never draws.
  */
 import { t } from '../../language/language.js';
+import { relativeDensity } from './densityCalculator.js';
 
 // Margins around the plot (CSS px). The left margin grows to fit the y tick
 // labels (a pace axis reads "12:34"); everything else is fixed.
@@ -376,7 +377,7 @@ export function hitTest(clientX, clientY) {
   const count = data.counts[iy * nx + ix];
   return {
     ix, iy, xRaw, yRaw,
-    density: count > 0 ? count / data.maxCount : 0,
+    density: relativeDensity(count, data.maxCount),
     hasPoints: count > 0,
   };
 }

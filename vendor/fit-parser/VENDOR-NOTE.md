@@ -11,11 +11,10 @@ The ESM `dist/` subset only — no CJS mirror, no `.d.ts`, no dev tooling:
 ```
 binary.js                    low-level record/message decoder
 fit-parser.js                FitParser class (options + parse loop)
-fit.js / fit_types.js        generated FIT profile (types + messages)
+fit.js                       generated FIT profile (types + messages)
 garmin_profile.generated.js  generated Garmin product/profile data
 helper.js                    lap/session cascade mapping
 messages.js                  message-number lookup
-types.js                     type re-exports
 fit-encoder.js               kept only because fit-parser.js re-exports it
 ```
 

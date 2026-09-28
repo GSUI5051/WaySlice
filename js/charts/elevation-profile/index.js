@@ -169,7 +169,6 @@ export function setProfileTrack(newTrack) {
   rebuildProfileWaypoints();
   const avail = overlayAvailability(state.track, state);
   state.selectedOverlays = state.selectedOverlays.filter((id) => avail[id]);
-  state.hiddenOverlays.clear();
   state.dom.root.classList.add('has-track');
   // The readout precedes #profile-body in the DOM, so it can't be targeted
   // by a sibling selector — flag it directly (the class is never removed

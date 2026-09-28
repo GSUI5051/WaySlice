@@ -187,7 +187,7 @@ export function sync() {
   // Overlays (drawn for both elevation and no-elevation tracks). Sampled
   // over the full track — the global scale promised in the header — but
   // clipped to the plot so a zoomed window never paints into the margins.
-  const visible = state.selectedOverlays.filter((id) => !state.hiddenOverlays.has(id));
+  const visible = state.selectedOverlays;
   // Pass 1 reads EVERY track point per overlay (plus one full per-point scan
   // per speed-family overlay for the axis strip top) and depends only on
   // (track, x-mode, plot width, overlay selection) — none of which a hover,

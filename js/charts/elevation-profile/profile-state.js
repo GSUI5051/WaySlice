@@ -49,9 +49,8 @@ export const state = {
   view: null,            // visible x window {start, end} (null = whole track)
   plot: { x0: 0, y0: 0, w: 0, h: 0 },
 
-  /** Overlay picks, in selection order, and per-overlay show/hide. */
+  /** Overlay picks, in selection order. */
   selectedOverlays: [],
-  hiddenOverlays: new Set(),
 
   /** Crosshair position (as distance and as raw x) and what drives it:
    *  'profile' | 'map' | 'waypoint'. */

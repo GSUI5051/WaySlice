@@ -119,7 +119,7 @@ function render() {
       <span class="flex-spacer"></span>
       <button type="button" class="btn btn-ghost btn-icon" id="btn-reset-sector"
               title="${t('resetSector')}" aria-label="${t('resetSector')}">${icon('rotate-ccw')}</button>
-      <button type="button" class="btn btn-ghost btn-small" id="btn-details-2"
+      <button type="button" class="btn btn-ghost btn-small" id="btn-details"
               title="${t('allMetrics')}">${t('allMetrics')}</button>
     </div>
     <div class="sector-range num" aria-hidden="true">
@@ -147,7 +147,7 @@ function render() {
   if (detailsRoot) detailsRoot.innerHTML = detailsHtml(track, m, start, end);
 
   paneRoot.querySelector('#btn-reset-sector')?.addEventListener('click', resetSector);
-  paneRoot.querySelector('#btn-details-2')?.addEventListener('click', () => emit('details:open'));
+  paneRoot.querySelector('#btn-details')?.addEventListener('click', () => emit('details:open'));
 }
 
 /**

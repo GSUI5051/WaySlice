@@ -75,7 +75,7 @@ state       → 이 디렉터리 내 의존 없음(../utils/layout에서 isWideL
 휴식 중 기록된 0도 데이터이며 평균에 참여합니다.
 차트 뷰: `xMode`(`'distance' | 'time'`), `view`(`{start,end}`, `null` = 전체 트랙),
 `plot`(CSS 픽셀 `{x0,y0,w,h}`).
-오버레이: `selectedOverlays`(선택 순서), `hiddenOverlays`(임시 숨김 id의 Set).
+오버레이: `selectedOverlays`(선택 순서).
 호버: `hoverDist`, `hoverX`, `hoverOrigin`(`'profile' | 'map' | 'waypoint'`),
 `waypointHover`, `pinnedWaypoint`.
 터치 프로브: `probe`(활성화 시 `{dist}`, 아니면 `null`) — 모바일판 터치 인스펙터입니다. 트랙
@@ -202,7 +202,7 @@ tap 판정, 차트 밖 tap 기록)를 소유.
    DOM에 대한 유일한 호출은 `drawHover → showTooltipAt`(tooltip)입니다.
 3. 오버레이 패밀리 규칙: 속도 / 페이스 / GAP은 하나의 시리즈, 하나의 슬롯. `applyOverlayToggle`에서
    형제 변형은 슬롯이 가득해도 **대체**합니다(sibling 검사가 슬롯 상한 검사보다 먼저여야 함).
-   `toggleOverlay`가 반환값 `{selected, unhide}`를 `state`에 적용하고 `lastSpeedVariant`를
+   `toggleOverlay`가 반환값 `{selected}`를 `state`에 적용하고 `lastSpeedVariant`를
    관리합니다.
 4. import 깊이: 모듈은 예전의 평면 파일보다 한 단계 깊습니다——`menus.js`는 `../../ui/menus.js`,
    stores는 `../../core/…`. `../…`이 **아닙니다**.

@@ -77,7 +77,7 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 休息中に記録された 0 も数値の一部として平均に参加します。
 チャートビュー：`xMode`（`'distance' | 'time'`）、`view`（`{start,end}`、`null` = 全トラック）、
 `plot`（CSS ピクセル `{x0,y0,w,h}`）。
-オーバーレイ：`selectedOverlays`（選択順）、`hiddenOverlays`（一時的に隠した id の Set）。
+オーバーレイ：`selectedOverlays`（選択順）。
 ホバー：`hoverDist`、`hoverX`、`hoverOrigin`（`'profile' | 'map' | 'waypoint'`）、
 `waypointHover`、`pinnedWaypoint`。
 タッチプローブ：`probe`（アクティブなら `{dist}`、それ以外 `null`）——モバイル版のタッチ
@@ -208,7 +208,7 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
    対する唯一の呼び出しは `drawHover → showTooltipAt`（tooltip）。
 3. オーバーレイファミリー規則：速度 / ペース / GAP は 1 つの系列・1 つのスロット。
    `applyOverlayToggle` では、兄弟バリアントがスロット満杯でも**置き換え**を行う（sibling チェックを
-   スロット上限チェックより先に行うこと）。`toggleOverlay` が返り値 `{selected, unhide}` を
+   スロット上限チェックより先に行うこと）。`toggleOverlay` が返り値 `{selected}` を
    `state` に適用し、`lastSpeedVariant` を管理する。
 4. import の深さ：モジュールは旧フラットファイルより 1 階層深い——`menus.js` は
    `../../ui/menus.js`、stores は `../../core/…`。`../…` では**ない**。
