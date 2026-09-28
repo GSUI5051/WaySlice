@@ -38,7 +38,7 @@ initProfile 참조).
 |---|---|---|
 | `index.js` | 오케스트레이션: DOM 조립, 외부 이벤트, 트랙 라이프사이클, 리스즈 처리 | `initProfile`, `setProfileTrack` |
 | `profile-state.js` | 차트 인스턴스 하나의 공유 가변 상태(`state`) + `isWideLayout` | `state`, `isWideLayout` |
-| `profile-data.js` | 순수 계산: 포인트별 캐시, 다운샘플링, 좌표 변환, 오버레이 정의와 토글 규칙. DOM 없음, 형제 모듈 비의존 | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle` |
+| `profile-data.js` | 순수 계산: 포인트별 캐시, 다운샘플링, 좌표 변환, 오버레이 정의와 토글 규칙. DOM 없음, 형제 모듈 비의존 | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle` |
 | `profile-render.js` | Canvas 그리기 전부: `sync()` 패스와 그 안의 모든 레이어, `scheduleSync`, 핸들 / 마스크 배치 | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels` |
 | `profile-interaction.js` | 세 입력 경로(헤더 컨트롤, 캔버스 포인터 — 호버 / 드래그 선택 / 줌과 터치 프로브 제스처, 구간 핸들) + toast + 웨이포인트 스냅. 터치의 핀치/이동/두 번 탭 상태 머신은 여기 없습니다(이변수 차트도 함께 쓰는 공용 모듈 `js/charts/viewport-gestures.js`입니다). 그리지 않음 | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | 호버 툴팁과 터치 프로브 읽기의 DOM과 내용 | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |
@@ -145,8 +145,8 @@ tap 판정, 차트 밖 tap 기록)를 소유.
 
 ## 좌표 변환
 
-`distToX` / `xToDist`(데이터 ↔ x 도메인, 축 모드 인식)과 `clientXtoX`(커서 px → 줌 윈도우를
-거친 x)은 `profile-data.js`에 있으며, **단일 진실 공급원**입니다. 모든 커서 경로(호버, 드래그
+`distToX` / `xToDist`(데이터 ↔ x 도메인, 축 모드 인식), `clientXtoX`(커서 px → 줌 윈도우를
+거친 x)과 그리기 쪽의 역변환 `xvToPx`(x → 캔버스 px)는 `profile-data.js`에 있으며, **단일 진실 공급원**입니다. 모든 커서 경로(호버, 드래그
 선택, 핸들 드래그, 터치 프로브의 탭과 드래그, 휠 줌)와 그려지는 모든 요소는 이들을 거쳐야 합니다. 그렇지 않으면 줌 상태에서
 핸들이 커서에서 벗어납니다. 새 변환이 필요하면 명시적 파라미터의 순수 함수로 여기에 추가하세요.
 

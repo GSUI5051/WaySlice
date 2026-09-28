@@ -39,7 +39,7 @@ DOM 契約：`#profile-body` の中に `#profile-canvas`、`#profile-tooltip`、
 |---|---|---|
 | `index.js` | オーケストレーション：DOM 組み立て、外部イベント、トラックのライフサイクル、リサイズ処理 | `initProfile`、`setProfileTrack` |
 | `profile-state.js` | チャートインスタンス 1 個分の共有ミュータブル状態（`state`）+ `isWideLayout` | `state`、`isWideLayout` |
-| `profile-data.js` | 純粋計算：ポイント別キャッシュ、ダウンサンプリング、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`sampleOverlay`、`sampleElevation`、`seriesExtremes`、`distToX`、`xToDist`、`clientXtoX`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle` |
+| `profile-data.js` | 純粋計算：ポイント別キャッシュ、ダウンサンプリング、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`sampleOverlay`、`sampleElevation`、`seriesExtremes`、`distToX`、`xToDist`、`clientXtoX`、`xvToPx`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle` |
 | `profile-render.js` | Canvas 描画のすべて：`sync()` の描画パスと各レイヤー、`scheduleSync`、ハンドル / マスク配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`refreshHandleLabels` |
 | `profile-interaction.js` | 3 つの入力経路（ヘッダーコントロール、キャンバスポインター——ホバー / ドラッグ選択 / ズームとタッチプローブのジェスチャ、セクターハンドル）+ toast + ウェイポイントスナップ。タッチのピンチ/パン/ダブルタップの状態機械はここにはありません（双変数チャートも動かす共有モジュール `js/charts/viewport-gestures.js` です）。描画はしない | `wireControls`、`wirePointer`、`wireHandles`、`refreshControls`、`refreshSnapToggle`、`unpinWaypoint` |
 | `profile-tooltip.js` | ホバー tooltip とタッチプローブ読み取りの DOM と内容 | `showTooltipAt`、`hideTooltip`、`resetProbeReadout` |
@@ -149,8 +149,8 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 
 ## 座標変換
 
-`distToX` / `xToDist`（データ ↔ x ドメイン、軸モード対応）と `clientXtoX`（カーソル px →
-ズームウィンドウ経由の x）は `profile-data.js` にあり、**唯一の情報源**です。すべてのカーソル
+`distToX` / `xToDist`（データ ↔ x ドメイン、軸モード対応）、`clientXtoX`（カーソル px →
+ズームウィンドウ経由の x）とその描画側の逆変換 `xvToPx`（x → キャンバス px）は `profile-data.js` にあり、**唯一の情報源**です。すべてのカーソル
 経路（ホバー、ドラッグ選択、ハンドルドラッグ、タッチプローブのタップとドラッグ、ホイールズーム）と描画される全要素はこれを経由
 しなければなりません。さもないとズーム時にハンドルがカーソルからずれます。新しい変換が必要な
 場合は、明示的パラメータの純粋関数としてここに追加してください。

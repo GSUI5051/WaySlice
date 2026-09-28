@@ -38,7 +38,7 @@ the plot and never shifts the layout when readings come and go (see
 |---|---|---|
 | `index.js` | Orchestrator: DOM assembly, external event surface, track lifecycle, resize handling | `initProfile`, `setProfileTrack` |
 | `profile-state.js` | The one chart instance's shared mutable state (`state`) + `isWideLayout` | `state`, `isWideLayout` |
-| `profile-data.js` | Pure computation: per-point caches, downsampling, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle` |
+| `profile-data.js` | Pure computation: per-point caches, downsampling, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle` |
 | `profile-render.js` | All canvas drawing: the `sync()` pass and every layer in it, `scheduleSync`, handle/mask positioning | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels` |
 | `profile-interaction.js` | The three input pathways (header controls, canvas pointer — hover/select/zoom + the touch probe gestures, sector handles) + toast + waypoint snapping. The touch pinch/pan/double-tap state machine is NOT here: it is the shared `js/charts/viewport-gestures.js` the dual-variable chart runs too. Never draws | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | The hover tooltip and the touch probe's readout DOM + content | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |
@@ -163,8 +163,9 @@ Rules baked into this pass:
 
 ## Coordinate conversions
 
-`distToX` / `xToDist` (data↔x domain, axis-mode aware) and `clientXtoX` (cursor px → x
-through the zoom window) live in `profile-data.js` and are the **single source of truth**.
+`distToX` / `xToDist` (data↔x domain, axis-mode aware), `clientXtoX` (cursor px → x
+through the zoom window) and its draw-side inverse `xvToPx` (x → canvas px) live in
+`profile-data.js` and are the **single source of truth**.
 Every cursor path (hover, rubber-band drag, handle drag, touch-probe tap/drag, wheel zoom)
 and every drawn element
 must go through them, or handles drift off the cursor when zoomed. If you need a new

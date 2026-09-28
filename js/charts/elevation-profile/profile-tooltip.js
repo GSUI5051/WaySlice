@@ -34,7 +34,7 @@ import { t } from '../../language/language.js';
 import { formatDuration, formatDistanceShort, formatElevation } from '../../utils/format.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
 import { state } from './profile-state.js';
-import { OVERLAY_METRICS, SPEED_FAMILY, distToX, formatOverlayValue } from './profile-data.js';
+import { OVERLAY_METRICS, SPEED_FAMILY, distToX, xvToPx, formatOverlayValue } from './profile-data.js';
 
 /** True when the fixed telemetry band is rendered (coarse-pointer media). */
 function probeBandVisible() {
@@ -61,6 +61,30 @@ function probeBandVisible() {
  * base info and always show. The speed slot follows the user's selected
  * family variant.
  */
+/** @private The HR reading's zone label under the drawer's display toggles —
+ *  the one gate/classification shared by the probe band's sub-line and the
+ *  floating tooltip: shows only while show-HR-zones is on (the zone bands'
+ *  gate), and with zone highlight on it wears its zone-band color via
+ *  `hlClass` — the hue the profile deepens under the cursor. Returns null
+ *  when the reading is missing or belongs to no zone (below the Zone 1
+ *  lower bound). */
+function hrZoneLabel(hrVal, hlClass) {
+  if (hrVal == null || !Number.isFinite(hrVal)) return null;
+  const display = getHeartRateDisplay();
+  if (!display.showZones) return null;
+  const bounds = computeZoneBounds(loadHeartRateSettings());
+  if (!bounds) return null;
+  const zone = classifyHr(hrVal, bounds);
+  if (zone <= 0) return null;
+  const zoneText = t('zoneN', { n: zone });
+  return {
+    text: zoneText,
+    html: display.highlight
+      ? `<span class="${hlClass}" style="color: var(--hr-zone-${zone})">${zoneText}</span>`
+      : zoneText,
+  };
+}
+
 function renderProbeBand(pt, xText) {
   const { track, selectedOverlays, speeds, gapSpeeds, dom } = state;
   // Nearest track point to the probe position carries the sensor readings —
@@ -100,29 +124,9 @@ function renderProbeBand(pt, xText) {
     // drawn; without one there is nothing to read at all.
     speedSlot = speeds != null ? unselected : blank;
   }
-  // The HR zone label uses the same classification path as the desktop
-  // tooltip and follows the SAME display toggles: it shows only while the
-  // drawer's show-HR-zones toggle is on (the zone bands' gate), and with
-  // zone highlight on it wears its zone-band color — the hue the profile deepens
-  // under the probe. A reading below the Zone 1 lower bound belongs to no
-  // zone → main value only.
-  const hrVal = valueOf(track.points[idx].hr);
-  let hrSub = null;
-  if (hrVal != null) {
-    const display = getHeartRateDisplay();
-    if (display.showZones) {
-      const bounds = computeZoneBounds(loadHeartRateSettings());
-      if (bounds) {
-        const zone = classifyHr(hrVal, bounds);
-        if (zone > 0) {
-          const zoneText = t('zoneN', { n: zone });
-          hrSub = display.highlight
-            ? `<span class="readout-zone-hl" style="color: var(--hr-zone-${zone})">${zoneText}</span>`
-            : zoneText;
-        }
-      }
-    }
-  }
+  // The HR slot's zone sub-line shares the tooltip's gate/classification
+  // (hrZoneLabel): display-toggle aware, zone-colored under highlight.
+  const hrSub = hrZoneLabel(valueOf(track.points[idx].hr), 'readout-zone-hl')?.html ?? null;
   const eleVal = valueOf(pt.ele);
   dom.readout.classList.remove('is-idle');
   dom.readout.innerHTML = [
@@ -215,25 +219,11 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
     }
     if (v == null || !Number.isFinite(v)) continue;
     let text = formatOverlayValue(def, v);
-    // Heart-rate readings carry their zone label "147 bpm Zone 3" — but only
-    // while the drawer's show-HR-zones toggle is on (the same gate as the
-    // profile's zone bands); with zone highlight on, the label wears its zone-band
-    // color, matching the deepened band under the crosshair. A reading below
-    // the Zone 1 lower bound belongs to no zone — no label then.
+    // Heart-rate readings carry their zone label "147 bpm Zone 3" through
+    // the same shared gate/classification as the probe band (hrZoneLabel).
     if (id === 'hr') {
-      const display = getHeartRateDisplay();
-      if (display.showZones) {
-        const bounds = computeZoneBounds(loadHeartRateSettings());
-        if (bounds) {
-          const zone = classifyHr(v, bounds);
-          if (zone > 0) {
-            const zoneText = t('zoneN', { n: zone });
-            text += display.highlight
-              ? ` <span class="tip-zone-hl" style="color: var(--hr-zone-${zone})">${zoneText}</span>`
-              : ` ${zoneText}`;
-          }
-        }
-      }
+      const zone = hrZoneLabel(v, 'tip-zone-hl');
+      if (zone) text += ` ${zone.html}`;
     }
     push(rowOf(id), `<span class="tip-ov" style="color: var(${def.textToken})">${text}</span>`);
   }
@@ -263,9 +253,7 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
   // the anchor below holds during scrolling without any JS. Horizontal
   // placement is clamped to the chart body in body coordinates.
   const rect = dom.root.getBoundingClientRect();
-  const v0 = view ? view.start : 0;
-  const v1 = view ? view.end : (xs ? xs[xs.length - 1] : 1);
-  const pxRaw = ((xv ?? distToX(dist, track, xMode)) - v0) / Math.max(v1 - v0, 1e-9) * plot.w + plot.x0;
+  const pxRaw = xvToPx(xv ?? distToX(dist, track, xMode), view, xs, plot);
   const half = tooltip.offsetWidth / 2;
   const px = Math.min(Math.max(pxRaw, half + 2), rect.width - half - 2);
   tooltip.style.left = `${px}px`;

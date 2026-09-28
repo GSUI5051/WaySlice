@@ -237,6 +237,24 @@ export function clientXtoX(clientX, rect, plot, view, xs) {
 }
 
 /**
+ * The draw-side inverse of `clientXtoX`: raw x in the CURRENT axis domain →
+ * canvas-space pixel, mapped through the visible zoom window. Single source
+ * of truth for every x→pixel conversion — series drawing, hover crosshair,
+ * sector masks and handles, waypoint lines and the probe's cursor line must
+ * all agree with the rendered positions.
+ * @param {number} xv  raw x value
+ * @param {{start:number, end:number}|null} view  visible window, null = full track
+ * @param {Float64Array|null} xs  per-point x cache (window bound when fitted)
+ * @param {{x0:number, w:number}} plot  plot rect inside the canvas
+ * @returns {number} unclamped pixels
+ */
+export function xvToPx(xv, view, xs, plot) {
+  const v0 = view ? view.start : 0;
+  const v1 = view ? view.end : (xs && xs.length ? xs[xs.length - 1] : 0);
+  return plot.x0 + ((xv - v0) / Math.max(v1 - v0, 1e-9)) * plot.w;
+}
+
+/**
  * Min–max downsampling of the elevation band over [xStart, xEnd]. Points are
  * bucketed by their own x (distance or time), so a mode switch can never
  * shift data between columns. Empty columns fall back to interpolation.

@@ -6,9 +6,9 @@
  * distance along the track and boundary points are linearly interpolated
  * (position, elevation and time) inside the containing segment.
  */
+import { EARTH_RADIUS } from './distance.js';
 
 const RAD = Math.PI / 180;
-const EARTH_RADIUS = 6371008.8;
 
 /**
  * Point exactly at `dist` meters along the track, interpolated inside its segment.

@@ -26,7 +26,7 @@ import { createMultiSelectMenu } from '../../ui/menus.js';
 import { state, isWideLayout } from './profile-state.js';
 import {
   OVERLAY_METRICS, SPEED_FAMILY, overlayAvailability, applyOverlayToggle,
-  buildCaches, distToX, xToDist, clientXtoX,
+  buildCaches, distToX, xToDist, clientXtoX, xvToPx,
 } from './profile-data.js';
 import { scheduleSync } from './profile-render.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
@@ -155,10 +155,7 @@ export function refreshSnapToggle() {
  */
 function snapWaypointAt(xv) {
   if (!waypointSnap || !state.profileWaypoints.length) return null;
-  const v0 = state.view ? state.view.start : 0;
-  const v1 = state.view ? state.view.end : (state.xs ? state.xs[state.xs.length - 1] : 0);
-  const vw = Math.max(v1 - v0, 1e-9);
-  const pxOf = (v) => state.plot.x0 + ((v - v0) / vw) * state.plot.w;
+  const pxOf = (v) => xvToPx(v, state.view, state.xs, state.plot);
   const cursorPx = pxOf(xv);
   let best = null;
   for (const wp of state.profileWaypoints) {
@@ -251,9 +248,7 @@ function handleGrabAt(clientX) {
   const { start, end } = sectorStore.get();
   const closest = (dist) => {
     const xv = distToX(dist, state.track, state.xMode);
-    const px = state.plot.x0 + (xv - (state.view ? state.view.start : 0))
-      / ((state.view ? state.view.end : state.xs[state.xs.length - 1])
-         - (state.view ? state.view.start : 0)) * state.plot.w;
+    const px = xvToPx(xv, state.view, state.xs, state.plot);
     return Math.abs(px + rect.left - clientX);
   };
   const dStart = closest(start);
@@ -274,8 +269,7 @@ function probeClientX() {
   const xv = distToX(state.probe.dist, state.track, state.xMode);
   if (xv < v0 || xv > v1) return null;
   const rect = state.dom.canvas.getBoundingClientRect();
-  const vw = Math.max(v1 - v0, 1e-9);
-  return rect.left + state.plot.x0 + ((xv - v0) / vw) * state.plot.w;
+  return rect.left + xvToPx(xv, state.view, state.xs, state.plot);
 }
 
 /** True when clientX is within PROBE_GRAB_RADIUS of the probe line. */

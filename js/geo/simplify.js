@@ -4,6 +4,7 @@
  * Used exclusively for rendering large tracks on the map and in the profile;
  * never for metrics, which always read the original `track.points`.
  */
+import { EARTH_RADIUS } from './distance.js';
 
 const RAD = Math.PI / 180;
 
@@ -35,8 +36,8 @@ export function simplify(points, toleranceMeters) {
   const n = points.length;
   if (n <= 2) return points.slice();
   const midLat = points.reduce((s, p) => s + p.lat, 0) / n;
-  const scaleLat = 6371008.8 * RAD;
-  const scaleLon = 6371008.8 * RAD * Math.cos(midLat * RAD);
+  const scaleLat = EARTH_RADIUS * RAD;
+  const scaleLon = EARTH_RADIUS * RAD * Math.cos(midLat * RAD);
 
   const keep = new Uint8Array(n);
   keep[0] = keep[n - 1] = 1;

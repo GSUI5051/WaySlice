@@ -37,7 +37,7 @@ import {
 import { state } from './profile-state.js';
 import {
   OVERLAY_METRICS, SPEED_FAMILY, sampleOverlay, sampleElevation, overlayValueAt,
-  seriesExtremes, distToX, xToDist, formatOverlayValue,
+  seriesExtremes, distToX, xToDist, xvToPx, formatOverlayValue,
 } from './profile-data.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
 
@@ -127,8 +127,9 @@ export function sync() {
   // track). Zooming stretches the horizontal axis only.
   const v0 = view ? view.start : 0;
   const v1 = view ? view.end : xEnd;
+  // Tick spacing still reads the window width directly; positions go through xvToPx.
   const vw = Math.max(v1 - v0, 1e-9);
-  const x = (v) => x0 + ((v - v0) / vw) * w;
+  const x = (v) => xvToPx(v, view, xs, plot);
 
   // Elevation y domain: ~8% headroom above and below the data. The three
   // grid rows anchor to the DATA extremes and the midpoint — the top row IS
@@ -562,10 +563,7 @@ function drawBand(sample, d0, x, y, fillColor, fillAlpha, strokeColor, strokeW) 
 function placeMasks() {
   if (!state.track) return;
   const { x0, w } = state.plot;
-  const v0 = state.view ? state.view.start : 0;
-  const v1 = state.view ? state.view.end : (state.xs ? state.xs[state.xs.length - 1] : 0);
-  const vw = Math.max(v1 - v0, 1e-9);
-  const xOf = (v) => x0 + ((v - v0) / vw) * w;
+  const xOf = (v) => xvToPx(v, state.view, state.xs, state.plot);
   const { start, end } = sectorStore.get();
   const sPx = Math.min(Math.max(xOf(distToX(start, state.track, state.xMode)), x0), x0 + w);
   const ePx = Math.min(Math.max(xOf(distToX(end, state.track, state.xMode)), x0), x0 + w);
@@ -589,12 +587,10 @@ function positionHandles() {
   const xEnd = state.xs[state.xs.length - 1];
   const v0 = state.view ? state.view.start : 0;
   const v1 = state.view ? state.view.end : xEnd;
-  const vw = Math.max(v1 - v0, 1e-9);
   const { start, end } = sectorStore.get();
-  const { x0, w } = state.plot;
   const place = (el, dist, key) => {
     const xv = distToX(dist, state.track, state.xMode);
-    const px = x0 + ((xv - v0) / vw) * w;
+    const px = xvToPx(xv, state.view, state.xs, state.plot);
     // A boundary outside the zoom window would sit at a misleading screen
     // spot (its target is not visible); hide until the window includes it.
     el.style.visibility = xv < v0 || xv > v1 ? 'hidden' : 'visible';
@@ -623,18 +619,17 @@ export function refreshHandleLabels() {
 function drawHover(lineColor, dotColor) {
   const { track, plot, view, xs, hoverDist, hoverX, hoverOrigin } = state;
   if (!track) return;
-  const { x0, y0, w, h } = plot;
+  const { y0, h } = plot;
   const xEnd = xs[xs.length - 1] || 1;
   const v0 = view ? view.start : 0;
   const v1 = view ? view.end : xEnd;
-  const vw = Math.max(v1 - v0, 1e-9);
 
   // Pinned waypoint (clicked): its violet line + readout stay on the chart
   // until the next click anywhere — chart hover is inert while pinned.
   if (state.pinnedWaypoint) {
     const xv = distToX(state.pinnedWaypoint.dist, track, state.xMode);
     if (xv >= v0 && xv <= v1) {
-      const px = x0 + ((xv - v0) / vw) * w;
+      const px = xvToPx(xv, view, xs, plot);
       ctx.strokeStyle = cssToken('--map-waypoint');
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -669,7 +664,7 @@ function drawHover(lineColor, dotColor) {
     }
     return;
   }
-  const px = x0 + ((xv - v0) / vw) * w;
+  const px = xvToPx(xv, view, xs, plot);
   const isWaypoint = !probe && hoverOrigin === 'waypoint';
   const hoverLineColor = isWaypoint ? cssToken('--map-waypoint') : lineColor;
   ctx.strokeStyle = hoverLineColor;

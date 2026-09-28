@@ -13,6 +13,88 @@ import { isWideLayout } from '../utils/layout.js';
 
 const isNarrow = () => window.matchMedia('(max-width: 720px)').matches;
 
+/** @private Shared trigger wiring for both menu factories: click toggles,
+ *  ArrowDown / Enter / Space open from the closed state. */
+function wireTrigger(button, isOpen, toggle, openFromClosed) {
+  button.setAttribute('aria-haspopup', 'menu');
+  button.setAttribute('aria-expanded', 'false');
+  button.addEventListener('click', toggle);
+  button.addEventListener('keydown', (e) => {
+    if ((e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') && !isOpen()) {
+      e.preventDefault();
+      openFromClosed();
+    }
+  });
+}
+
+/** @private Shared open/close plumbing: the open flag, the capture-phase
+ *  outside-click and keyboard listeners, the trigger's aria state. */
+function createMenuShell(button, onOutside, onKeydown) {
+  let open = false;
+  return {
+    get isOpen() { return open; },
+    beginOpen() {
+      open = true;
+      button.setAttribute('aria-expanded', 'true');
+      document.addEventListener('pointerdown', onOutside, true);
+      document.addEventListener('keydown', onKeydown, true);
+    },
+    /** Returns false when the menu was already closed. */
+    endClose() {
+      if (!open) return false;
+      open = false;
+      button.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', onOutside, true);
+      document.removeEventListener('keydown', onKeydown, true);
+      return true;
+    },
+  };
+}
+
+/** @private The narrow-screen bottom-sheet backdrop. */
+function showBackdrop(onClick) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'menu-backdrop';
+  backdrop.addEventListener('click', onClick);
+  document.body.appendChild(backdrop);
+  return backdrop;
+}
+
+/** @private Desktop placement: right edge at the trigger, below it — flipped
+ *  above when there is no room below. Measured synchronously (offsetHeight
+ *  forces layout): positioning must not wait on an animation frame, or the
+ *  popover pops in late on busy pages and never lands in occluded/backgrounded
+ *  tabs at all. Narrow screens skip this (CSS turns the panel into a full
+ *  bottom sheet). */
+function placePanel(panel, button) {
+  if (isNarrow()) return;
+  const rect = button.getBoundingClientRect();
+  panel.style.visibility = 'hidden';
+  panel.style.left = '0';
+  panel.style.top = '0';
+  const height = panel.offsetHeight;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  // Clear the measuring position: a leftover inline `left: 0` plus `right`
+  // would over-constrain the fixed panel (with a set width, `right` loses and
+  // the popover jumps to the window's left edge).
+  panel.style.left = '';
+  panel.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+  panel.style.top = '';
+  panel.style.bottom = '';
+  if (height < spaceBelow - 8) panel.style.top = `${rect.bottom + 6}px`;
+  else panel.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+  panel.style.visibility = '';
+}
+
+/** @private Wrapping ArrowUp/ArrowDown focus move across `options`. */
+function focusAdjacent(options, key) {
+  const idx = options.indexOf(document.activeElement);
+  const next = key === 'ArrowDown'
+    ? options[(idx + 1 + options.length) % options.length]
+    : options[(idx - 1 + options.length) % options.length];
+  next?.focus();
+}
+
 /**
  * @param {{
  *   button: HTMLButtonElement,
@@ -30,17 +112,34 @@ const isNarrow = () => window.matchMedia('(max-width: 720px)').matches;
 export function createMenu({ button, buildItems, onPick, panelClass }) {
   let panel = null;
   let backdrop = null;
-  let open = false;
 
-  button.setAttribute('aria-haspopup', 'menu');
-  button.setAttribute('aria-expanded', 'false');
+  function onOutside(e) {
+    if (panel && !panel.contains(e.target) && !button.contains(e.target)) close();
+  }
 
-  button.addEventListener('click', () => (open ? close() : openMenu()));
-  button.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
-      if (!open) { e.preventDefault(); openMenu(); }
+  function onKeydown(e) {
+    if (!shell.isOpen) return;
+    const options = [...panel.querySelectorAll('.menu-item:not(:disabled)')];
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+      button.focus();
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusAdjacent(options, e.key);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      options[0]?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      options[options.length - 1]?.focus();
+    } else if (e.key === 'Tab') {
+      close();
     }
-  });
+  }
+
+  const shell = createMenuShell(button, onOutside, onKeydown);
+  wireTrigger(button, () => shell.isOpen, () => (shell.isOpen ? close() : openMenu()), openMenu);
 
   function openMenu() {
     panel = document.createElement('div');
@@ -94,87 +193,23 @@ export function createMenu({ button, buildItems, onPick, panelClass }) {
       panel.appendChild(btn);
     }
 
-    positionPanel();
+    placePanel(panel, button);
     document.body.appendChild(panel);
 
-    if (isNarrow()) {
-      backdrop = document.createElement('div');
-      backdrop.className = 'menu-backdrop';
-      backdrop.addEventListener('click', close);
-      document.body.appendChild(backdrop);
-    }
+    if (isNarrow()) backdrop = showBackdrop(close);
 
-    button.setAttribute('aria-expanded', 'true');
-    open = true;
-    document.addEventListener('pointerdown', onOutside, true);
-    document.addEventListener('keydown', onKeydown, true);
+    shell.beginOpen();
 
     const focusTarget = selectedOption || firstOption;
     if (focusTarget) focusTarget.focus();
   }
 
-  function positionPanel() {
-    const rect = button.getBoundingClientRect();
-    if (!isNarrow()) {
-      // Measure synchronously (offsetHeight forces layout): positioning must
-      // not wait on an animation frame, or the popover pops in late on busy
-      // pages and never lands in occluded/backgrounded tabs at all.
-      panel.style.visibility = 'hidden';
-      panel.style.left = '0';
-      panel.style.top = '0';
-      const h = panel.offsetHeight;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      panel.style.left = '';
-      panel.style.top = '';
-      panel.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
-      if (h < spaceBelow - 8) {
-        panel.style.top = `${rect.bottom + 6}px`;
-      } else {
-        panel.style.bottom = `${window.innerHeight - rect.top + 6}px`;
-      }
-      panel.style.visibility = '';
-    }
-  }
-
-  function onOutside(e) {
-    if (panel && !panel.contains(e.target) && !button.contains(e.target)) close();
-  }
-
-  function onKeydown(e) {
-    if (!open) return;
-    const options = [...panel.querySelectorAll('.menu-item:not(:disabled)')];
-    const idx = options.indexOf(document.activeElement);
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      close();
-      button.focus();
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const next = e.key === 'ArrowDown'
-        ? options[(idx + 1 + options.length) % options.length]
-        : options[(idx - 1 + options.length) % options.length];
-      next?.focus();
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      options[0]?.focus();
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      options[options.length - 1]?.focus();
-    } else if (e.key === 'Tab') {
-      close();
-    }
-  }
-
   function close() {
-    if (!open) return;
-    open = false;
+    if (!shell.endClose()) return;
     panel?.remove();
     panel = null;
     backdrop?.remove();
     backdrop = null;
-    button.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('pointerdown', onOutside, true);
-    document.removeEventListener('keydown', onKeydown, true);
   }
 
   return { close };
@@ -208,12 +243,8 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
   const PANEL_PAD = 6;
   let panel = null;
   let backdrop = null;
-  let open = false;
   let flyout = null;        // desktop-only submenu panel
   let flyoutAnchor = null;  // parent row the flyout is anchored to
-
-  button.setAttribute('aria-haspopup', 'menu');
-  button.setAttribute('aria-expanded', 'false');
 
   /** One toggle row, used for top-level items and flyout children alike. */
   const buildRow = (item) => {
@@ -327,62 +358,14 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
     document.removeEventListener('pointerdown', onFlyoutOutside, true);
   };
 
-  const openMenu = () => {
-    panel = document.createElement('div');
-    panel.className = 'menu-panel menu-panel-fit';
-    panel.setAttribute('role', 'menu');
-    renderItems();
-    positionPanel();
-    document.body.appendChild(panel);
-
-    if (isNarrow()) {
-      backdrop = document.createElement('div');
-      backdrop.className = 'menu-backdrop';
-      backdrop.addEventListener('click', close);
-      document.body.appendChild(backdrop);
-    }
-
-    button.setAttribute('aria-expanded', 'true');
-    open = true;
-    document.addEventListener('pointerdown', onOutside, true);
-    document.addEventListener('keydown', onKeydown, true);
-    const first = panel.querySelector('.menu-item:not(:disabled)');
-    first?.focus();
-  };
-
-  function positionPanel() {
-    // Caller-owned placement (e.g. the profile's overlays panel dropping from
-    // its trigger row over the chart, height-capped before the x-axis, on
-    // wide screens).
-    if (positionOverride?.(panel)) return;
-    const rect = button.getBoundingClientRect();
-    if (!isNarrow()) {
-      panel.style.visibility = 'hidden';
-      panel.style.left = '0';
-      panel.style.top = '0';
-      const height = panel.offsetHeight;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      // Clear the measuring position: a leftover inline `left: 0` plus
-      // `right` would over-constrain the fixed panel (with a set width,
-      // `right` loses and the popover jumps to the window's left edge).
-      panel.style.left = '';
-      panel.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
-      panel.style.top = '';
-      panel.style.bottom = '';
-      if (height < spaceBelow - 8) panel.style.top = `${rect.bottom + 6}px`;
-      else panel.style.bottom = `${window.innerHeight - rect.top + 6}px`;
-      panel.style.visibility = '';
-    }
-  }
-
-  const onOutside = (e) => {
+  function onOutside(e) {
     // The flyout lives outside `.menu-panel` in the DOM — presses inside it
     // must not count as "outside" for the main panel.
     if (panel && !panel.contains(e.target) && !flyout?.contains(e.target) && !button.contains(e.target)) close();
-  };
+  }
 
-  const onKeydown = (e) => {
-    if (!open) return;
+  function onKeydown(e) {
+    if (!shell.isOpen) return;
     // Flyout first: it is its own focus scope, and Escape / ArrowLeft step
     // back to the parent row before the whole menu goes away.
     if (flyout) {
@@ -396,12 +379,7 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
       if (flyout.contains(document.activeElement)) {
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
-          const items = [...flyout.querySelectorAll('.menu-item:not(:disabled)')];
-          const idx = items.indexOf(document.activeElement);
-          const next = e.key === 'ArrowDown'
-            ? items[(idx + 1 + items.length) % items.length]
-            : items[(idx - 1 + items.length) % items.length];
-          next?.focus();
+          focusAdjacent([...flyout.querySelectorAll('.menu-item:not(:disabled)')], e.key);
         } else if (e.key === 'Tab') {
           close();
         }
@@ -415,41 +393,55 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
       }
     }
     const options = [...panel.querySelectorAll('.menu-item:not(:disabled)')];
-    const idx = options.indexOf(document.activeElement);
     if (e.key === 'Escape') {
       e.preventDefault();
       close();
       button.focus();
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
-      const next = e.key === 'ArrowDown'
-        ? options[(idx + 1 + options.length) % options.length]
-        : options[(idx - 1 + options.length) % options.length];
-      next?.focus();
+      focusAdjacent(options, e.key);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      options[0]?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      options[options.length - 1]?.focus();
     } else if (e.key === 'Tab') {
       close();
     }
-  };
+  }
+
+  const shell = createMenuShell(button, onOutside, onKeydown);
 
   const close = () => {
-    if (!open) return;
-    open = false;
+    if (!shell.endClose()) return;
     closeFlyout();
     panel?.remove();
     panel = null;
     backdrop?.remove();
     backdrop = null;
-    button.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('pointerdown', onOutside, true);
-    document.removeEventListener('keydown', onKeydown, true);
   };
 
-  button.addEventListener('click', () => (open ? close() : openMenu()));
-  button.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
-      if (!open) { e.preventDefault(); openMenu(); }
-    }
-  });
+  function openMenu() {
+    panel = document.createElement('div');
+    panel.className = 'menu-panel menu-panel-fit';
+    panel.setAttribute('role', 'menu');
+    renderItems();
+    // Caller-owned placement (e.g. the profile's overlays panel dropping from
+    // its trigger row over the chart, height-capped before the x-axis, on
+    // wide screens).
+    if (!positionOverride?.(panel)) placePanel(panel, button);
+    document.body.appendChild(panel);
+
+    if (isNarrow()) backdrop = showBackdrop(close);
+
+    shell.beginOpen();
+
+    const first = panel.querySelector('.menu-item:not(:disabled)');
+    first?.focus();
+  }
+
+  wireTrigger(button, () => shell.isOpen, () => (shell.isOpen ? close() : openMenu()), openMenu);
 
   return { close };
 }
