@@ -40,6 +40,7 @@ import {
   seriesExtremes, distToX, xToDist, xvToPx, formatOverlayValue,
 } from './profile-data.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
+import { niceStep } from '../ticks.js';
 
 const MARGIN = { left: 58, right: 14, top: 4, bottom: 22 };
 
@@ -744,11 +745,5 @@ export function resizeCanvas() {
   };
 }
 
-// niceStep stays local: only the x-tick loop consumes it.
-function niceStep(raw) {
-  const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-6))));
-  for (const m of [1, 2, 5, 10]) {
-    if (raw <= m * pow) return m * pow;
-  }
-  return 10 * pow;
-}
+// Tick spacing comes from the shared charts/ticks.js (one 1/2/5×10^k rule
+// for both canvas charts, with a conservative log floor).

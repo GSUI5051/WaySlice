@@ -31,6 +31,7 @@
  */
 import { t } from '../../language/language.js';
 import { relativeDensity } from './densityCalculator.js';
+import { niceStep } from '../ticks.js';
 
 // Margins around the plot (CSS px). The left margin grows to fit the y tick
 // labels (a pace axis reads "12:34"); everything else is fixed.
@@ -458,15 +459,6 @@ function buildTicks(dLo, dHi, targetCount) {
     ticks.push(v);
   }
   return ticks;
-}
-
-/** @private */
-function niceStep(raw) {
-  const pow = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-12))));
-  for (const m of [1, 2, 5, 10]) {
-    if (raw <= m * pow) return m * pow;
-  }
-  return 10 * pow;
 }
 
 /** @private Display tick → label through the shared formatter. */
