@@ -1,12 +1,12 @@
 /** Story, changelog and privacy page tests: the content pack shape and
  *  rendering. */
 import { suite, test, assert } from './runner.js';
-import { renderStory } from '../story/story-lang.js';
-import { STORY_EN } from '../story/story-en.js';
-import { renderChangelog } from '../changelog/changelog-lang.js';
-import { CHANGELOG_EN } from '../changelog/changelog-en.js';
-import { renderPrivacy } from '../privacy/privacy-lang.js';
-import { PRIVACY_EN } from '../privacy/privacy-en.js';
+import { renderStory } from '../about/story/story-lang.js';
+import { STORY_EN } from '../about/story/story-en.js';
+import { renderChangelog } from '../about/changelog/changelog-lang.js';
+import { CHANGELOG_EN } from '../about/changelog/changelog-en.js';
+import { renderPrivacy } from '../about/privacy/privacy-lang.js';
+import { PRIVACY_EN } from '../about/privacy/privacy-en.js';
 
 suite('story / language pack', () => {
   test('the pack carries title, heading, tagline, lede and sections', () => {

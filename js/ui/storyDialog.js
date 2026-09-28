@@ -4,8 +4,9 @@
  * same window as the dual-variable analysis dialog; phones get an 80 vh
  * popup (the geometry lives in css/story.css).
  *
- * The content is the standalone /story/story.html page hosted in an iframe,
- * so the page keeps its own language pack in /story and its own
+ * The content is the standalone /about/story/story.html page hosted in an
+ * iframe, so the page keeps its own language pack in /about/story and its
+ * own
  * theme boot — it follows language and theme changes through localStorage
  * storage events on its own. The src is re-set on every open, so the page
  * re-resolves both preferences at load time even without an open listener.
@@ -13,8 +14,8 @@
  *
  * The same window also hosts the About section's privacy and changelog
  * entries: standalone pages built exactly like the story page (each in its
- * own directory with its own pack + loader), swapped in via the open
- * argument — identical geometry and chrome, other iframe content.
+ * own directory under /about with its own pack + loader), swapped in via
+ * the open argument — identical geometry and chrome, other iframe content.
  */
 import { t } from '../language/language.js';
 import { icon } from './icons.js';
@@ -62,8 +63,8 @@ export function openStoryDialog(page = 'story') {
   opener = document.activeElement;
   // Re-set the src on every open: the page re-resolves language and theme
   // from localStorage at load time.
-  frame.src = changelog ? 'changelog/changelog.html'
-    : privacy ? 'privacy/privacy.html' : 'story/story.html';
+  frame.src = changelog ? 'about/changelog/changelog.html'
+    : privacy ? 'about/privacy/privacy.html' : 'about/story/story.html';
   frame.title = changelog ? 'WaySlice changelog'
     : privacy ? 'WaySlice privacy' : 'WaySlice story';
   // The privacy and changelog pages are English-only (like the story
