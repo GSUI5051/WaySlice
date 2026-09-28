@@ -186,6 +186,8 @@ Dann öffne <http://localhost:8080> und ziehe eine GPX-/FIT-/TCX-/KML-/KMZ-Datei
 - Die einzigen Netzwerkanfragen sind **Kartenkacheln** der Basiskarte deiner Wahl. Deine Trackdaten
   werden nie übertragen, und es gibt keine Nutzungsstatistik.
 - Design, Sprache, Basiskarte und Einheiten werden nur im `localStorage` deines Geräts gespeichert.
+- Diese Erklärung gibt es auch in der App: **Über → Privacy** in der `Einstellungen`-Seitenleiste
+  (Zahnradknopf im Kopfbereich).
 
 ## Einheitensysteme
 

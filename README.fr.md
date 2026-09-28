@@ -187,6 +187,8 @@ Ouvrez ensuite <http://localhost:8080> et déposez un fichier GPX/FIT/TCX/KML/KM
   données de trace ne sont jamais transmises, et il n'y a aucune statistique d'usage.
 - Thème, langue, fond de carte et unités sont stockés dans le `localStorage` de votre appareil
   uniquement.
+- Ce texte est également disponible dans l'app : **À propos → Privacy** dans le tiroir
+  `Paramètres` (roue dentée de l'en-tête).
 
 ## Systèmes d'unités
 

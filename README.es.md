@@ -186,6 +186,8 @@ Después abre <http://localhost:8080> y suelta un archivo GPX/FIT/TCX/KML/KMZ.
   tu traza nunca se transmiten y no hay estadísticas de uso.
 - El tema, el idioma, el mapa base y las unidades se guardan solo en el `localStorage` de tu
   dispositivo.
+- Este texto también está disponible en la app: **Acerca de → Privacy** en `Ajustes`
+  (botón del engranaje de la cabecera).
 
 ## Sistemas de unidades
 

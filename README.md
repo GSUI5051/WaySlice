@@ -172,6 +172,8 @@ Then open <http://localhost:8080> and drop a GPX/FIT/TCX/KML/KMZ file.
 - The only network requests are **map tiles** from the basemap you choose. Your track data is
   never transmitted, and there is no analytics.
 - Theme, language, basemap and unit choices are stored in `localStorage` on your device only.
+- This statement is also available in the app: **About → Privacy** in the `Settings` drawer
+  (gear button in the header).
 
 ## Unit systems
 

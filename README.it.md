@@ -185,6 +185,8 @@ Poi apri <http://localhost:8080> e trascina un file GPX/FIT/TCX/KML/KMZ.
 - Le uniche richieste di rete sono i **tile cartografici** della mappa di base che scegli. I dati della
   tua traccia non vengono mai trasmessi e non ci sono statistiche d'uso.
 - Tema, lingua, mappa di base e unità sono salvati solo nel `localStorage` del tuo dispositivo.
+- Questo testo è disponibile anche nell'app: **Informazioni → Privacy** in `Impostazioni`
+  (bottone a ingranaggio dell'intestazione).
 
 ## Sistemi di unità
 
