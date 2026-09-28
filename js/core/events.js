@@ -42,6 +42,7 @@ export function emit(type, detail) {
 
 /** Subscribes to an app bus event; returns an unsubscribe function. */
 export function on(type, handler) {
-  bus.addEventListener(type, (e) => handler(e.detail));
-  return () => bus.removeEventListener(type, handler);
+  const wrapped = (e) => handler(e.detail);
+  bus.addEventListener(type, wrapped);
+  return () => bus.removeEventListener(type, wrapped);
 }

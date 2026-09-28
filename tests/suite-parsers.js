@@ -57,6 +57,22 @@ suite('parsers / gpx', () => {
     assert.equal(prepareTrack(pts, 'g').hasElevation, false);
   });
 
+  test('empty <ele/> elements read as null, not 0 (was: fabricated 0 m elevation)', () => {
+    // Self-closing, bare and whitespace-only forms all carry no reading;
+    // Number('') is 0, so the unguarded parse fabricated a 0 m elevation.
+    const gpx = GPX_FULL
+      .replace('<ele>900</ele>', '<ele/>')
+      .replace('<ele>910</ele>', '<ele></ele>')
+      .replace('<ele>930</ele>', '<ele> </ele>');
+    const pts = parseGPX(gpx).points;
+    assert.equal(pts[0].ele, null);
+    assert.equal(pts[1].ele, null);
+    assert.equal(pts[2].ele, null);
+    // Every point still carries an (empty) ele element — the every-point rule
+    // must see them as missing, not as a flat 0 m track.
+    assert.equal(prepareTrack(pts, 'g').hasElevation, false);
+  });
+
   test('GPX without timestamps still parses (no fake times)', () => {
     const gpx = GPX_FULL.replace(/<time>[^<]*<\/time>/g, '');
     const pts = parseGPX(gpx).points;

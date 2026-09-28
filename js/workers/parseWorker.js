@@ -12,6 +12,7 @@
  *    ParseError and upload.js's showError path stays byte-identical.
  */
 import { runParseJob } from './parseJob.js';
+import { PARSE_ERROR_KEYS } from '../parsers/parseError.js';
 
 self.addEventListener('message', async (event) => {
 	const { id, buffer, fileName } = event.data;
@@ -22,7 +23,7 @@ self.addEventListener('message', async (event) => {
 		self.postMessage({
 			id,
 			ok: false,
-			key: err?.key ?? 'invalid',
+			key: err?.key ?? PARSE_ERROR_KEYS.invalid,
 			message: String(err?.message ?? err),
 		});
 	}

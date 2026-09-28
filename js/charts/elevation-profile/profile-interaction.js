@@ -251,7 +251,7 @@ function handleGrabAt(clientX) {
   const rect = canvas.getBoundingClientRect();
   const { start, end } = sectorStore.get();
   const closest = (dist) => {
-    const xv = distToX(dist, state.track, state.xs);
+    const xv = distToX(dist, state.track, state.xMode);
     const px = state.plot.x0 + (xv - (state.view ? state.view.start : 0))
       / ((state.view ? state.view.end : state.xs[state.xs.length - 1])
          - (state.view ? state.view.start : 0)) * state.plot.w;

@@ -353,6 +353,17 @@ suite('heart rate / profile display settings', () => {
     resetHeartRateDisplay();
   });
 
+  test('on() unsubscribe removes the listener (no events after off())', () => {
+    resetHeartRateDisplay();
+    const seen = [];
+    const off = on('hrzones:display', (d) => seen.push(d));
+    setHeartRateDisplay({ highlight: false });
+    off();
+    setHeartRateDisplay({ highlight: true });
+    assert.deepEqual(seen, [{ showZones: true, highlight: false }]);
+    resetHeartRateDisplay();
+  });
+
   test('highlight keeps its stored choice while showZones is off', () => {
     resetHeartRateDisplay();
     setHeartRateDisplay({ highlight: false });
