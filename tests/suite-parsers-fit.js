@@ -63,8 +63,6 @@ suite('parsers / tcx', () => {
     assert.closeTo(points[2].lon, 11.32, 1e-9);
     assert.equal(points[0].time, Date.parse('2026-08-15T07:00:00Z'));
     assert.equal(points[0].ele, 900);
-    assert.equal(points[0].distance, 0);
-    assert.equal(points[0].lap, 0);
   });
 
   test('per-point hr, watts and run cadence survive the unified model', async () => {
@@ -107,14 +105,11 @@ suite('parsers / tcx', () => {
     assert.equal(err2.key, PARSE_ERROR_KEYS.noTrack);
   });
 
-  test('committed fixture: 60 points across 3 laps keep position, hr and cadence', async () => {
+  test('committed fixture: 60 points across a 3-lap document keep position, hr and cadence', async () => {
     const buffer = await fetchSample(TCX_FIXTURE_URL);
     if (!buffer) return; // not served over HTTP — skip
     const { points } = await parseTCX(buffer);
     assert.equal(points.length, 60);
-    assert.equal(points[0].lap, 0);
-    assert.equal(points[20].lap, 1);
-    assert.equal(points[40].lap, 2);
     const withHr = points.filter((p) => p.hr != null).length;
     assert.equal(withHr, 60);
     assert.closeTo(points[0].lat, 22.6, 1e-6);
@@ -131,7 +126,7 @@ suite('parsers / fit', () => {
     assert.equal(detectFormat('a.gpx', buffer), 'gpx'); // extension still wins
   });
 
-  test('committed fixture: 3 laps, sensors, laps carried per point', async () => {
+  test('committed fixture: 3-lap document, sensors and session-start drop', async () => {
     const buffer = await fetchSample(FIT_FIXTURE_URL);
     if (!buffer) return;
     const { points, waypoints } = await parseFIT(buffer);
@@ -139,7 +134,6 @@ suite('parsers / fit', () => {
     // Record 0 carries no position and drops out, like real session starts —
     // 60 written records minus that one.
     assert.equal(points.length, 59);
-    assert.equal(new Set(points.map((p) => p.lap)).size, 3);
     const withHr = points.filter((p) => p.hr != null).length;
     const withCad = points.filter((p) => p.cad != null).length;
     assert.equal(withHr, 59);

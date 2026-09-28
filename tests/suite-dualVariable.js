@@ -42,7 +42,6 @@ function makeTrack(segments, {
       power: power ? power(i) : null,
       temp: temp ? temp(i) : null,
       speed: recorded ? recorded[i] : null,
-      distance: null, lap: null,
     });
   }
   return {

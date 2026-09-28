@@ -24,7 +24,7 @@ export function eastTrack({ count, lonStep = 0.001, ele, time, hr, cad, power, t
       cad: cad ? cad(i) : null,
       power: power ? power(i) : null,
       temp: temp ? temp(i) : null,
-      speed: null, distance: null, lap: null,
+      speed: null,
     });
   }
   return points;

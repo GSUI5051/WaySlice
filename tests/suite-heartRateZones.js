@@ -246,7 +246,7 @@ function movingTrack({ before = 20, pauseSteps = 0, after = 20, hr = () => 150, 
   let t = 0;
   let lon = 0;
   const push = (moving) => {
-    pts.push({ lat: 0, lon, ele: null, time: t * 1000, hr: moving ? hr(pts.length) : pauseHr(pts.length), cad: null, power: null, temp: null, speed: null, distance: null, lap: null });
+    pts.push({ lat: 0, lon, ele: null, time: t * 1000, hr: moving ? hr(pts.length) : pauseHr(pts.length), cad: null, power: null, temp: null, speed: null });
     t += 2;
     if (moving) lon += step;
   };

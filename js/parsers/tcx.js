@@ -6,8 +6,7 @@
  * matches any prefix (ns3, TPX, up2, none …).
  *
  * Corpus behaviors mirrored here:
- *  - All activities / laps / tracks concatenate in document order; the lap
- *    index is recorded per point.
+ *  - All activities / laps / tracks concatenate in document order.
  *  - Trackpoints without a Position (session starts, 28 in the largest
  *    sample) are dropped, like malformed GPX points.
  *  - Cadence: the TCX core <Cadence> wins; the running-specific TPX
@@ -45,15 +44,13 @@ export function parseTCX(buffer) {
   }
 
   const points = [];
-  let lapIndex = 0;
   for (const lap of root.getElementsByTagNameNS('*', 'Lap')) {
     for (const track of lap.getElementsByTagNameNS('*', 'Track')) {
       for (const tp of track.getElementsByTagNameNS('*', 'Trackpoint')) {
-        const point = readTrackpoint(tp, lapIndex);
+        const point = readTrackpoint(tp);
         if (point) points.push(point);
       }
     }
-    lapIndex++;
   }
 
   fillElevationGaps(points);
@@ -64,7 +61,7 @@ export function parseTCX(buffer) {
  * @private Maps one Trackpoint to a TrackPoint; entries without a Position
  * are dropped (FIT session starts and the corpus behave the same way).
  */
-function readTrackpoint(tp, lapIndex) {
+function readTrackpoint(tp) {
   const position = first(tp, 'Position');
   const lat = position ? childNumber(position, 'LatitudeDegrees') : NaN;
   const lon = position ? childNumber(position, 'LongitudeDegrees') : NaN;
@@ -75,15 +72,13 @@ function readTrackpoint(tp, lapIndex) {
     lon,
     ele: childNumber(tp, 'AltitudeMeters'),
     time: timeOrNull(first(tp, 'Time')?.textContent ?? null),
-    hr: null, cad: null, power: null, temp: null, speed: null, distance: null,
-    lap: lapIndex,
+    hr: null, cad: null, power: null, temp: null, speed: null,
   };
 
   const heartRate = first(tp, 'HeartRateBpm');
   if (heartRate) point.hr = childNumber(heartRate, 'Value');
   const cadence = childNumber(tp, 'Cadence');
   if (cadence != null) point.cad = cadence;
-  point.distance = childNumber(tp, 'DistanceMeters');
 
   const extensions = first(tp, 'Extensions');
   if (extensions) {

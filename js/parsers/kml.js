@@ -96,7 +96,7 @@ function pushPoint(points, lat, lon, ele, time) {
     ele: Number.isFinite(ele) ? ele : null,
     time,
     hr: null, cad: null, power: null, temp: null,
-    speed: null, distance: null, lap: null,
+    speed: null,
   });
 }
 

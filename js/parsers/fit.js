@@ -5,14 +5,11 @@
  * this module maps its record messages onto the same TrackPoint array the
  * GPX/KML parsers produce.
  *
- * Two shape differences against the raw records are normalized here:
+ * One shape difference against the raw records is normalized here:
  *  - Modern devices write altitude/speed into the enhanced_* fields; the
  *    plain fields are preferred when present, with the enhanced value as
- *    fallback (Suunto/COROS write plain, Garmin writes enhanced).
- *  - fit-parser yields flat records[] and laps[] arrays and records carry no
- *    lap number, so each record is assigned to the lap whose start_time
- *    window contains it: lap i owns [start_i, start_i+1), the last lap runs
- *    to the end of the file.
+ *    fallback (Suunto/COROS write plain, Garmin writes enhanced). The flat
+ *    records[] are consumed in file order; laps[] metadata is not used.
  */
 import FitParser from '../../vendor/fit-parser/fit-parser.js';
 import { ParseError, PARSE_ERROR_KEYS } from './parseError.js';
@@ -48,19 +45,10 @@ export async function parseFIT(buffer) {
   const records = fit?.records ?? [];
   if (!records.length) throw new ParseError(PARSE_ERROR_KEYS.noTrack, 'fit-parser: no record messages');
 
-  const lapStarts = (fit?.laps ?? [])
-    .map((lap) => lap?.start_time?.getTime())
-    .filter((t) => Number.isFinite(t));
-
   const points = [];
-  let lastLap = 0;
   for (const rec of records) {
-    const lap = lapIndexOf(rec.timestamp, lapStarts, lastLap);
-    const p = readRecord(rec, lap);
-    if (p) {
-      points.push(p);
-      lastLap = lap;
-    }
+    const p = readRecord(rec);
+    if (p) points.push(p);
   }
   if (!points.length) {
     throw new ParseError(PARSE_ERROR_KEYS.noTrack, 'fit-parser: no record with a position');
@@ -70,23 +58,11 @@ export async function parseFIT(buffer) {
 }
 
 /**
- * @private Lap window lookup: the last lap whose start_time is not after the
- * record's timestamp. Timestamp-less records inherit the previous lap.
- */
-function lapIndexOf(timestamp, lapStarts, fallback) {
-  const t = timestamp instanceof Date ? timestamp.getTime() : null;
-  if (t == null || !lapStarts.length) return fallback;
-  let index = 0;
-  while (index + 1 < lapStarts.length && t >= lapStarts[index + 1]) index++;
-  return index;
-}
-
-/**
  * @private Maps one fit-parser record to a TrackPoint; records without a
  * usable position (common at FIT session starts) are dropped, like GPX does
  * for malformed points.
  */
-function readRecord(rec, lap) {
+function readRecord(rec) {
   const lat = rec.position_lat;
   const lon = rec.position_long;
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
@@ -101,8 +77,6 @@ function readRecord(rec, lap) {
     power: numberOrNull(rec.power),
     temp: numberOrNull(rec.temperature),
     speed: numberOrNull(rec.speed ?? rec.enhanced_speed),
-    distance: numberOrNull(rec.distance),
-    lap: lap,
   };
 }
 

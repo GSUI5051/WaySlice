@@ -14,8 +14,6 @@
  * @property {number|null} [power]             Power, watts.
  * @property {number|null} [temp]              Temperature, °C.
  * @property {number|null} [speed]             Speed, m/s.
- * @property {number|null} [distance]          Cumulative distance, m.
- * @property {number|null} [lap]               Lap index.
  */
 
 /**

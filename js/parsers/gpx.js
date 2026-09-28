@@ -61,7 +61,6 @@ function readPoint(pt) {
     // GPX 1.1 carries <speed> (m/s) as a CORE trkpt child — gpx.studio and
     // GPSBabel exports rely on it; extensions' ns3:Speed overrides below.
     speed: numberFromText(firstChild(pt, 'speed')),
-    distance: null, lap: null,
   };
 
   const extensions = pt.getElementsByTagName('extensions');
@@ -85,10 +84,6 @@ function readPoint(pt) {
       if (watts.length) point.power = numberFromText(watts[0]);
     }
     if (speed.length) point.speed = numberFromText(speed[0]);
-    // TrackPointExtension v2's cumulative <ns3:distance> (meters) — pairs
-    // with speed the same way the TCX DistanceMeters field does.
-    const distance = extensions[0].getElementsByTagNameNS('*', 'distance');
-    if (distance.length) point.distance = numberFromText(distance[0]);
   }
   return point;
 }

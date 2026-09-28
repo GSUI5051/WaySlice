@@ -47,5 +47,5 @@ decoding) on top of `TextEncoder`/`TextDecoder`. See the file header for upgrade
 - Invalid/sentinel fields are omitted from records (not `null`), timestamps are `Date`.
 - `parse()` reports failures by calling back with an error **string**; `parseAsync()`
   rejects with that string.
-- Default `mode: 'list'` yields flat `records` / `laps` / `sessions` arrays; records
-  carry no lap number, so the adapter assigns laps by timestamp windows.
+- Default `mode: 'list'` yields flat `records` / `laps` / `sessions` arrays; the
+  adapter consumes `records` in file order and leaves `laps` metadata unread.

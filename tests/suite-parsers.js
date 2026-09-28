@@ -222,18 +222,16 @@ suite('parsers / gpx ns3 TrackPointExtension (telemetry.gpx style)', () => {
   </trkseg></trk>
 </gpx>`;
 
-  test('hr / cad / speed / distance / atemp / watts all read from the ns3 series', () => {
+  test('hr / cad / speed / atemp / watts all read from the ns3 series', () => {
     const pts = parseGPX(GPX_NS3_TPE).points;
     assert.equal(pts[0].hr, 93);
     assert.equal(pts[0].cad, 0);
     assert.equal(pts[0].speed, 0);
-    assert.closeTo(pts[0].distance, 0.2, 1e-9);
     assert.closeTo(pts[0].temp, 18.5, 1e-9);
     assert.equal(pts[0].power, 180);
     assert.equal(pts[1].hr, 96);
     assert.equal(pts[1].cad, 78);
     assert.closeTo(pts[1].speed, 2.7, 1e-9);
-    assert.closeTo(pts[1].distance, 3.4, 1e-9);
     assert.closeTo(pts[1].temp, 19, 1e-9);
     assert.equal(pts[1].power, 240);
   });
@@ -292,8 +290,6 @@ suite('parsers / tcx (dom parser)', () => {
     assert.equal(waypoints.length, 0);
     assert.closeTo(points[0].lat, 47.2, 1e-9);
     assert.closeTo(points[2].lat, 47.202, 1e-9);
-    assert.equal(points[0].lap, 0);
-    assert.equal(points[2].lap, 1);
     assert.equal(points[0].time, Date.parse('2026-08-15T07:00:00Z'));
   });
 
