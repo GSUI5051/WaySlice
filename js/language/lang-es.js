@@ -67,6 +67,8 @@ const lang_es = {
   close: 'Cerrar',
   aboutSection: 'Acerca de',
   storyQuotes: 'Historia',
+  changelog: 'Registro de cambios',
+  privacy: 'Privacidad',
   zoomToFit: 'Mostrar toda la traza',
   zoomToSector: 'Enfocar el tramo',
   waypointsShow: 'Mostrar waypoints',

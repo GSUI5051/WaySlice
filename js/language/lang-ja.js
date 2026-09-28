@@ -60,6 +60,8 @@ const lang_ja = {
   close: '閉じる',
   aboutSection: 'アプリについて',
   storyQuotes: '作者の言葉',
+  changelog: '更新履歴',
+  privacy: 'プライバシー',
   zoomToFit: 'トラック全体を表示',
   zoomToSector: 'セクターに合わせる',
   waypointsShow: 'ウェイポイントを表示',

@@ -221,8 +221,8 @@ function aboutSection() {
   row.addEventListener('click', openStoryDialog);
   wrap.appendChild(row);
 
-  // The changelog entry shares the story dialog's window; its label and
-  // content are English-only literals, like the story content itself.
+  // The changelog entry shares the story dialog's window; its page content
+  // stays English-only, like the story content itself.
   const changelog = document.createElement('button');
   changelog.type = 'button';
   changelog.className = 'menu-item';
@@ -235,13 +235,13 @@ function aboutSection() {
   changelog.appendChild(cic);
   const clabel = document.createElement('span');
   clabel.className = 'menu-item-label';
-  clabel.textContent = 'Changelog';
+  clabel.textContent = t('changelog');
   changelog.appendChild(clabel);
   changelog.addEventListener('click', () => openStoryDialog('changelog'));
   wrap.appendChild(changelog);
 
-  // The privacy entry shares the story dialog's window; its label and
-  // content are English-only literals, like the story content itself.
+  // The privacy entry shares the story dialog's window; its page content
+  // stays English-only, like the story content itself.
   const privacy = document.createElement('button');
   privacy.type = 'button';
   privacy.className = 'menu-item';
@@ -254,7 +254,7 @@ function aboutSection() {
   privacy.appendChild(pic);
   const plabel = document.createElement('span');
   plabel.className = 'menu-item-label';
-  plabel.textContent = 'Privacy';
+  plabel.textContent = t('privacy');
   privacy.appendChild(plabel);
   privacy.addEventListener('click', () => openStoryDialog('privacy'));
   wrap.appendChild(privacy);

@@ -64,6 +64,8 @@ const lang_de = {
   close: 'Schließen',
   aboutSection: 'Über',
   storyQuotes: 'Story',
+  changelog: 'Änderungsprotokoll',
+  privacy: 'Datenschutz',
   zoomToFit: 'Gesamten Track anzeigen',
   zoomToSector: 'Auf den Abschnitt fokussieren',
   waypointsShow: 'Wegpunkte anzeigen',

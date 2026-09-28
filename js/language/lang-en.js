@@ -63,6 +63,8 @@ const lang_en = {
   close: 'Close',
   aboutSection: 'About',
   storyQuotes: 'Story',
+  changelog: 'Changelog',
+  privacy: 'Privacy',
   zoomToFit: 'Show entire track',
   zoomToSector: 'Focus on sector',
   waypointsShow: 'Show waypoints',

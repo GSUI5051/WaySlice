@@ -65,6 +65,8 @@ const lang_it = {
   close: 'Chiudi',
   aboutSection: 'Informazioni',
   storyQuotes: 'Storia',
+  changelog: 'Registro delle modifiche',
+  privacy: 'Privacy',
   zoomToFit: 'Mostra tutta la traccia',
   zoomToSector: 'Focalizza il tratto',
   waypointsShow: 'Mostra waypoint',

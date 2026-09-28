@@ -60,6 +60,8 @@ const lang_ko = {
   close: '닫기',
   aboutSection: '정보',
   storyQuotes: '제작자의 말',
+  changelog: '업데이트 기록',
+  privacy: '개인정보 처리방침',
   zoomToFit: '전체 트랙 표시',
   zoomToSector: '구간에 맞추기',
   waypointsShow: '웨이포인트 표시',
