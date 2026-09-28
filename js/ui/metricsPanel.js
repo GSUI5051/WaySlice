@@ -14,6 +14,7 @@ import { zoneDisplayRange } from '../metrics/heartRateZones.js';
 import { t } from '../language/language.js';
 import { on, emit } from '../core/events.js';
 import { icon } from './icons.js';
+import { createHintPopover } from './hint-popover.js';
 import {
   formatDistance, formatSignedElevation, formatElevation, formatGrade,
   formatPace, formatSpeed, formatDuration, formatDateTime,
@@ -356,10 +357,9 @@ export function nearestHitTarget(selectors, x, y, { radiusOf, visible = () => tr
   return best;
 }
 
-/** The one open popover element, null when closed. @private */
-let hintPopover = null;
-/** The button it is anchored to, null when closed. @private */
-let openHintBtn = null;
+/** The rows' popover — shared singleton lifecycle (js/ui/hint-popover.js). */
+const hintPop = createHintPopover({ align: 'right' });
+
 /** Guards the once-only global wiring. @private */
 let hintWired = false;
 
@@ -379,7 +379,7 @@ function wireHintPopovers() {
   document.addEventListener('click', (event) => {
     const btn = event.target.closest('.metric-hint-btn');
     if (btn) {
-      if (btn === openHintBtn) closeHintPopover();
+      if (btn === hintPop.anchor) closeHintPopover();
       else openHintPopover(btn);
       return;
     }
@@ -389,7 +389,7 @@ function wireHintPopovers() {
     }
     const hit = hintBtnNear(event.clientX, event.clientY, event.target);
     if (hit) {
-      if (hit === openHintBtn) closeHintPopover();
+      if (hit === hintPop.anchor) closeHintPopover();
       else openHintPopover(hit);
       return;
     }
@@ -438,38 +438,12 @@ function hintBtnNear(x, y, clickTarget) {
 function openHintPopover(btn) {
   const text = btn.getAttribute('data-hint');
   if (!text) return;
-  closeHintPopover();
-  hintPopover = document.createElement('div');
-  hintPopover.className = 'hint-popover';
-  hintPopover.setAttribute('role', 'tooltip');
-  hintPopover.textContent = text;
-  // Inside a modal <dialog> the top layer sits above any body-level fixed
-  // element, so the popover must live where its anchor lives.
-  (btn.closest('dialog') || document.body).appendChild(hintPopover);
-  openHintBtn = btn;
-  btn.setAttribute('aria-expanded', 'true');
-  positionHintPopover();
-}
-
-/** @private Anchors the open popover below its icon, right-aligned, clamped
- *  to the viewport; flips above when there is no room below. */
-function positionHintPopover() {
-  if (!hintPopover || !openHintBtn) return;
-  const anchor = openHintBtn.getBoundingClientRect();
-  const pop = hintPopover.getBoundingClientRect();
-  const margin = 8;
-  let left = anchor.right - pop.width;
-  left = Math.min(Math.max(left, margin), window.innerWidth - margin - pop.width);
-  let top = anchor.bottom + 6;
-  if (top + pop.height > window.innerHeight - margin) top = anchor.top - 6 - pop.height;
-  hintPopover.style.left = `${Math.round(Math.max(margin, left))}px`;
-  hintPopover.style.top = `${Math.round(top)}px`;
+  hintPop.open(btn, (pop) => {
+    pop.textContent = text;
+  });
 }
 
 /** @private Closes the open popover, if any. Safe to call when closed. */
 function closeHintPopover() {
-  if (openHintBtn) openHintBtn.setAttribute('aria-expanded', 'false');
-  if (hintPopover) hintPopover.remove();
-  hintPopover = null;
-  openHintBtn = null;
+  hintPop.close();
 }

@@ -18,6 +18,7 @@
  * on header geometry changes (ResizeObserver on the header — viewport
  * resizes, the phone media flip, buttons gaining/losing labels).
  */
+import { createHintPopover } from './hint-popover.js';
 
 /** Sub-pixel rounding slack for the fits/doesn't-fit read, px. @private */
 const MEASURE_SLACK_PX = 1;
@@ -30,8 +31,9 @@ let metaEl = null;
 let infoBtn = null;
 /** Popover facts, set with every content update: [name, distance, points]. @private */
 let popoverLines = [];
-/** The one open popover element, null when closed. @private */
-let popover = null;
+/** The chip's popover — shared singleton lifecycle (js/ui/hint-popover.js),
+ *  left-aligned under the chip. @private */
+const chipPop = createHintPopover({ variantClass: 'file-chip-popover', align: 'left' });
 
 /**
  * Binds the chip's DOM and the global close/remeasure wiring. Call once
@@ -45,14 +47,14 @@ export function initFileChip(headerEl) {
   infoBtn = document.getElementById('file-chip-info');
 
   infoBtn.addEventListener('click', () => {
-    if (popover) closeFileChipPopover();
+    if (chipPop.isOpen) closeFileChipPopover();
     else openFileChipPopover();
   });
   // Same close contract as the metrics hint popover: any click outside the
   // chip, any scroll, Escape. A click elsewhere in the header (buttons,
   // menus) closes it like any outside click.
   document.addEventListener('click', (event) => {
-    if (popover && !chip.contains(event.target)) closeFileChipPopover();
+    if (chipPop.isOpen && !chip.contains(event.target)) closeFileChipPopover();
   });
   document.addEventListener('scroll', closeFileChipPopover, true);
   document.addEventListener('keydown', (event) => {
@@ -97,46 +99,23 @@ function refreshFileChipMode() {
 }
 
 /**
- * Opens the compact popover: the three facts on their own lines. A
- * singleton like the metrics hint popover, appended to <body> (the header
- * sits outside every dialog), left-aligned under the chip, clamped to the
- * viewport and flipped above when there is no room below.
+ * Opens the compact popover: the three facts on their own lines —
+ * left-aligned under the chip, per the shared factory's positioning.
  * @private
  */
 function openFileChipPopover() {
-  closeFileChipPopover();
-  popover = document.createElement('div');
-  popover.className = 'hint-popover file-chip-popover';
-  popover.setAttribute('role', 'tooltip');
-  const [name, ...rest] = popoverLines;
-  for (const [text, extra] of [[name, ' is-name'], ...rest.map((v) => [v, ''])]) {
-    const row = document.createElement('div');
-    row.className = `file-chip-pop-row${extra}`;
-    row.textContent = text;
-    popover.appendChild(row);
-  }
-  document.body.appendChild(popover);
-  infoBtn.setAttribute('aria-expanded', 'true');
-  positionFileChipPopover();
-}
-
-/** @private Anchors the open popover under the chip, clamped to the viewport. */
-function positionFileChipPopover() {
-  if (!popover || !chip) return;
-  const anchor = chip.getBoundingClientRect();
-  const pop = popover.getBoundingClientRect();
-  const margin = 8;
-  const left = Math.min(Math.max(anchor.left, margin), window.innerWidth - margin - pop.width);
-  let top = anchor.bottom + 6;
-  if (top + pop.height > window.innerHeight - margin) top = anchor.top - 6 - pop.height;
-  popover.style.left = `${Math.round(left)}px`;
-  popover.style.top = `${Math.round(top)}px`;
+  chipPop.open(infoBtn, (pop) => {
+    const [name, ...rest] = popoverLines;
+    for (const [text, extra] of [[name, ' is-name'], ...rest.map((v) => [v, ''])]) {
+      const row = document.createElement('div');
+      row.className = `file-chip-pop-row${extra}`;
+      row.textContent = text;
+      pop.appendChild(row);
+    }
+  });
 }
 
 /** @private Closes the open popover, if any. Safe to call when closed. */
 function closeFileChipPopover() {
-  if (!popover) return;
-  infoBtn.setAttribute('aria-expanded', 'false');
-  popover.remove();
-  popover = null;
+  chipPop.close();
 }
