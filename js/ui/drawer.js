@@ -7,11 +7,12 @@
  *
  * Built on <dialog>: showModal() provides the top layer, Escape handling and
  * focus containment for free; a click on the ::backdrop (which the browser
- * targets at the dialog element itself) closes it. All groups render
- * expanded, picks apply immediately and the drawer stays open. Sections
- * re-render after every pick — and on language change while open — so
- * checkmarks and labels never go stale; keyboard focus follows the
- * re-rendered row via its data-value.
+ * targets at the dialog element itself) closes it. Sections are accordion
+ * groups: every group toggles independently (several can be open at once)
+ * and all start collapsed on each open; picks apply immediately and the
+ * drawer stays open. Sections re-render after every pick — and on language
+ * change while open — so checkmarks and labels never go stale; keyboard
+ * focus follows the re-rendered row via its data-value.
  */
 import { t } from '../language/language.js';
 import { icon } from './icons.js';
@@ -35,6 +36,10 @@ let dialog = null;
 let bodyEl = null;
 let closeBtn = null;
 let trigger = null;
+/** Accordion state — the section keys whose group is expanded. Lives across
+ *  re-renders (picks and language switches rebuild every section) and resets
+ *  on each open, so the drawer always starts fully collapsed. */
+const openSections = new Set();
 
 /** Wires the settings drawer dialog and its header trigger. */
 export function initDrawer(drawerDialog, triggerButton) {
@@ -69,12 +74,13 @@ export function initDrawer(drawerDialog, triggerButton) {
 
 /** @private */
 function openDrawer() {
+  openSections.clear();
   renderSections();
   trigger.setAttribute('aria-expanded', 'true');
   dialog.showModal();
-  // showModal() parks focus on the dialog itself; the first option is where
-  // keyboard users want to land in a panel that is all options.
-  dialog.querySelector('.menu-item')?.focus();
+  // showModal() parks focus on the dialog itself; with every group collapsed
+  // the first accordion trigger is where keyboard users want to land.
+  dialog.querySelector('.drawer-acc-trigger')?.focus();
 }
 
 /**
@@ -85,11 +91,14 @@ function openDrawer() {
 function renderSections() {
   const refocusValue = document.activeElement?.dataset?.value;
   bodyEl.replaceChildren(
-    heartRateZonesSection(),
-    section('appearance', buildThemeItems, pickTheme),
-    section('language', buildLanguageItems, pickLanguage),
-    section('units', buildUnitItems, pickUnit),
-    aboutSection(),
+    accordionSection('heart-rate', 'hrZones', heartRateContent),
+    accordionSection('appearance', 'appearance', () =>
+      renderOptionList(buildThemeItems(), (value) => { pickTheme(value); renderSections(); })),
+    accordionSection('language', 'language', () =>
+      renderOptionList(buildLanguageItems(), (value) => { pickLanguage(value); renderSections(); })),
+    accordionSection('units', 'units', () =>
+      renderOptionList(buildUnitItems(), (value) => { pickUnit(value); renderSections(); })),
+    accordionSection('about', 'aboutSection', aboutContent),
   );
   if (refocusValue) {
     bodyEl.querySelector(`[data-value="${CSS.escape(refocusValue)}"]`)?.focus();
@@ -97,20 +106,77 @@ function renderSections() {
 }
 
 /**
- * @private The heart-rate zones section — the zone editor entry (an action
+ * @private One accordion group: a full-width trigger row (the section title
+ * plus a chevron that flips between Lucide's chevron-down when collapsed and
+ * chevron-up when expanded) above its content. Clicking toggles just this
+ * group in place — no re-render, so the height animation runs — while picks
+ * inside still rebuild everything with the group's stored state.
+ *
+ * Anatomy follows the ARIA accordion pattern: the trigger is an
+ * aria-expanded button inside the heading, the collapsible body is a
+ * labelled region. The body stays in the DOM when collapsed (the height
+ * collapse is CSS); `visibility: hidden` there keeps its rows out of the
+ * Tab order while closed.
+ */
+function accordionSection(key, titleKey, buildContent) {
+  const open = openSections.has(key);
+  const wrap = document.createElement('div');
+  wrap.className = 'drawer-section drawer-acc';
+  if (open) wrap.setAttribute('data-open', '');
+
+  const heading = document.createElement('h3');
+  const triggerBtn = document.createElement('button');
+  triggerBtn.type = 'button';
+  triggerBtn.className = 'drawer-acc-trigger';
+  triggerBtn.id = `drawer-trigger-${key}`;
+  triggerBtn.dataset.value = `sec-${key}`;
+  triggerBtn.setAttribute('aria-expanded', String(open));
+  triggerBtn.setAttribute('aria-controls', `drawer-panel-${key}`);
+  const label = document.createElement('span');
+  label.className = 'drawer-section-title';
+  label.textContent = t(titleKey);
+  triggerBtn.appendChild(label);
+  // Both chevron states render up front; drawer.css picks the visible one
+  // from [data-open], so toggling never touches the markup.
+  const chev = document.createElement('span');
+  chev.className = 'drawer-acc-chev';
+  chev.innerHTML =
+    `<span class="drawer-acc-chev-down">${icon('chevron-down')}</span>` +
+    `<span class="drawer-acc-chev-up">${icon('chevron-up')}</span>`;
+  triggerBtn.appendChild(chev);
+  triggerBtn.addEventListener('click', () => {
+    const nowOpen = !openSections.has(key);
+    if (nowOpen) openSections.add(key);
+    else openSections.delete(key);
+    wrap.toggleAttribute('data-open', nowOpen);
+    triggerBtn.setAttribute('aria-expanded', String(nowOpen));
+  });
+  heading.appendChild(triggerBtn);
+  wrap.appendChild(heading);
+
+  const body = document.createElement('div');
+  body.className = 'drawer-acc-body';
+  body.id = `drawer-panel-${key}`;
+  body.setAttribute('role', 'region');
+  body.setAttribute('aria-labelledby', triggerBtn.id);
+  const inner = document.createElement('div');
+  inner.className = 'drawer-acc-inner';
+  inner.appendChild(buildContent());
+  body.appendChild(inner);
+  wrap.appendChild(body);
+  return wrap;
+}
+
+/**
+ * @private The heart-rate group's content — the zone editor entry (an action
  * row, not a radio pick: it opens the zone editor dialog on top of the
  * drawer, which stays open so the user returns straight into their other
  * settings; its hint shows the active zone mode) plus the two profile
  * display toggles from heartRateDisplay.js. Toggling re-renders the whole
  * drawer so the highlight row's disabled state always follows showZones.
  */
-function heartRateZonesSection() {
-  const wrap = document.createElement('div');
-  wrap.className = 'drawer-section';
-  const heading = document.createElement('h3');
-  heading.className = 'drawer-section-title';
-  heading.textContent = t('hrZones');
-  wrap.appendChild(heading);
+function heartRateContent() {
+  const frag = document.createDocumentFragment();
 
   const row = document.createElement('button');
   row.type = 'button';
@@ -130,21 +196,21 @@ function heartRateZonesSection() {
   hint.textContent = t(`hrMode${{ max: 'Max', hrr: 'Hrr', lthr: 'Lthr' }[loadHeartRateSettings().mode]}`);
   row.appendChild(hint);
   row.addEventListener('click', openHeartZonesDialog);
-  wrap.appendChild(row);
+  frag.appendChild(row);
 
   const display = getHeartRateDisplay();
-  wrap.appendChild(toggleRow('showHrZones', 'hr-zones-show', display.showZones, false, () => {
+  frag.appendChild(toggleRow('showHrZones', 'hr-zones-show', display.showZones, false, () => {
     setHeartRateDisplay({ showZones: !getHeartRateDisplay().showZones });
     renderSections();
   }));
   // The highlight only does anything while the bands are drawn, so its row
   // is unclickable whenever showZones is off; the stored highlight choice
   // is kept and comes back with the bands.
-  wrap.appendChild(toggleRow('hrZoneHighlight', 'hr-zones-highlight', display.highlight, !display.showZones, () => {
+  frag.appendChild(toggleRow('hrZoneHighlight', 'hr-zones-highlight', display.highlight, !display.showZones, () => {
     setHeartRateDisplay({ highlight: !getHeartRateDisplay().highlight });
     renderSections();
   }));
-  return wrap;
+  return frag;
 }
 
 /**
@@ -175,34 +241,15 @@ function toggleRow(labelKey, value, checked, disabled, onToggle) {
   return row;
 }
 
-/** @private One titled option group; picking applies at once and re-renders. */
-function section(titleKey, buildItems, onPick) {
-  const wrap = document.createElement('div');
-  wrap.className = 'drawer-section';
-  const heading = document.createElement('h3');
-  heading.className = 'drawer-section-title';
-  heading.textContent = t(titleKey);
-  wrap.appendChild(heading);
-  wrap.appendChild(renderOptionList(buildItems(), (value) => {
-    onPick(value);
-    renderSections();
-  }));
-  return wrap;
-}
-
 /**
- * @private The About section — the author's story, changelog and privacy
- * entries. Action rows like the zone editor's: each opens the story dialog
- * (the changelog and privacy entries pass their page) on top of the drawer,
- * which stays open so the user returns straight into their other settings.
+ * @private The About group's content — the author's story, changelog and
+ * privacy entries. Action rows like the zone editor's: each opens the story
+ * dialog (the changelog and privacy entries pass their page) on top of the
+ * drawer, which stays open so the user returns straight into their other
+ * settings.
  */
-function aboutSection() {
-  const wrap = document.createElement('div');
-  wrap.className = 'drawer-section';
-  const heading = document.createElement('h3');
-  heading.className = 'drawer-section-title';
-  heading.textContent = t('aboutSection');
-  wrap.appendChild(heading);
+function aboutContent() {
+  const frag = document.createDocumentFragment();
 
   const row = document.createElement('button');
   row.type = 'button';
@@ -219,7 +266,7 @@ function aboutSection() {
   label.textContent = t('storyQuotes');
   row.appendChild(label);
   row.addEventListener('click', openStoryDialog);
-  wrap.appendChild(row);
+  frag.appendChild(row);
 
   // The changelog entry shares the story dialog's window; its page content
   // stays English-only, like the story content itself.
@@ -238,7 +285,7 @@ function aboutSection() {
   clabel.textContent = t('changelog');
   changelog.appendChild(clabel);
   changelog.addEventListener('click', () => openStoryDialog('changelog'));
-  wrap.appendChild(changelog);
+  frag.appendChild(changelog);
 
   // The privacy entry shares the story dialog's window; its page content
   // stays English-only, like the story content itself.
@@ -257,6 +304,6 @@ function aboutSection() {
   plabel.textContent = t('privacy');
   privacy.appendChild(plabel);
   privacy.addEventListener('click', () => openStoryDialog('privacy'));
-  wrap.appendChild(privacy);
-  return wrap;
+  frag.appendChild(privacy);
+  return frag;
 }

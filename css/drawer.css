@@ -65,10 +65,72 @@
 .drawer-section:first-child { margin-block-start: 6px; }
 
 .drawer-section-title {
-  font-size: 11px;
+  font-size: 13.5px;
   font-weight: 650;
-  text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--foreground-faint);
+  color: var(--foreground);
   margin-block-end: 2px;
 }
+
+/* Accordion groups — each section title sits on a full-width trigger row
+   (same geometry as the .menu-item rows below it: 36px min-height, radius,
+   shared hover/focus background) with a chevron pinned to the row's end.
+   The chevron is Lucide's chevron-down while collapsed and chevron-up while
+   expanded; both render up front and [data-open] picks the visible one. */
+.drawer-acc-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: var(--radius-s);
+  text-align: start;
+}
+
+.drawer-acc-trigger:hover,
+.drawer-acc-trigger:focus-visible { background: var(--surface-hover); }
+
+/* The title keeps its standalone-title spacing only outside the trigger;
+   inside the flex row the row's own padding sets the rhythm. It may also
+   shrink and wrap: the longest pack translations (29-char Spanish) must
+   never push the chevron out of the row. */
+.drawer-acc-trigger .drawer-section-title {
+  margin-block-end: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.drawer-acc-chev {
+  margin-inline-start: auto;
+  display: inline-flex;
+  color: var(--foreground-faint);
+}
+
+.drawer-acc-chev .icon { width: 15px; height: 15px; }
+.drawer-acc-chev-up { display: none; }
+.drawer-acc[data-open] .drawer-acc-chev-down { display: none; }
+.drawer-acc[data-open] .drawer-acc-chev-up { display: inline-flex; }
+
+/* The collapsible body: grid-template-rows 0fr → 1fr animates to the
+   content's real height without measuring it, so re-rendered sections and
+   language switches need no JS sizing. `visibility` transitions discretely
+   — it flips to hidden only after the collapse finishes (keeping rows out
+   of the Tab order while closed) and back immediately on expand. The base
+   reduced-motion rule in base.css collapses both durations. */
+.drawer-acc-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-normal) var(--ease-out);
+}
+
+.drawer-acc[data-open] > .drawer-acc-body { grid-template-rows: 1fr; }
+
+.drawer-acc-inner {
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility var(--dur-normal);
+}
+
+.drawer-acc[data-open] > .drawer-acc-body > .drawer-acc-inner { visibility: visible; }

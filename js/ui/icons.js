@@ -11,6 +11,7 @@ const ICONS = {
   "check": "<path d=\"M20 6 9 17l-5-5\" />",
   "chevron-down": "<path d=\"m6 9 6 6 6-6\" />",
   "chevron-left": "<path d=\"m15 18-6-6 6-6\" />",
+  "chevron-up": "<path d=\"m18 15-6-6-6 6\" />",
   "circle-question-mark": "<circle cx=\"12\" cy=\"12\" r=\"10\" />\n  <path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\" />\n  <path d=\"M12 17h.01\" />",
   "file-clock": "<path d=\"M16 22h2a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v2.85\" />\n  <path d=\"M14 2v5a1 1 0 0 0 1 1h5\" />\n  <path d=\"M8 14v2.2l1.6 1\" />\n  <circle cx=\"8\" cy=\"16\" r=\"6\" />",
   "file-down": "<path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z\" />\n  <path d=\"M14 2v4a2 2 0 0 0 2 2h4\" />\n  <path d=\"M12 18v-6\" />\n  <path d=\"m9 15 3 3 3-3\" />",
