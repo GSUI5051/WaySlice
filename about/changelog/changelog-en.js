@@ -16,6 +16,13 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-09-30',
+      ps: [
+        'The settings drawer was rebuilt as an accordion: its five groups (heart-rate zones, theme, language, units, about) toggle independently and start collapsed on every open.',
+        'The group titles now match the selected list rows in size and color.',
+      ],
+    },
+    {
       h: '2026-09-28',
       ps: [
         'The entire codebase was simplified.',
