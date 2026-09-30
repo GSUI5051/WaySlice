@@ -91,13 +91,13 @@ function openDrawer() {
 function renderSections() {
   const refocusValue = document.activeElement?.dataset?.value;
   bodyEl.replaceChildren(
-    accordionSection('heart-rate', 'hrZones', heartRateContent),
     accordionSection('appearance', 'appearance', () =>
       renderOptionList(buildThemeItems(), (value) => { pickTheme(value); renderSections(); })),
     accordionSection('language', 'language', () =>
       renderOptionList(buildLanguageItems(), (value) => { pickLanguage(value); renderSections(); })),
     accordionSection('units', 'units', () =>
       renderOptionList(buildUnitItems(), (value) => { pickUnit(value); renderSections(); })),
+    accordionSection('heart-rate', 'hrZones', heartRateContent),
     accordionSection('about', 'aboutSection', aboutContent),
   );
   if (refocusValue) {
