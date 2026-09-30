@@ -108,6 +108,14 @@
 }
 
 .drawer-acc-chev .icon { width: 15px; height: 15px; }
+/* Both wrapper spans need display:inline-flex. Without it the visible span
+   is a plain inline block: its 15px svg sits on the text baseline and the
+   line box grows by the strut's descender (the button inherits h3's UA
+   1.17em → 16.38px font), making the chevron item 23.75px — past the row's
+   22px content box, so collapsed rows render 37.75px instead of 36px and
+   sit the title 0.875px lower than expanded rows, whose chevron-up wrapper
+   already gets inline-flex below. [data-open] still hides either one. */
+.drawer-acc-chev-down { display: inline-flex; }
 .drawer-acc-chev-up { display: none; }
 .drawer-acc[data-open] .drawer-acc-chev-down { display: none; }
 .drawer-acc[data-open] .drawer-acc-chev-up { display: inline-flex; }
