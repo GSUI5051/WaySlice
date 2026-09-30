@@ -18,7 +18,7 @@ export const CHANGELOG_EN = {
     {
       h: '2026-09-30',
       ps: [
-        'The settings drawer was rebuilt as an accordion: its five groups (heart-rate zones, theme, language, units, about) toggle independently and start collapsed on every open.',
+        'The settings drawer was rebuilt as an accordion: its five groups (theme, language, units, heart-rate zones, about) toggle independently and start collapsed on every open.',
         'The group titles now match the selected list rows in size and color.',
       ],
     },
