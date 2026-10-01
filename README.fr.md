@@ -93,6 +93,10 @@ majuscule, il faut le prendre exactement au sens suivant :
   et faites défiler pour zoomer son axe distance/temps autour du curseur ; Maj + glisser pour
   déplacer ; sur tactile, un doigt déplace et un pincement à deux doigts fait de même. Double-cliquer n'importe où sur
   le profil — ou double-taper au doigt — restaure la trace entière.
+- **Ajuster au tronçon.** Le bouton focus à l'extrémité droite de l'en-tête du profil zoome l'axe x sur
+  le secteur sélectionné : le secteur occupe environ 82 % du graphique avec ≈ 9 % de contexte au-delà
+  de chaque poignée, centré et borné aux données. Un secteur proche de la trace entière restaure la vue
+  complète et un minuscule atterrit sur la fenêtre de zoom max — la sélection ne bouge jamais.
 - **Découpage auto.** Le bouton ciseaux de l'en-tête construit une liste de secteurs pour toute la
   trace : découpage aux waypoints (de CP en CP), à distance fixe (1 km / 5 km / personnalisé — en
   miles quand l'impérial est actif), ou à la pente en tronçons de montée / descente. Chaque ligne affiche numéro, plage, pastille de type (montée, descente, plat ou mixte, selon le
@@ -245,6 +249,8 @@ indépendants : toute langue fonctionne avec l'un ou l'autre système.
   sur les données complètes.
 - Le **zoom du profil** descend jusqu'à une fenêtre de 1 km en mode distance et de 20 minutes en
   mode temps ; sur les appareils tactiles, le profil se zoome par pincement à deux doigts — pas de molette.
+  « Ajuster au tronçon » partage ce plancher : jamais plus profond que le max molette/pincement, jamais
+  d'espace vide au-delà des extrémités de la trace.
 - Les grandes traces (100 000 points et plus) fonctionnent sans problème. Pendant le glissement
   d'une poignée, la recherche de borne repart du résultat précédent et élargit sa fenêtre au besoin.
 

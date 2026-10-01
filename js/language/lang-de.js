@@ -81,6 +81,8 @@ const lang_de = {
   mapGestureHint: 'Karte mit zwei Fingern bewegen',
   xAxisMode: 'X-Achsen-Modus',
   overlays: 'Überlagerungen',
+  fitToSector: 'Abschnitt einpassen',
+  fitToSectorHint: 'Diagramm auf den Abschnitt einpassen',
   legendHr: 'Herzfrequenz',
   legendSpeed: 'Geschwindigkeit',
   legendPace: 'Tempo',

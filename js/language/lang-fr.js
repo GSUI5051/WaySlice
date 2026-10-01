@@ -79,6 +79,8 @@ const lang_fr = {
   mapGestureHint: 'Utilisez deux doigts pour déplacer la carte',
   xAxisMode: 'Mode de l’axe X',
   overlays: 'Superpositions',
+  fitToSector: 'Ajuster au tronçon',
+  fitToSectorHint: 'Ajuster le graphique au tronçon',
   legendHr: 'Fréquence cardiaque',
   legendSpeed: 'Vitesse',
   legendPace: 'Allure',

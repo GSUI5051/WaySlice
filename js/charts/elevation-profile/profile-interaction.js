@@ -26,7 +26,7 @@ import { createMultiSelectMenu } from '../../ui/menus.js';
 import { state, isWideLayout } from './profile-state.js';
 import {
   OVERLAY_METRICS, SPEED_FAMILY, overlayAvailability, applyOverlayToggle,
-  buildCaches, distToX, xToDist, clientXtoX, xvToPx,
+  buildCaches, distToX, xToDist, clientXtoX, xvToPx, sectorFitWindow,
 } from './profile-data.js';
 import { scheduleSync } from './profile-render.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
@@ -135,6 +135,9 @@ export function wireControls() {
     refreshSnapToggle();
   });
   refreshSnapToggle();
+  state.dom.fitBtn = document.getElementById('btn-profile-fit-sector');
+  state.dom.fitBtn.addEventListener('click', fitViewToSector);
+  refreshControls();
   refreshControls();
 }
 
@@ -192,6 +195,9 @@ export function refreshControls() {
   xButtons.time.title = timeUsable ? '' : t('noTimestampData');
   xButtons.distance.setAttribute('aria-pressed', String(state.xMode === 'distance'));
   xButtons.time.setAttribute('aria-pressed', String(state.xMode === 'time'));
+  // Fit to sector needs a sector to fit — track-gated like the analysis
+  // button (a track, once loaded, is never cleared).
+  if (state.dom.fitBtn) state.dom.fitBtn.hidden = !state.track;
 }
 
 /** x-axis mode switch (rebuilds the per-point caches; drops the zoom
@@ -204,6 +210,25 @@ function setXMode(mode) {
   ({ xs: state.xs, speeds: state.speeds, gapSpeeds: state.gapSpeeds } =
     buildCaches(state.track, state.xMode));
   refreshControls();
+  scheduleSync();
+}
+
+/** Fit to sector (the header's Focus button): pure viewport operation that
+ *  shows the selected sector at FIT_SECTOR_FRACTION of the x window,
+ *  centered — the selection itself never moves. The window math is the pure
+ *  sectorFitWindow (profile-data), floored at the wheel-zoom floor so the
+ *  fit and the gestures share one max-zoom definition; a sector near the
+ *  full track fits the whole view (window null). Sector meters go through
+ *  distToX, so Distance and Time share this unchanged. */
+function fitViewToSector() {
+  const { track, xs, xMode } = state;
+  if (!track || !xs || !xs.length) return;
+  const { start, end } = sectorStore.get();
+  const floor = xMode === 'time' ? MIN_VIEW_MS : MIN_VIEW_M;
+  state.view = sectorFitWindow(
+    distToX(start, track, xMode), distToX(end, track, xMode),
+    xs[xs.length - 1], floor,
+  );
   scheduleSync();
 }
 

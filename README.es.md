@@ -93,6 +93,10 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   perfil altimétrico y haz scroll para hacer zoom en su eje de distancia/tiempo alrededor del cursor;
   Mayús + arrastre para desplazarlo; en pantallas táctiles, un dedo desplaza y un pellizco de dos dedos hace zoom. Doble
   clic en cualquier parte del perfil — o doble toque en pantalla táctil — restaura la traza completa.
+- **Ajustar al tramo.** El botón de enfoque al final derecho de la cabecera del perfil acerca el eje x al
+  tramo seleccionado: el tramo ocupa en torno al 82 % del gráfico con ≈9 % de contexto junto a cada
+  tirador, centrado y ajustado a los datos. Un tramo casi tan largo como la traza restaura la vista
+  completa y uno diminuto aterriza en la ventana de zoom máximo — la selección nunca se mueve.
 - **División automática.** El botón de tijeras de la cabecera construye una lista de tramos para toda
   la traza: cortes en los waypoints (de CP en CP), a distancia fija (1 km / 5 km / personalizado — en
   millas cuando el sistema imperial está activo), o por pendiente en tramos de subida / bajada. Cada fila muestra número, rango, cápsula de tipo (subida, bajada, llano o mixto, según su relieve)
@@ -245,6 +249,8 @@ independientes: cualquier idioma funciona con cualquiera de los dos sistemas.
   completos.
 - El **zoom del perfil** baja hasta una ventana de 1 km en modo distancia y de 20 minutos en modo
   tiempo; los dispositivos táctiles hacen zoom en el perfil con un pellizco de dos dedos — no hay rueda.
+  «Ajustar al tramo» comparte ese límite: nunca amplía más allá del máximo de rueda o pellizco ni
+  muestra espacio sin datos tras los extremos de la traza.
 - Las trazas grandes (100 000 puntos o más) funcionan sin problema. Mientras arrastras un tirador, la
   búsqueda del límite parte de la coincidencia anterior y amplía su ventana según hace falta.
 

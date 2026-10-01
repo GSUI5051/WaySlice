@@ -82,6 +82,8 @@ const lang_it = {
   mapGestureHint: 'Muovi la mappa con due dita',
   xAxisMode: 'Modalità asse X',
   overlays: 'Sovrapposizioni',
+  fitToSector: 'Adatta al tratto',
+  fitToSectorHint: 'Adatta il grafico al tratto',
   legendHr: 'Frequenza cardiaca',
   legendSpeed: 'Velocità',
   legendPace: 'Ritmo',

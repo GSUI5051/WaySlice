@@ -16,6 +16,13 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-01',
+      ps: [
+        'The elevation profile gained a "Fit to sector" view control (the focus button, right of Overlays): one click zooms the x axis so the selected sector fills about 82% of the chart with a sliver of context beyond each handle.',
+        'The fit never shows blank space past the track ends, restores the whole view for a near-full sector, and shares the wheel/pinch zoom floor — the selection itself never moves.',
+      ],
+    },
+    {
       h: '2026-09-30',
       ps: [
         'The settings drawer was rebuilt as an accordion: its five groups (theme, language, units, heart-rate zones, about) toggle independently and start collapsed on every open.',

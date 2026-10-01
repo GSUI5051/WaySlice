@@ -25,7 +25,7 @@ setProfileTrack(track);                                // main.js, 트랙 로드
 DOM 계약: `#profile-body` 안에 `#profile-canvas`, `#profile-tooltip`, `#handle-start`,
 `#handle-end`. 바깥에 `#profile-readout`(터치 프로브의 고정 텔레메트리 밴드. `.profile-head`와
 `#profile-body` 사이), `#btn-x-distance`, `#btn-x-time`,
-`#btn-waypoint-snap`, `#btn-overlays`. 이 id들은 절대 이름을 바꾸지 않습니다.
+`#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector`. 이 id들은 절대 이름을 바꾸지 않습니다.
 `#profile-tooltip` 노드는 `#profile-body` 안(absolute)에 있어 워크스페이스 스크롤을 네이티브하게
 따라갑니다. 터치 프로브의 읽기는 헤더와 차트 사이의 고정 밴드(`#profile-readout`)에 그려집니다. 밴드는
 프로필 모듈 자체의 일부라 차트를 덮을 수 없고, 읽기가 나타나거나 사라져도 레이아웃이 움직이지
@@ -38,7 +38,7 @@ initProfile 참조).
 |---|---|---|
 | `index.js` | 오케스트레이션: DOM 조립, 외부 이벤트, 트랙 라이프사이클, 리스즈 처리 | `initProfile`, `setProfileTrack` |
 | `profile-state.js` | 차트 인스턴스 하나의 공유 가변 상태(`state`) + `isWideLayout` | `state`, `isWideLayout` |
-| `profile-data.js` | 순수 계산: 포인트별 캐시, 다운샘플링, 좌표 변환, 오버레이 정의와 토글 규칙. DOM 없음, 형제 모듈 비의존 | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle` |
+| `profile-data.js` | 순수 계산: 포인트별 캐시, 다운샘플링, 좌표 변환, 오버레이 정의와 토글 규칙. DOM 없음, 형제 모듈 비의존 | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
 | `profile-render.js` | Canvas 그리기 전부: `sync()` 패스와 그 안의 모든 레이어, `scheduleSync`, 핸들 / 마스크 배치 | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels` |
 | `profile-interaction.js` | 세 입력 경로(헤더 컨트롤, 캔버스 포인터 — 호버 / 드래그 선택 / 줌과 터치 프로브 제스처, 구간 핸들) + toast + 웨이포인트 스냅. 터치의 핀치/이동/두 번 탭 상태 머신은 여기 없습니다(이변수 차트도 함께 쓰는 공용 모듈 `js/charts/viewport-gestures.js`입니다). 그리지 않음 | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | 호버 툴팁과 터치 프로브 읽기의 DOM과 내용 | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |

@@ -263,20 +263,23 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
 .xmode-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* Wide layout: Distance/Time read as text — their icons belong to the phone
-   bar (see the 720 px block below). The Overlays and dual-variable analysis
-   controls read as text too, with a border matching the Distance/Time group. */
+   bar (see the 720 px block below). The Overlays, dual-variable analysis and
+   fit-to-sector controls read as text too, with a border matching the
+   Distance/Time group. */
 .xmode-btn .btn-icon-slot,
 #btn-overlays .btn-icon-slot,
-#btn-dual-variable .btn-icon-slot { display: none; }
+#btn-dual-variable .btn-icon-slot,
+#btn-profile-fit-sector .btn-icon-slot { display: none; }
 
-/* Overlays, dual-variable analysis and the waypoint snap toggle all wear the
-   Distance/Time group's box: the same border colour and radius, and the
-   group's outer height — the group's own 1px border top and bottom around a
-   28px button makes it 30px tall, so the 28px `.btn-small` default would leave
-   them 1px short on each edge. */
+/* Overlays, dual-variable analysis, the waypoint snap toggle and the
+   fit-to-sector command all wear the Distance/Time group's box: the same
+   border colour and radius, and the group's outer height — the group's own
+   1px border top and bottom around a 28px button makes it 30px tall, so the
+   28px `.btn-small` default would leave them 1px short on each edge. */
 #btn-overlays,
 #btn-dual-variable,
-#btn-waypoint-snap {
+#btn-waypoint-snap,
+#btn-profile-fit-sector {
   border-color: var(--border);
   border-radius: var(--radius-m);
   height: 30px;
@@ -391,18 +394,22 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
      the file chip for the little width a phone has left. */
   .brand-name { display: none; }
 
-  /* Phone: Distance/Time/Overlays/dual-variable analysis collapse to
-     icon-only, matching the header buttons; accessible names stay on via
-     data-i18n-aria in index.html. The dual-variable entry follows the
-     Overlays button's exact responsive pattern (text on wide, icon on
-     phone), so the two controls never drift apart. */
+  /* Phone: Distance/Time/Overlays/dual-variable analysis/fit-to-sector
+     collapse to icon-only, matching the header buttons; accessible names
+     stay on via data-i18n-aria in index.html (the fit button's tooltip
+     carries its full sentence the same way). The dual-variable and
+     fit-to-sector entries follow the Overlays button's exact responsive
+     pattern (text on wide, icon on phone), so the controls never drift
+     apart. */
   .xmode-btn { padding: 3px 8px; }
   .xmode-btn span:not(.btn-icon-slot),
   #btn-overlays span:not(.btn-icon-slot),
-  #btn-dual-variable span:not(.btn-icon-slot) { display: none; }
+  #btn-dual-variable span:not(.btn-icon-slot),
+  #btn-profile-fit-sector span:not(.btn-icon-slot) { display: none; }
   .xmode-btn .btn-icon-slot,
   #btn-overlays .btn-icon-slot,
-  #btn-dual-variable .btn-icon-slot { display: inline-flex; }
+  #btn-dual-variable .btn-icon-slot,
+  #btn-profile-fit-sector .btn-icon-slot { display: inline-flex; }
 
   /* The file chip needs no phone rules any more: its full-vs-info mode is
      measured from the real layout (js/ui/fileChip.js), so the pill degrades

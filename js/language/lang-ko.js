@@ -77,6 +77,8 @@ const lang_ko = {
   mapGestureHint: '두 손가락으로 지도를 움직이세요',
   xAxisMode: 'X축 모드',
   overlays: '오버레이',
+  fitToSector: '구간에 맞춤',
+  fitToSectorHint: '차트를 구간에 맞추기',
   legendHr: '심박수',
   legendSpeed: '속도',
   legendPace: '페이스',

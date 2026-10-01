@@ -35,6 +35,7 @@ export const state = {
     masks: { left: null, right: null },
     xButtons: { distance: null, time: null },
     snapBtn: null,
+    fitBtn: null,
   },
 
   /** The loaded track and its per-point caches (built by profile-data). */

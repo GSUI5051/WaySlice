@@ -25,7 +25,7 @@ setProfileTrack(track);                                // main.js, on every load
 DOM contract: `#profile-body` with `#profile-canvas`, `#profile-tooltip`, `#handle-start`,
 `#handle-end` inside it; `#profile-readout` (the touch probe's fixed telemetry band,
 between `.profile-head` and `#profile-body`), `#btn-x-distance`, `#btn-x-time`,
-`#btn-waypoint-snap`, `#btn-overlays` outside it. Never rename these ids. The
+`#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector` outside it. Never rename these ids. The
 `#profile-tooltip` node stays inside `#profile-body` (absolute) so it tracks the
 workspace scroll natively; the touch probe renders its readings into the fixed band
 between the profile header and the chart instead — part of the profile module itself, so it can never cover
@@ -38,7 +38,7 @@ the plot and never shifts the layout when readings come and go (see
 |---|---|---|
 | `index.js` | Orchestrator: DOM assembly, external event surface, track lifecycle, resize handling | `initProfile`, `setProfileTrack` |
 | `profile-state.js` | The one chart instance's shared mutable state (`state`) + `isWideLayout` | `state`, `isWideLayout` |
-| `profile-data.js` | Pure computation: per-point caches, downsampling, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle` |
+| `profile-data.js` | Pure computation: per-point caches, downsampling, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
 | `profile-render.js` | All canvas drawing: the `sync()` pass and every layer in it, `scheduleSync`, handle/mask positioning | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels` |
 | `profile-interaction.js` | The three input pathways (header controls, canvas pointer — hover/select/zoom + the touch probe gestures, sector handles) + toast + waypoint snapping. The touch pinch/pan/double-tap state machine is NOT here: it is the shared `js/charts/viewport-gestures.js` the dual-variable chart runs too. Never draws | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | The hover tooltip and the touch probe's readout DOM + content | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |

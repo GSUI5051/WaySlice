@@ -16,6 +16,7 @@
  *   seriesExtremes    — full-resolution min/max of a series (no averaging)
  *   distToX / xToDist / clientXtoX — the coordinate conversions every cursor
  *     path and every drawn element must agree on
+ *   sectorFitWindow   — the x window the fit-to-sector command shows
  *   speedToPace / niceStep / formatOverlayValue — small formatters
  *   applyOverlayToggle — the overlay-slot toggle as a pure transition
  */
@@ -252,6 +253,38 @@ export function xvToPx(xv, view, xs, plot) {
   const v0 = view ? view.start : 0;
   const v1 = view ? view.end : (xs && xs.length ? xs[xs.length - 1] : 0);
   return plot.x0 + ((xv - v0) / Math.max(v1 - v0, 1e-9)) * plot.w;
+}
+
+/** Sector share of the fit-to-sector window width — the handles land at
+ *  ≈9% / ≈91% of the viewport (the spec's 8–10% / 90–92% band). */
+export const FIT_SECTOR_FRACTION = 0.82;
+
+/**
+ * The x window the "fit to sector" command shows: the sector centered at
+ * FIT_SECTOR_FRACTION of the window width (≈9% of context beyond each
+ * handle, never glued to the chart edges). Three clamps keep the fit
+ * honest: the window is never NARROWER than the chart's zoom floor (a tiny
+ * sector may not reach a deeper zoom than the wheel/pinch max — the fit
+ * then simply shows the floor window), never WIDER than the track (a
+ * sector near the full track returns null = the fitted full view instead
+ * of an out-of-domain window), and always inside [0, total] (a sector at
+ * either track end loses the context on that side rather than revealing
+ * blank space beyond the data). All arguments in one unit — the caller's
+ * raw x domain (track meters or elapsed ms), so Distance and Time share
+ * this unchanged.
+ * @param {number} sectorStart  sector boundary in raw x units
+ * @param {number} sectorEnd
+ * @param {number} total  full domain span in raw x units
+ * @param {number} minSpan  zoom floor in raw x units (MIN_VIEW_M / MIN_VIEW_MS)
+ * @returns {{start: number, end: number}|null} null = the full domain (fitted)
+ */
+export function sectorFitWindow(sectorStart, sectorEnd, total, minSpan) {
+  const lo = Math.min(sectorStart, sectorEnd);
+  const hi = Math.max(sectorStart, sectorEnd);
+  const width = Math.min(Math.max((hi - lo) / FIT_SECTOR_FRACTION, minSpan), total);
+  if (!(width < total)) return null;
+  const start = Math.min(Math.max((lo + hi) / 2 - width / 2, 0), total - width);
+  return { start, end: start + width };
 }
 
 /**

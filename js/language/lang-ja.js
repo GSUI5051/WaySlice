@@ -77,6 +77,8 @@ const lang_ja = {
   mapGestureHint: '2 本の指で地図を動かします',
   xAxisMode: 'X 軸モード',
   overlays: 'オーバーレイ',
+  fitToSector: 'セクターにフィット',
+  fitToSectorHint: 'グラフをセクターにフィット',
   legendHr: '心拍数',
   legendSpeed: '速度',
   legendPace: 'ペース',

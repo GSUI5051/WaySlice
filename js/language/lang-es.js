@@ -84,6 +84,8 @@ const lang_es = {
   mapGestureHint: 'Mueve el mapa con dos dedos',
   xAxisMode: 'Modo del eje X',
   overlays: 'Superposiciones',
+  fitToSector: 'Ajustar al tramo',
+  fitToSectorHint: 'Ajustar el gráfico al tramo',
   legendHr: 'Frecuencia cardíaca',
   legendSpeed: 'Velocidad',
   legendPace: 'Ritmo',

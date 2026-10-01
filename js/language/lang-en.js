@@ -80,6 +80,8 @@ const lang_en = {
   mapGestureHint: 'Use two fingers to move the map',
   xAxisMode: 'X-axis mode',
   overlays: 'Overlays',
+  fitToSector: 'Fit to sector',
+  fitToSectorHint: 'Fit chart to sector',
   legendHr: 'Heart rate',
   legendSpeed: 'Speed',
   legendPace: 'Pace',

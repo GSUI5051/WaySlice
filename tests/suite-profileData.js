@@ -1,7 +1,8 @@
-/** Elevation-profile data tests: speed-series smoothing + cache rules. */
+/** Elevation-profile data tests: speed-series smoothing + cache rules +
+ *  the fit-to-sector window math. */
 import { suite, test, assert } from './runner.js';
 import {
-  buildCaches, sampleOverlay, seriesExtremes,
+  buildCaches, sampleOverlay, seriesExtremes, sectorFitWindow, FIT_SECTOR_FRACTION,
 } from '../js/charts/elevation-profile/profile-data.js';
 import {
   cleanSpeedSeries, cleanComputedSpeeds, minettiFactor,
@@ -237,5 +238,72 @@ suite('profile / seriesExtremes (full-resolution overlay extremes)', () => {
     assert.equal(seriesExtremes(() => null, 5), null);
     assert.equal(seriesExtremes(() => NaN, 5), null);
     assert.equal(seriesExtremes(() => 3, 0), null);
+  });
+});
+
+suite('profileData / fit-to-sector window', () => {
+  // Unit-agnostic: the same math serves Distance (m) and Time (ms) — these
+  // cases use meters; the last case proves the ms shape.
+  const TOTAL = 10_000;
+  const FLOOR = 1_000;
+  const widthOf = (w) => w.end - w.start;
+  /** Handle position as a viewport fraction, the spec's acceptance band. */
+  const fracOf = (w, v) => (v - w.start) / widthOf(w);
+
+  test('a mid-track sector sits centered at the fit fraction (handles ≈9% / ≈91%)', () => {
+    const w = sectorFitWindow(4_000, 5_000, TOTAL, FLOOR);
+    const width = widthOf(w);
+    assert.closeTo(width, 1_000 / FIT_SECTOR_FRACTION, 1e-9);
+    assert.truthy(w.start <= 4_000 && w.end >= 5_000, 'sector fully visible');
+    assert.truthy(w.start >= 0 && w.end <= TOTAL, 'window inside the domain');
+    assert.closeTo(fracOf(w, 4_000), 0.09, 1e-9);
+    assert.closeTo(fracOf(w, 5_000), 0.91, 1e-9);
+  });
+
+  test('a sector at the track start clamps to the domain, not to negative x', () => {
+    const w = sectorFitWindow(0, 1_000, TOTAL, FLOOR);
+    assert.equal(w.start, 0);
+    assert.truthy(w.end >= 1_000, 'sector fully visible');
+    assert.truthy(w.end < TOTAL, 'no blank space past the data');
+  });
+
+  test('a sector at the track end clamps to the domain, not past it', () => {
+    const w = sectorFitWindow(9_000, 10_000, TOTAL, FLOOR);
+    assert.equal(w.end, TOTAL);
+    assert.truthy(w.start <= 9_000, 'sector fully visible');
+    assert.truthy(w.start >= 0, 'no blank space before the data');
+  });
+
+  test('a tiny sector floors at the zoom floor instead of out-zooming the wheel', () => {
+    const w = sectorFitWindow(5_000, 5_005, TOTAL, FLOOR);
+    assert.equal(widthOf(w), FLOOR);
+    assert.truthy(w.start <= 5_000 && w.end >= 5_005, 'sector fully visible');
+  });
+
+  test('the floor wins at a track edge too', () => {
+    const w = sectorFitWindow(0, 100, TOTAL, FLOOR);
+    assert.equal(w.start, 0);
+    assert.equal(widthOf(w), FLOOR);
+  });
+
+  test('a sector near the full track fits the whole view (null, not an overscan)', () => {
+    assert.equal(sectorFitWindow(0, 9_000, TOTAL, FLOOR), null);
+    assert.equal(sectorFitWindow(0, TOTAL, TOTAL, FLOOR), null);
+    // Exactly FIT_SECTOR_FRACTION of the track: the window would be the
+    // domain itself, which IS the fitted state.
+    assert.equal(sectorFitWindow(900, 9_100, TOTAL, FLOOR), null);
+  });
+
+  test('reversed sector ends fit the same window', () => {
+    const ordered = sectorFitWindow(4_000, 5_000, TOTAL, FLOOR);
+    const reversed = sectorFitWindow(5_000, 4_000, TOTAL, FLOOR);
+    assert.closeTo(reversed.start, ordered.start, 1e-9);
+    assert.closeTo(reversed.end, ordered.end, 1e-9);
+  });
+
+  test('the same math in time units (ms); a long sector clears the 20-minute floor', () => {
+    const w = sectorFitWindow(2_000_000, 3_600_000, 7_200_000, 1_200_000);
+    assert.closeTo(w.end - w.start, 1_600_000 / FIT_SECTOR_FRACTION, 1e-6);
+    assert.truthy(w.start <= 2_000_000 && w.end >= 3_600_000, 'sector fully visible');
   });
 });

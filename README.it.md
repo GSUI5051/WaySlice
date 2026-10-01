@@ -92,6 +92,11 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   altimetrico e scorri per ingrandire l'asse distanza/tempo attorno al cursore; Maiusc + trascinamento
   per spostarlo; sul touch, un dito sposta e un pizzico di due dita fa zoom. Un doppio clic in un punto qualsiasi del
   profilo — o un doppio tocco su schermo tattile — ripristina la traccia completa.
+- **Adatta al tratto.** Il bottone di messa a fuoco all'estremità destra dell'intestazione del profilo
+  ingrandisce l'asse x sul tratto selezionato: il tratto occupa circa l'82% del grafico con ≈9% di
+  contesto oltre ogni maniglia, centrato e limitato ai dati. Un tratto quasi lungo quanto la traccia
+  ripristina la vista completa e uno minuscolo approda alla finestra di zoom massimo — la selezione
+  non si sposta mai.
 - **Suddivisione automatica.** Il bottone a forbici dell'intestazione costruisce un elenco di tratti
   per l'intera traccia: tagli ai waypoint (da CP a CP), a distanza fissa (1 km / 5 km / personalizzato
   — in miglia con l'imperiale attivo), o per pendenza in segmenti di salita / discesa. Ogni riga mostra numero, intervallo, capsula di tipo (salita, discesa, piatto o misto, in base
@@ -242,6 +247,8 @@ entrambi i sistemi.
   pixel per il profilo) non tocca mai i punti originali. Le metriche girano sempre sui dati completi.
 - Lo **zoom del profilo** scende fino a una finestra di 1 km in modalità distanza e 20 minuti in
   modalità tempo; i dispositivi touch fanno zoom sul profilo con un pizzico di due dita — niente rotella.
+  «Adatta al tratto» condivide questo limite: non ingrandisce mai oltre il massimo rotella/pizzico e
+  non mostra mai spazio senza dati oltre i capi della traccia.
 - Le tracce grandi (100.000 punti o più) funzionano bene. Mentre trascini una maniglia, la ricerca del
   confine parte dalla corrispondenza precedente e amplia la finestra di ricerca al bisogno.
 

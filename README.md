@@ -86,6 +86,10 @@ capital letter, it means exactly this:
   distance/time axis around the cursor; Shift-drag to pan; on touch, one finger pans and a two-finger
   pinch zooms the same way.
   Double-click anywhere on the profile — or double-tap on touch — restores the full track.
+- **Fit to sector.** The focus button at the right end of the profile header zooms the x axis to the
+  selected sector: the sector fills about 82% of the chart with ≈9% of context beyond each handle,
+  centered and clamped to the data. A sector near the full track restores the whole view, and a tiny
+  sector lands at the max-zoom window — the selection itself never moves.
 - **Auto sector.** The scissors button in the header builds a sector list for the whole track: split
   at waypoints (CP to CP), by fixed distance (1 km / 5 km / custom — miles when Imperial is
   active), or by grade into climb/descent stretches. Each row reads number, range, type capsule (climb, descent, flat or mixed, from its
@@ -222,7 +226,8 @@ language works with either system.
 - **Display simplification** (Douglas–Peucker for the map, per-pixel min–max sampling for the
   profile) never touches the original points. Metrics always run on the full data.
 - **Profile zoom** works down to a 1 km window in distance mode and 20 minutes in time mode; touch
-  devices zoom with a two-finger pinch — there is no wheel.
+  devices zoom with a two-finger pinch — there is no wheel. Fit to sector shares that floor: it never
+  zooms deeper than the wheel/pinch max and never reveals blank space past the track ends.
 - Large tracks (100k+ points) work fine. While you drag a handle, the boundary lookup starts from
   the previous match and expands its search window as needed.
 

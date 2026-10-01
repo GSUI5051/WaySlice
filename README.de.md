@@ -92,6 +92,11 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   und scrolle, um seine Distanz-/Zeitachse um den Zeiger herum zu zoomen; mit Umschalt + Ziehen
   verschiebst du es; am Touchscreen verschiebt ein Finger und zoomt ein Zwei-Finger-Pinch. Ein Doppelklick irgendwo auf das
   Profil — oder Doppel-Tipp am Touchscreen — stellt den ganzen Track wieder her.
+- **Abschnitt einpassen.** Der Fokus-Knopf am rechten Ende der Profil-Kopfzeile zoomt die x-Achse auf
+  den gewählten Abschnitt: Er füllt etwa 82 % des Diagramms, mit je rund 9 % Kontext neben den
+  Griffen, zentriert und an die Daten geklemmt. Ein Abschnitt nahe der Gesamtstrecke stellt die
+  Gesamtansicht wieder her, ein winziger landet beim maximalen Zoomfenster — die Auswahl selbst
+  wird nie verschoben.
 - **Automatisches Teilen.** Der Scherenknopf im Kopfbereich baut eine Abschnittsliste für den ganzen
   Track: Schnitt an Wegpunkten (von CP zu CP), an fester Distanz (1 km / 5 km / benutzerdefiniert — in
   Meilen, wenn Imperial aktiv ist), oder nach Steigung in Anstiegs-/Abstiegsstrecken. Jede Zeile zeigt Abschnittsnummer, Bereich, Typkapsel (Anstieg, Abstieg, flach oder gemischt, aus
@@ -241,7 +246,8 @@ Einstellungen — jede Sprache funktioniert mit beiden Systemen.
 - Die **Anzeige-Vereinfachung** (Douglas–Peucker für die Karte, Min-Max-Abtastung je Pixelspalte für
   das Profil) fasst die Originalpunkte nie an. Messwerte rechnen immer mit den vollständigen Daten.
 - Der **Profilzoom** reicht bis zu einem 1-km-Fenster im Distanzmodus und 20 Minuten im Zeitmodus;
-  Touchgeräte zoomen per Zwei-Finger-Pinch — ein Rad gibt es nicht.
+  Touchgeräte zoomen per Zwei-Finger-Pinch — ein Rad gibt es nicht. „Abschnitt einpassen“ teilt
+  diese Grenze: Nie tiefer als das Rad-/Pinch-Maximum und nie datenfreier Raum hinter den Trackenden.
 - Große Tracks (100.000+ Punkte) funktionieren problemlos. Während du einen Griff ziehst, startet die
   Grenzsuche vom letzten Treffer und weitet ihr Suchfenster bei Bedarf.
 
