@@ -285,6 +285,24 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   height: 30px;
 }
 
+/* Text vs icon is MEASURED, not a media query: while the localized texts
+   fit, the controls row shares the title's flex line; the moment they wrap,
+   JS (refreshControlsFit in profile-interaction.js) puts .is-compact on
+   #profile-pane and these rules collapse the row to icon-only. The switch
+   width is therefore whatever "Elevation profile" + the translated button
+   labels actually occupy in the current language — no px constant knows
+   every language. The class lives on #profile-pane because the wide rules
+   above use ID selectors. */
+#profile-pane.is-compact .xmode-btn { padding: 3px 8px; }
+#profile-pane.is-compact .xmode-btn span:not(.btn-icon-slot),
+#profile-pane.is-compact #btn-overlays span:not(.btn-icon-slot),
+#profile-pane.is-compact #btn-dual-variable span:not(.btn-icon-slot),
+#profile-pane.is-compact #btn-profile-fit-sector span:not(.btn-icon-slot) { display: none; }
+#profile-pane.is-compact .xmode-btn .btn-icon-slot,
+#profile-pane.is-compact #btn-overlays .btn-icon-slot,
+#profile-pane.is-compact #btn-dual-variable .btn-icon-slot,
+#profile-pane.is-compact #btn-profile-fit-sector .btn-icon-slot { display: inline-flex; }
+
 /* Tablet / mobile ---------------------------------------------------------- */
 
 @media (max-width: 1099px) {
@@ -394,24 +412,9 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
      the file chip for the little width a phone has left. */
   .brand-name { display: none; }
 
-  /* Phone: Distance/Time/Overlays/dual-variable analysis/fit-to-sector
-     collapse to icon-only, matching the header buttons; accessible names
-     stay on via data-i18n-aria in index.html (the fit button's tooltip
-     carries its full sentence the same way). The dual-variable and
-     fit-to-sector entries follow the Overlays button's exact responsive
-     pattern (text on wide, icon on phone), so the controls never drift
-     apart. */
-  .xmode-btn { padding: 3px 8px; }
-  .xmode-btn span:not(.btn-icon-slot),
-  #btn-overlays span:not(.btn-icon-slot),
-  #btn-dual-variable span:not(.btn-icon-slot),
-  #btn-profile-fit-sector span:not(.btn-icon-slot) { display: none; }
-  .xmode-btn .btn-icon-slot,
-  #btn-overlays .btn-icon-slot,
-  #btn-dual-variable .btn-icon-slot,
-  #btn-profile-fit-sector .btn-icon-slot { display: inline-flex; }
-
   /* The file chip needs no phone rules any more: its full-vs-info mode is
      measured from the real layout (js/ui/fileChip.js), so the pill degrades
-     to the (i) button exactly when name + meta stop fitting. */
+     to the (i) button exactly when name + meta stop fitting. The profile
+     header's text-vs-icon switch is measured the same way
+     (refreshControlsFit) — no px constant for either. */
 }

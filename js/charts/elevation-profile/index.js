@@ -44,7 +44,7 @@ import {
 } from './profile-render.js';
 import {
   wireControls, wirePointer, wireHandles, refreshControls,
-  refreshSnapToggle, unpinWaypoint,
+  refreshControlsFit, refreshSnapToggle, unpinWaypoint,
 } from './profile-interaction.js';
 import { hideTooltip, resetProbeReadout } from './profile-tooltip.js';
 
@@ -126,6 +126,9 @@ export function initProfile(rootEl) {
   on('language:changed', () => {
     refreshHandleLabels();
     refreshSnapToggle();
+    // The header buttons' text-vs-icon switch measures the localized texts —
+    // a different language re-decides it at the same window width.
+    refreshControlsFit();
     // The band's idle hint is localized text — re-render it (an active
     // probe's readings re-render through the next sync anyway).
     if (!state.probe) resetProbeReadout();
@@ -141,6 +144,9 @@ export function initProfile(rootEl) {
   if ('ResizeObserver' in window) {
     const resize = () => {
       resizeCanvas();
+      // The controls' text-vs-icon switch is a fit measurement over the
+      // current pane width — re-probe whenever the pane is resized.
+      refreshControlsFit();
       sync();
     };
     new ResizeObserver(resize).observe(rootEl);
@@ -177,6 +183,10 @@ export function setProfileTrack(newTrack) {
   resizeCanvas();
   refreshControls();
   scheduleSync();
+  // The no-elevation note's visibility settles inside sync's rAF pass and it
+  // is a flex item of the measured header line — re-probe the controls'
+  // text-vs-icon switch once that pass has laid it out.
+  requestAnimationFrame(refreshControlsFit);
 }
 
 /**

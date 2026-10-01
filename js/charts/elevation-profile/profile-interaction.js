@@ -203,6 +203,37 @@ export function refreshControls() {
   // Fit to sector needs a sector to fit — track-gated like the analysis
   // button (a track, once loaded, is never cleared).
   if (state.dom.fitBtn) state.dom.fitBtn.hidden = !state.track;
+  refreshControlsFit();
+}
+
+/**
+ * Text-vs-icon mode for the header controls, MEASURED rather than written:
+ * the row sits on the title's flex line while the localized texts fit, and
+ * the moment "Elevation profile" + the translated button labels wrap onto a
+ * second line, `is-compact` goes on #profile-pane (css/layout.css collapses
+ * the row to icon-only under it). The switch width is thus whatever those
+ * texts actually occupy in the current language — the old 720 px media
+ * query knew none of them. The probe is synchronous remove → measure →
+ * maybe re-add, and its outcome is a fixed point per (width, language), so
+ * resize events can neither flap nor need hysteresis. Runs after the row is
+ * revealed (refreshControls), on language changes and on pane resizes.
+ */
+export function refreshControlsFit() {
+  const { controls } = state.dom;
+  if (!controls || controls.hidden) return;
+  const pane = controls.closest('#profile-pane');
+  const title = pane?.querySelector('.profile-head h2');
+  if (!pane || !title) return;
+  const lineCenter = (el) => {
+    const r = el.getBoundingClientRect();
+    return r.top + r.height / 2;
+  };
+  // align-items: center puts same-line items on one centered line — equal
+  // centers (±1px); a wrapped row drops a full line below the title.
+  pane.classList.remove('is-compact');
+  if (Math.abs(lineCenter(title) - lineCenter(controls)) > 1) {
+    pane.classList.add('is-compact');
+  }
 }
 
 /** x-axis mode switch (rebuilds the per-point caches; drops the zoom
