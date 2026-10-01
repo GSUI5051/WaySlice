@@ -211,7 +211,13 @@ export function refreshControls() {
   if (!xButtons.time) return;
   const timeUsable = !!state.track && state.track.hasTime;
   xButtons.time.disabled = !timeUsable;
-  xButtons.time.title = timeUsable ? '' : t('noTimestampData');
+  // The Time button's tooltip is state-dependent, so it is owned HERE and not
+  // by data-i18n-title (which the static pass would re-apply after this runs,
+  // wiping the reason): enabled it names the axis — the button renders
+  // icon-only from the emergency level on, where the tooltip is the only cue —
+  // and disabled it explains why. refreshControls also runs on a language
+  // change, so the string always comes from the active pack.
+  xButtons.time.title = timeUsable ? t('timeGroup') : t('noTimestampData');
   xButtons.distance.setAttribute('aria-pressed', String(state.xMode === 'distance'));
   xButtons.time.setAttribute('aria-pressed', String(state.xMode === 'time'));
   // The whole control row stays hidden until a track exists — with nothing

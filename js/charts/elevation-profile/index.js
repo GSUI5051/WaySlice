@@ -126,9 +126,11 @@ export function initProfile(rootEl) {
   on('language:changed', () => {
     refreshHandleLabels();
     refreshSnapToggle();
-    // The header buttons' text-vs-icon switch measures the localized texts —
-    // a different language re-decides it at the same window width.
-    refreshControlsFit();
+    // Also re-decides the header's text-vs-icon LEVEL (it measures the
+    // localized texts, so a different language can land on a different level
+    // at the same window width) and re-applies the state-dependent control
+    // strings the i18n pass cannot know: the Time button's disabled reason.
+    refreshControls();
     // The band's idle hint is localized text — re-render it (an active
     // probe's readings re-render through the next sync anyway).
     if (!state.probe) resetProbeReadout();
