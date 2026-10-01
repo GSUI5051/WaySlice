@@ -19,6 +19,7 @@ export const CHANGELOG_EN = {
       h: '2026-10-02',
       ps: [
         'The elevation profile header keeps its loaded height before a track is imported, so the icon and title no longer shift when one loads.',
+        'The map area in the mobile layout keeps the height it shows before a track is imported instead of shrinking once one loads.',
       ],
     },
     {

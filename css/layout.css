@@ -460,15 +460,19 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
      (#app is a flex column; only the workspace scrolls). */
   #workspace {
     grid-template-columns: minmax(0, 1fr);
-    /* The map row effectively runs at its floor: once a track is loaded the
-       metrics row's content pushes the base sizes past the viewport, grid
-       free space goes negative and the 44vh growth limit is never reached.
-       The floor must hold the full right-edge control stack without overlap —
-       the 12px-inset #map-fit column (4 × 34px buttons + 3 × 8px gaps =
-       172px) above MapLibre's zoom bar + attribution (~95px) needs ≥267px;
-       304px keeps ~37px of live map between them and matches the touch
-       profile module's height. */
-    grid-template-rows: minmax(304px, 44vh) min-content auto;
+    /* The map row is the same height with and without a track: the empty
+       page shows 44vh (grid free space is positive), but a plain
+       minmax(304px, 44vh) drops to its 304px floor once a track loads — the
+       metrics row's content (~1650px) pushes the base sizes past the
+       viewport, free space goes negative and the 44vh growth limit is never
+       reached. max() pins the track at the height the empty page already
+       showed. The 304px term is the short-viewport floor and must hold the
+       full right-edge control stack without overlap — the 12px-inset
+       #map-fit column (4 × 34px buttons + 3 × 8px gaps = 172px) above
+       MapLibre's zoom bar + attribution (~95px) needs ≥267px; it keeps ~37px
+       of live map between them and matches the touch profile module's
+       height. */
+    grid-template-rows: max(304px, 44vh) min-content auto;
     /* The profile row is min-content, not auto, on purpose: align-content's
        stretch splits the leftover space EQUALLY among auto rows, and the
        fixed-height profile pane would not grow with its stretched row — the
