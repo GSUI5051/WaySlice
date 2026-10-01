@@ -19,6 +19,28 @@
 .btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
 .btn:active:not(:disabled) { background: var(--surface-muted); }
 
+/* Coarse-pointer hit-area extension: a transparent ::after pads these 34px
+   buttons' touch targets to ≥44px (WCAG 2.5.8 only asks 24px; 44px is the
+   touch convention) with the visual size unchanged. inset is relative to the
+   padding box and the 1px border eats 1px per side, hence the 6px. The
+   profile head's buttons are the 30px-tall group-wrapped set, so its rows
+   compensate vertically with 8px (28px padding box + 2×8 = 44px), while 5px
+   horizontally only needs to span the row's gaps. Hit-testing favors the
+   topmost painter — a later sibling's own box beats an earlier sibling's
+   extension — so extensions only cover the seams between buttons and
+   adjacent clear space, never swapping which button a tap lands on. The
+   map zoom control is deliberately absent: its group's overflow:hidden
+   would clip any extension, and its 32px targets already clear the WCAG
+   minimum with their own consistent styling. */
+@media (hover: none) and (pointer: coarse) {
+  #app-header .btn,
+  #map-fit .btn,
+  .profile-head .btn { position: relative; }
+  #app-header .btn::after,
+  #map-fit .btn::after { content: ""; position: absolute; inset: -6px; }
+  .profile-head .btn::after { content: ""; position: absolute; inset: -8px -5px; }
+}
+
 .btn-primary {
   background: var(--primary);
   border-color: transparent;

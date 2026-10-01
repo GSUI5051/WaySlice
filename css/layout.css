@@ -84,10 +84,21 @@
 
 .file-chip .file-chip-info:hover { color: var(--foreground); }
 
-.file-chip.is-compact { padding: 4px; }
+.file-chip.is-compact { padding: 4px; overflow: visible; }
 .file-chip.is-compact #file-name,
 .file-chip.is-compact #file-meta { display: none; }
 .file-chip.is-compact .file-chip-info { display: inline-flex; }
+
+/* Coarse-pointer hit-area extension: the 20px info button gains 12px of
+   transparent margin to 44px, visually unchanged; its surroundings are the
+   chip's own padding and clear header space, so the extension covers no
+   neighboring control. Compact mode must yield the chip's base
+   overflow:hidden (which clips the full-mode name) or it would clip this
+   ::after too. */
+@media (hover: none) and (pointer: coarse) {
+  .file-chip .file-chip-info { position: relative; }
+  .file-chip .file-chip-info::after { content: ""; position: absolute; inset: -12px; }
+}
 
 /* The compact popover reuses .hint-popover's base look (components.css);
    the three facts sit on their own lines, the name emphasized. */
@@ -257,8 +268,20 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   display: inline-flex;
   border: 1px solid var(--border);
   border-radius: var(--radius-m);
-  overflow: hidden;
   background: var(--surface);
+  /* No overflow:hidden to clip the child buttons: that would clip their
+     focus rings and the coarse-pointer hit-area extension too — the end
+     buttons round their own outer corners to meet the group's radius. */
+}
+
+.xmode-btn:first-child {
+  border-start-start-radius: var(--radius-m);
+  border-end-start-radius: var(--radius-m);
+}
+
+.xmode-btn:last-child {
+  border-start-end-radius: var(--radius-m);
+  border-end-end-radius: var(--radius-m);
 }
 
 .xmode-btn {
@@ -281,6 +304,18 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
 }
 
 .xmode-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* Coarse-pointer hit-area extension: the 28px segmented buttons gain 8px
+   vertically (no vertical borders, so no compensation is needed) and 6px
+   horizontally (1px of it covering the divider border) of transparent
+   margin to ≥44px, visually unchanged. Hit-testing favors the topmost
+   painter — a later sibling's own box beats an earlier sibling's extension
+   — so each button keeps its own box and the extensions only cover seams
+   outside the group. */
+@media (hover: none) and (pointer: coarse) {
+  .xmode-btn { position: relative; }
+  .xmode-btn::after { content: ""; position: absolute; inset: -8px -6px; }
+}
 
 /* Wide layout: Distance/Time read as text — their icons belong to the
    measured compact level (see refreshControlsFit). The Overlays, dual-variable
