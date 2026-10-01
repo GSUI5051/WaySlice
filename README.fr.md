@@ -97,6 +97,12 @@ majuscule, il faut le prendre exactement au sens suivant :
   le secteur sélectionné : le secteur occupe environ 82 % du graphique avec ≈ 9 % de contexte au-delà
   de chaque poignée, centré et borné aux données. Un secteur proche de la trace entière restaure la vue
   complète et un minuscule atterrit sur la fenêtre de zoom max — la sélection ne bouge jamais.
+- **Un en-tête de profil qui s'adapte à son panneau.** La barre d'outils du profil altimétrique reste
+  sur une seule ligne à toute largeur : à mesure que le panneau se rétrécit, les boutons d'action
+  passent en icône seule (infobulle et nom accessible conservés), puis les moins prioritaires —
+  analyse, superpositions, accrochage aux waypoints — rejoignent un menu « Plus d'actions » (⋯) en tant
+  que boutons identiques, le sélecteur Distance/Temps garde ses libellés le plus longtemps et seul un
+  panneau très étroit replie le titre dans son icône. Rien n'est comprimé, tronqué ni inaccessible.
 - **Découpage auto.** Le bouton ciseaux de l'en-tête construit une liste de secteurs pour toute la
   trace : découpage aux waypoints (de CP en CP), à distance fixe (1 km / 5 km / personnalisé — en
   miles quand l'impérial est actif), ou à la pente en tronçons de montée / descente. Chaque ligne affiche numéro, plage, pastille de type (montée, descente, plat ou mixte, selon le

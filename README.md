@@ -90,6 +90,11 @@ capital letter, it means exactly this:
   selected sector: the sector fills about 82% of the chart with ≈9% of context beyond each handle,
   centered and clamped to the data. A sector near the full track restores the whole view, and a tiny
   sector lands at the max-zoom window — the selection itself never moves.
+- **A profile header that fits its pane.** The elevation-profile toolbar keeps to a single line at every
+  width: as the pane narrows, the action buttons turn icon-only (keeping their tooltips and accessible
+  names), then the lower-priority ones — analysis, overlays, waypoint snap — move into a "More" (⋯)
+  menu as the very same buttons, Distance/Time holds its labels longest, and only a very narrow pane
+  folds the title into its icon. Nothing is squeezed, truncated or unreachable, in any language.
 - **Auto sector.** The scissors button in the header builds a sector list for the whole track: split
   at waypoints (CP to CP), by fixed distance (1 km / 5 km / custom — miles when Imperial is
   active), or by grade into climb/descent stretches. Each row reads number, range, type capsule (climb, descent, flat or mixed, from its

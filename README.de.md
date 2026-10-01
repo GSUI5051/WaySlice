@@ -97,6 +97,12 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   Griffen, zentriert und an die Daten geklemmt. Ein Abschnitt nahe der Gesamtstrecke stellt die
   Gesamtansicht wieder her, ein winziger landet beim maximalen Zoomfenster — die Auswahl selbst
   wird nie verschoben.
+- **Eine Profil-Kopfzeile, die in ihr Feld passt.** Die Werkzeugleiste des Höhenprofils bleibt bei jeder
+  Breite in einer Zeile: Wird das Feld schmaler, wechseln die Aktionsknöpfe auf reine Symbole (Tooltip
+  und zugänglicher Name bleiben erhalten), danach wandern die weniger wichtigen — Analyse,
+  Überlagerungen, Wegpunkt-Magnet — als dieselben Knöpfe in ein Menü „Weitere Aktionen“ (⋯), die
+  Umschaltung Distanz/Zeit behält ihre Beschriftung am längsten, und erst ein sehr schmales Feld klappt
+  den Titel in sein Symbol. Nichts wird gestaucht, abgeschnitten oder unerreichbar — in jeder Sprache.
 - **Automatisches Teilen.** Der Scherenknopf im Kopfbereich baut eine Abschnittsliste für den ganzen
   Track: Schnitt an Wegpunkten (von CP zu CP), an fester Distanz (1 km / 5 km / benutzerdefiniert — in
   Meilen, wenn Imperial aktiv ist), oder nach Steigung in Anstiegs-/Abstiegsstrecken. Jede Zeile zeigt Abschnittsnummer, Bereich, Typkapsel (Anstieg, Abstieg, flach oder gemischt, aus

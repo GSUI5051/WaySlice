@@ -97,6 +97,12 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   tramo seleccionado: el tramo ocupa en torno al 82 % del gráfico con ≈9 % de contexto junto a cada
   tirador, centrado y ajustado a los datos. Un tramo casi tan largo como la traza restaura la vista
   completa y uno diminuto aterriza en la ventana de zoom máximo — la selección nunca se mueve.
+- **Una cabecera de perfil que se ajusta a su panel.** La barra de herramientas del perfil de elevación
+  se mantiene en una sola línea a cualquier ancho: al estrecharse el panel, los botones de acción pasan
+  a solo icono (conservando su tooltip y su nombre accesible), después los de menor prioridad —
+  análisis, superposiciones, ajuste a waypoints — se mueven como los mismos botones a un menú «Más
+  acciones» (⋯), el conmutador Distancia/Tiempo es el que más conserva sus etiquetas y solo un panel
+  muy estrecho pliega el título en su icono. Nada se comprime, se trunca ni queda inalcanzable.
 - **División automática.** El botón de tijeras de la cabecera construye una lista de tramos para toda
   la traza: cortes en los waypoints (de CP en CP), a distancia fija (1 km / 5 km / personalizado — en
   millas cuando el sistema imperial está activo), o por pendiente en tramos de subida / bajada. Cada fila muestra número, rango, cápsula de tipo (subida, bajada, llano o mixto, según su relieve)

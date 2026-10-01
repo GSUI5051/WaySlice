@@ -97,6 +97,12 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   contesto oltre ogni maniglia, centrato e limitato ai dati. Un tratto quasi lungo quanto la traccia
   ripristina la vista completa e uno minuscolo approda alla finestra di zoom massimo — la selezione
   non si sposta mai.
+- **Un'intestazione del profilo che sta nel suo pannello.** La barra strumenti del profilo altimetrico
+  resta su una riga a qualsiasi larghezza: restringendosi il pannello, i pulsanti delle azioni passano
+  a sola icona (tooltip e nome accessibile conservati), poi i meno prioritari — analisi,
+  sovrapposizioni, aggancio ai waypoint — si spostano come gli stessi pulsanti in un menu «Altre
+  azioni» (⋯), il selettore Distanza/Tempo mantiene le etichette più a lungo e solo un pannello molto
+  stretto ripiega il titolo nella sua icona. Niente viene compresso, troncato o reso irraggiungibile.
 - **Suddivisione automatica.** Il bottone a forbici dell'intestazione costruisce un elenco di tratti
   per l'intera traccia: tagli ai waypoint (da CP a CP), a distanza fissa (1 km / 5 km / personalizzato
   — in miglia con l'imperiale attivo), o per pendenza in segmenti di salita / discesa. Ogni riga mostra numero, intervallo, capsula di tipo (salita, discesa, piatto o misto, in base
