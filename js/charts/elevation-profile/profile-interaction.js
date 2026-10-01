@@ -135,6 +135,7 @@ export function wireControls() {
     refreshSnapToggle();
   });
   refreshSnapToggle();
+  state.dom.controls = document.querySelector('.profile-controls');
   state.dom.fitBtn = document.getElementById('btn-profile-fit-sector');
   state.dom.fitBtn.addEventListener('click', fitViewToSector);
   refreshControls();
@@ -195,6 +196,10 @@ export function refreshControls() {
   xButtons.time.title = timeUsable ? '' : t('noTimestampData');
   xButtons.distance.setAttribute('aria-pressed', String(state.xMode === 'distance'));
   xButtons.time.setAttribute('aria-pressed', String(state.xMode === 'time'));
+  // The whole control row stays hidden until a track exists — with nothing
+  // loaded none of its buttons has anything to act on (the row starts
+  // `hidden` in index.html; a track, once loaded, is never cleared).
+  if (state.dom.controls) state.dom.controls.hidden = !state.track;
   // Fit to sector needs a sector to fit — track-gated like the analysis
   // button (a track, once loaded, is never cleared).
   if (state.dom.fitBtn) state.dom.fitBtn.hidden = !state.track;

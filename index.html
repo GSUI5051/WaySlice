@@ -192,7 +192,10 @@
           <span class="profile-head-icon" data-icon="mountain"></span>
           <h2 data-i18n="elevationProfile">Elevation profile</h2>
           <span id="profile-note" class="profile-note" data-i18n="noElevationData" hidden></span>
-          <div class="profile-controls">
+          <!-- The whole control row starts hidden: with no track there is
+               nothing for any of these buttons to act on. refreshControls
+               reveals it when a track loads. -->
+          <div class="profile-controls" hidden>
             <div class="xmode-toggle" role="group" data-i18n-aria="xAxisMode">
               <button type="button" id="btn-x-distance" class="xmode-btn" aria-pressed="true"
                       data-i18n-aria="distance">

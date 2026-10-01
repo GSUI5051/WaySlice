@@ -34,6 +34,7 @@ export const state = {
     handles: { start: null, end: null },
     masks: { left: null, right: null },
     xButtons: { distance: null, time: null },
+    controls: null,    // the header's .profile-controls row (hidden pre-track)
     snapBtn: null,
     fitBtn: null,
   },
