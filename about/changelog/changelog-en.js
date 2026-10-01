@@ -21,7 +21,7 @@ export const CHANGELOG_EN = {
         'Added a "Fit to sector" view control button: one click zooms the x axis so the selected sector fills about 82% of the visible range.',
         'Reworked the elevation profile toolbar around four measured responsive levels: the toolbar never wraps and never shrinks a control below its hit area.',
         'The Distance/Time toggle keeps its labels the longest, and low-priority actions move into a "More" panel as the same buttons.',
-        'On touch devices the header buttons, the map button column, the profile toolbar, the file chip\'s info button and the Distance/Time toggle gained an invisible hit-area margin that lifts every target to at least 44px, with no visual change.',
+        'Touch hit areas grew to at least 44px, with no visual change.',
       ],
     },
     {
