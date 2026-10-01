@@ -367,12 +367,18 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 210px;
   padding: 6px;
   background: var(--surface-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-m);
   box-shadow: var(--shadow-2);
+  /* The panel is the only route to the moved controls at the minimum level, so
+     it must stay on screen at any viewport width: capped to the viewport, and
+     a long label wraps to a second line instead of being clipped. The 28px is
+     the head's own 14px padding on each side, which the panel sits inside. */
+  min-width: min(210px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  white-space: normal;
 }
 #profile-pane #profile-overflow-panel .btn,
 #profile-pane #profile-overflow-panel .xmode-toggle {
@@ -384,6 +390,9 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   border-radius: var(--radius-s);
   padding: 4px 10px;
   background: transparent;
+  /* .btn is nowrap (buttons.css) and the head above is nowrap too: a row may
+     wrap its label only when the viewport is too narrow to show it whole. */
+  white-space: normal;
 }
 #profile-pane #profile-overflow-panel .btn:hover,
 #profile-pane #profile-overflow-panel .xmode-btn:hover {
