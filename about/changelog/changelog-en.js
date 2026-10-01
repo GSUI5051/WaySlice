@@ -16,6 +16,12 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-02',
+      ps: [
+        'The elevation profile header keeps its loaded height before a track is imported, so the icon and title no longer shift when one loads.',
+      ],
+    },
+    {
       h: '2026-10-01',
       ps: [
         'Added a "Fit to sector" view control button: one click zooms the x axis so the selected sector fills about 82% of the visible range.',

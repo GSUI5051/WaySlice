@@ -233,6 +233,12 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   align-items: center;
   gap: 4px 8px;
   padding: 8px 14px 2px;
+  /* Reserve the loaded row's height: the control row revealed on track load
+     is 30px tall (28px buttons + the group's 1px top/bottom borders), so
+     without this floor the icon+title row is 26px pre-track and the header
+     visibly jumps the moment a track parses. No level makes the row shorter
+     than 30px — the controls keep their 30px boxes at every level. */
+  min-height: 40px;
   color: var(--foreground-muted);
 }
 
