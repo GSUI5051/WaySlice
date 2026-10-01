@@ -19,7 +19,8 @@ export const CHANGELOG_EN = {
       h: '2026-10-01',
       ps: [
         'Added a "Fit to sector" view control button: one click zooms the x axis so the selected sector fills about 82% of the visible range.',
-        'Reworked the elevation profile toolbar around four measured responsive levels: the toolbar never wraps and never shrinks a control below its hit area, Distance/Time keeps its labels the longest, and low-priority actions move into a "More" panel as the same buttons.',
+        'Reworked the elevation profile toolbar around four measured responsive levels: the toolbar never wraps and never shrinks a control below its hit area.',
+        'The Distance/Time toggle keeps its labels the longest, and low-priority actions move into a "More" panel as the same buttons, state intact.',
       ],
     },
     {
