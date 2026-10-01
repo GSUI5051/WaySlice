@@ -192,10 +192,11 @@
   /* Tall enough for the heart-rate slot's two levels (main value + zone):
      16.2px main line + ~14.3px zone line + 2px row gap + 16.2px second row
      ≈ 48.7px of content — every other state is shorter, so the band NEVER
-     changes height and nothing below it can shift. */
+     changes height and nothing below it can shift. No rule between the band
+     and the header above it: the pane reads as one surface, and the band's
+     fixed height (not a divider) is what marks it as its own region. */
   min-height: 64px;
   padding: 5px 6px 7px;
-  border-block-start: 1px solid var(--border);
   font-size: 12px;
   line-height: 1.35;
   color: var(--foreground);
