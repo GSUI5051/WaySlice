@@ -79,6 +79,7 @@ const lang_ko = {
   overlays: '오버레이',
   fitToSector: '구간에 맞춤',
   fitToSectorHint: '차트를 구간에 맞추기',
+  moreControls: '기타 동작',
   legendHr: '심박수',
   legendSpeed: '속도',
   legendPace: '페이스',

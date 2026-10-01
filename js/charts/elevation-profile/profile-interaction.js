@@ -5,7 +5,9 @@
  * redraws exclusively through scheduleSync() (they never draw):
  *
  *   wireControls  — the header controls: Distance/Time x-axis toggle, the
- *                   overlays multi-select menu, the waypoint-snap toggle
+ *                   overlays multi-select menu, the waypoint-snap toggle,
+ *                   plus the responsive level controller (full / compact /
+ *                   overflow / emergency / minimum) and the overflow panel
  *   wirePointer   — canvas pointer: crosshair + tooltip, rubber-band sector
  *                   selection, Shift + drag window panning, wheel zoom
  *                   (fine pointers), touch gestures (pan / pinch zoom /
@@ -138,7 +140,23 @@ export function wireControls() {
   state.dom.controls = document.querySelector('.profile-controls');
   state.dom.fitBtn = document.getElementById('btn-profile-fit-sector');
   state.dom.fitBtn.addEventListener('click', fitViewToSector);
-  refreshControls();
+  state.dom.overflowWrap = state.dom.controls.querySelector('.profile-overflow');
+  state.dom.moreBtn = document.getElementById('btn-more-controls');
+  state.dom.overflowPanel = document.getElementById('profile-overflow-panel');
+  state.dom.moreBtn.addEventListener('click', toggleOverflowPanel);
+  // Close the panel on any pointerdown outside it (capture, observational —
+  // a click on a panel row must still land) and on Escape.
+  document.addEventListener('pointerdown', (e) => {
+    if (!state.dom.overflowPanel || state.dom.overflowPanel.hidden) return;
+    if (!state.dom.overflowWrap.contains(e.target)) closeOverflowPanel();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || state.dom.overflowPanel.hidden) return;
+    // An open modal (the dual-variable dialog) owns Escape while it is up.
+    if (document.querySelector('dialog[open]')) return;
+    closeOverflowPanel();
+    state.dom.moreBtn.focus();
+  });
   refreshControls();
 }
 
@@ -207,33 +225,121 @@ export function refreshControls() {
 }
 
 /**
- * Text-vs-icon mode for the header controls, MEASURED rather than written:
- * the row sits on the title's flex line while the localized texts fit, and
- * the moment "Elevation profile" + the translated button labels wrap onto a
- * second line, `is-compact` goes on #profile-pane (css/layout.css collapses
- * the row to icon-only under it). The switch width is thus whatever those
- * texts actually occupy in the current language — the old 720 px media
- * query knew none of them. The probe is synchronous remove → measure →
- * maybe re-add, and its outcome is a fixed point per (width, language), so
- * resize events can neither flap nor need hysteresis. Runs after the row is
- * revealed (refreshControls), on language changes and on pane resizes.
+ * The toolbar's responsive level, MEASURED from the header's real width —
+ * the successor of both the old 720 px media query and the single
+ * text/icon flip. The controller walks the levels
+ *
+ *   full → is-compact → is-overflow → is-emergency → is-minimum
+ *
+ * applying each one (classes on #profile-pane plus the level's row/panel
+ * split) and keeping the first whose header fits its own width. Per the
+ * toolbar spec: Distance/Time stays in the row through the emergency level
+ * (it is the chart's core axis control), Fit to sector is the last action to
+ * leave the row, and everything that leaves moves as the REAL button node
+ * into the overflow panel — same listeners, same aria, same state, nothing
+ * duplicated; the panel only changes where a control renders, never what it
+ * does. The classes are cumulative (minimum = emergency + overflow + compact),
+ * so the CSS layers: icon-only from compact on, identity text and the axis
+ * toggle compressed from emergency on.
+ *
+ * The probe is a fixed point per (width, language): no hysteresis and no
+ * flapping, because applying a level cannot change the width it was decided
+ * from — #profile-pane tracks its grid track (`minmax(0, …)` on both axes)
+ * instead of growing to its own nowrap content. Below the last level the row
+ * overflows to the right instead of compressing: buttons keep their hit
+ * areas, nothing wraps, truncates or overlaps, and the parent layout owns a
+ * container under the toolbar's floor (~profile icon + More, ≈ 80 px).
+ *
+ * Runs on pane resizes (the ResizeObserver), on language changes, when the
+ * row is revealed with a track, and one frame into setProfileTrack so the
+ * no-elevation note is laid out before measuring.
  */
+const LEVEL_CLASSES = [null, 'is-compact', 'is-overflow', 'is-emergency', 'is-minimum'];
+/** Which of the movable controls STAY in the row per level (full, compact,
+ *  overflow, emergency, minimum); the rest are hosted by the overflow panel.
+ *  Two spec invariants live in these rows: the axis toggle leaves only in the
+ *  last resort, and Fit to sector is the last action taken out of the row. */
+const LEVEL_ROW = [
+  ['xmode', 'snap', 'dualvar', 'overlays', 'fit'],
+  ['xmode', 'snap', 'dualvar', 'overlays', 'fit'],
+  ['xmode', 'snap', 'fit'],
+  ['xmode', 'fit'],
+  [],
+];
+
+/** @private The row's reparentable controls, in row DOM order. */
+function movableControls() {
+  const { xButtons, snapBtn, fitBtn } = state.dom;
+  return [
+    ['xmode', xButtons.distance?.closest('.xmode-toggle')],
+    ['snap', snapBtn],
+    ['dualvar', document.getElementById('btn-dual-variable')],
+    ['overlays', document.getElementById('btn-overlays')],
+    ['fit', fitBtn],
+  ];
+}
+
+/** @private Apply level `i`: the level's classes, the trigger's visibility
+ *  and its row/panel split. Idempotent — only nodes whose parent actually
+ *  changes are moved. */
+function applyLevel(pane, i) {
+  LEVEL_CLASSES.forEach((cls, k) => { if (cls) pane.classList.toggle(cls, k <= i); });
+  const { controls, overflowWrap, overflowPanel } = state.dom;
+  overflowWrap.hidden = i < 2;
+  const inRow = new Set(LEVEL_ROW[i]);
+  for (const [key, el] of movableControls()) {
+    if (!el) continue;
+    if (inRow.has(key)) {
+      if (el.parentElement !== controls) controls.insertBefore(el, overflowWrap);
+    } else if (el.parentElement !== overflowPanel) {
+      overflowPanel.appendChild(el);
+    }
+  }
+}
+
+/** @private True while the header's one measured line — identity, note and
+ *  the whole control row — sits inside the head's content box. The row's last
+ *  box is compared against the content-box edge: an engine-independent
+ *  overflow test (the head is nowrap, so anything overflowing does so to the
+ *  right), and one the visually hidden h2 cannot perturb — it is absolutely
+ *  positioned out of the flex line at the emergency level. */
+function headFits(head) {
+  const padRight = parseFloat(getComputedStyle(head).paddingRight) || 0;
+  const edge = head.getBoundingClientRect().right - padRight;
+  return state.dom.controls.getBoundingClientRect().right <= edge + 1;
+}
+
 export function refreshControlsFit() {
   const { controls } = state.dom;
   if (!controls || controls.hidden) return;
   const pane = controls.closest('#profile-pane');
-  const title = pane?.querySelector('.profile-head h2');
-  if (!pane || !title) return;
-  const lineCenter = (el) => {
-    const r = el.getBoundingClientRect();
-    return r.top + r.height / 2;
-  };
-  // align-items: center puts same-line items on one centered line — equal
-  // centers (±1px); a wrapped row drops a full line below the title.
-  pane.classList.remove('is-compact');
-  if (Math.abs(lineCenter(title) - lineCenter(controls)) > 1) {
-    pane.classList.add('is-compact');
+  const head = pane?.querySelector('.profile-head');
+  if (!pane || !head) return;
+  let level = LEVEL_CLASSES.length - 1;
+  for (let i = 0; i < LEVEL_CLASSES.length; i++) {
+    applyLevel(pane, i);
+    if (headFits(head)) { level = i; break; }
   }
+  // The trigger only exists in the row from the overflow level on, so an open
+  // panel below it would outlive its own trigger (and its aria-expanded).
+  if (level < 2) closeOverflowPanel();
+}
+
+/** @private The More panel: the trigger toggles it; it closes on any outside
+ *  pointerdown (capture listener in wireControls) and on Escape. */
+function toggleOverflowPanel() {
+  const { overflowPanel, moreBtn } = state.dom;
+  const open = overflowPanel.hidden;
+  overflowPanel.hidden = !open;
+  moreBtn.setAttribute('aria-expanded', String(open));
+}
+
+/** @private */
+function closeOverflowPanel() {
+  const { overflowPanel, moreBtn } = state.dom;
+  if (overflowPanel.hidden) return;
+  overflowPanel.hidden = true;
+  moreBtn.setAttribute('aria-expanded', 'false');
 }
 
 /** x-axis mode switch (rebuilds the per-point caches; drops the zoom

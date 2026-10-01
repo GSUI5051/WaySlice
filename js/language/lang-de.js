@@ -83,6 +83,7 @@ const lang_de = {
   overlays: 'Überlagerungen',
   fitToSector: 'Abschnitt einpassen',
   fitToSectorHint: 'Diagramm auf den Abschnitt einpassen',
+  moreControls: 'Weitere Aktionen',
   legendHr: 'Herzfrequenz',
   legendSpeed: 'Geschwindigkeit',
   legendPace: 'Tempo',

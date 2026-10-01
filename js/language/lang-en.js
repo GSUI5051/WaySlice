@@ -82,6 +82,7 @@ const lang_en = {
   overlays: 'Overlays',
   fitToSector: 'Fit to sector',
   fitToSectorHint: 'Fit chart to sector',
+  moreControls: 'More controls',
   legendHr: 'Heart rate',
   legendSpeed: 'Speed',
   legendPace: 'Pace',

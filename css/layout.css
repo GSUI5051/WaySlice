@@ -146,8 +146,12 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   min-height: 0;
   display: grid;
   /* Widescreen proportions, nav bar excluded: map : info = 7 : 3 across,
-     top row : profile = 2 : 1 down. Narrow screens redefine these below. */
-  grid-template-columns: 7fr 3fr;
+     top row : profile = 2 : 1 down. Narrow screens redefine these below.
+     minmax(0, Nfr), not bare Nfr: a bare fr track carries an auto minimum,
+     so the nowrap profile toolbar would inflate its column to its own
+     min-content width and never see a narrower container — the measured
+     level controller needs the pane to actually track the window. */
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
   grid-template-rows: 2fr 1fr;
   grid-template-areas:
     "map metrics"
@@ -195,17 +199,33 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* Pins the pane to its grid track. The nowrap toolbar's min-content width
+     must never become the pane's floor — an item's automatic minimum size can
+     make that happen (the pre-rework header already measured 270 px wide
+     inside a 240 px viewport), and the level controller would then measure a
+     container wider than the one the user sees. Measured: with this pin the
+     too-wide row overflows inside the head and the pane tracks the viewport. */
+  min-width: 0;
 }
 
 .profile-head {
   flex: none;
   display: flex;
-  flex-wrap: wrap;
+  /* One line, always: the level controller (refreshControlsFit) measures this
+     row and escalates full → compact → overflow → emergency → minimum rather
+     than letting anything wrap. nowrap + flex-shrink: 0 on the children keep
+     the row at its natural width — it can neither wrap nor squeeze, so a row
+     that does not fit overflows to the right and the controller can see it. */
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  position: relative;
   align-items: center;
   gap: 4px 8px;
   padding: 8px 14px 2px;
   color: var(--foreground-muted);
 }
+
+.profile-head > * { flex-shrink: 0; }
 
 .profile-head h2 {
   font-size: 11px;
@@ -262,46 +282,125 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
 
 .xmode-btn:disabled { opacity: 0.45; cursor: default; }
 
-/* Wide layout: Distance/Time read as text — their icons belong to the phone
-   bar (see the 720 px block below). The Overlays, dual-variable analysis and
-   fit-to-sector controls read as text too, with a border matching the
-   Distance/Time group. */
+/* Wide layout: Distance/Time read as text — their icons belong to the
+   measured compact level (see refreshControlsFit). The Overlays, dual-variable
+   analysis, waypoint-snap and fit-to-sector controls read as text too, with a
+   border matching the Distance/Time group. */
 .xmode-btn .btn-icon-slot,
+#btn-waypoint-snap .btn-icon-slot,
 #btn-overlays .btn-icon-slot,
 #btn-dual-variable .btn-icon-slot,
 #btn-profile-fit-sector .btn-icon-slot { display: none; }
 
-/* Overlays, dual-variable analysis, the waypoint snap toggle and the
-   fit-to-sector command all wear the Distance/Time group's box: the same
-   border colour and radius, and the group's outer height — the group's own
-   1px border top and bottom around a 28px button makes it 30px tall, so the
-   28px `.btn-small` default would leave them 1px short on each edge. */
+/* Overlays, dual-variable analysis, the waypoint snap toggle, the
+   fit-to-sector command and the overflow trigger all wear the Distance/Time
+   group's box: the same border colour and radius, and the group's outer
+   height — the group's own 1px border top and bottom around a 28px button
+   makes it 30px tall, so the 28px `.btn-small` default would leave them 1px
+   short on each edge. */
 #btn-overlays,
 #btn-dual-variable,
 #btn-waypoint-snap,
-#btn-profile-fit-sector {
+#btn-profile-fit-sector,
+#btn-more-controls {
   border-color: var(--border);
   border-radius: var(--radius-m);
   height: 30px;
 }
 
-/* Text vs icon is MEASURED, not a media query: while the localized texts
-   fit, the controls row shares the title's flex line; the moment they wrap,
-   JS (refreshControlsFit in profile-interaction.js) puts .is-compact on
-   #profile-pane and these rules collapse the row to icon-only. The switch
-   width is therefore whatever "Elevation profile" + the translated button
-   labels actually occupy in the current language — no px constant knows
-   every language. The class lives on #profile-pane because the wide rules
-   above use ID selectors. */
-#profile-pane.is-compact .xmode-btn { padding: 3px 8px; }
-#profile-pane.is-compact .xmode-btn span:not(.btn-icon-slot),
+/* The overflow trigger is square: it only ever carries the ellipsis icon. */
+#btn-more-controls { width: 30px; padding: 0; justify-content: center; }
+
+/* Four measured levels, no px constants and no viewport queries — see
+   refreshControlsFit (profile-interaction.js): the controller applies the
+   first level whose row fits the header's actual width and escalates
+
+     full → is-compact → is-overflow → is-emergency → is-minimum
+
+   through the real layout. The classes layer (is-minimum implies emergency
+   implies overflow implies compact), so each level below adds rules to the
+   ones above rather than restating them. Level rules only ever swap text for
+   icons or let JS move whole buttons into the overflow panel — nothing wraps,
+   shrinks, truncates or overlaps at any level (profile-head is nowrap
+   above). */
+
+/* Level 2 — compact: the action buttons go icon-only (accessible names live
+   on via data-i18n-aria). Distance/Time stays textual — the core axis control
+   keeps its segment labels until the emergency level (the spec's priority 1:
+   the x axis switch must stay recognizable, not become two bare icons). */
+#profile-pane.is-compact #btn-waypoint-snap span:not(.btn-icon-slot),
 #profile-pane.is-compact #btn-overlays span:not(.btn-icon-slot),
 #profile-pane.is-compact #btn-dual-variable span:not(.btn-icon-slot),
 #profile-pane.is-compact #btn-profile-fit-sector span:not(.btn-icon-slot) { display: none; }
-#profile-pane.is-compact .xmode-btn .btn-icon-slot,
+#profile-pane.is-compact #btn-waypoint-snap .btn-icon-slot,
 #profile-pane.is-compact #btn-overlays .btn-icon-slot,
 #profile-pane.is-compact #btn-dual-variable .btn-icon-slot,
 #profile-pane.is-compact #btn-profile-fit-sector .btn-icon-slot { display: inline-flex; }
+
+/* Level 4 — emergency: identity text folds into the icon (the visually
+   hidden h2 keeps the heading for assistive tech), the axis toggle drops to
+   its icon variant, and gaps tighten. The minimum level inherits all of it
+   and only sends the remaining row controls into the panel. */
+#profile-pane.is-emergency .profile-head h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+#profile-pane.is-emergency .profile-head { gap: 4px; }
+#profile-pane.is-emergency .xmode-btn { padding: 3px 8px; }
+#profile-pane.is-emergency .xmode-btn span:not(.btn-icon-slot) { display: none; }
+#profile-pane.is-emergency .xmode-btn .btn-icon-slot { display: inline-flex; }
+
+/* The overflow panel hosts the REAL buttons the controller moved out of the
+   row — same nodes, listeners, aria and state, presented as menu rows. These
+   overrides come after the level rules on purpose: a button inside the panel
+   always shows its text label, whatever level the pane is in. */
+.profile-overflow { position: relative; }
+.profile-overflow-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 210px;
+  padding: 6px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-2);
+}
+#profile-pane #profile-overflow-panel .btn,
+#profile-pane #profile-overflow-panel .xmode-toggle {
+  width: 100%;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 30px;
+  border: 0;
+  border-radius: var(--radius-s);
+  padding: 4px 10px;
+  background: transparent;
+}
+#profile-pane #profile-overflow-panel .btn:hover,
+#profile-pane #profile-overflow-panel .xmode-btn:hover {
+  background: var(--surface-hover);
+}
+/* panel rows always read as text … */
+#profile-pane #profile-overflow-panel .btn span:not(.btn-icon-slot),
+#profile-pane #profile-overflow-panel .xmode-btn span:not(.btn-icon-slot) { display: inline; }
+/* … with the row's icon variant (each button's aria carries the name). */
+#profile-pane #profile-overflow-panel .btn .btn-icon-slot,
+#profile-pane #profile-overflow-panel .xmode-btn .btn-icon-slot { display: none; }
+/* the stacked Distance/Time group loses its joined-segment chrome */
+#profile-pane #profile-overflow-panel .xmode-toggle { flex-direction: column; gap: 2px; }
+#profile-pane #profile-overflow-panel .xmode-btn + .xmode-btn { border-inline-start: 0; }
+#profile-pane #profile-overflow-panel .xmode-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+}
 
 /* Tablet / mobile ---------------------------------------------------------- */
 
@@ -310,7 +409,7 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
      Elevation / Gradient / Time data groups. The header stays pinned on top
      (#app is a flex column; only the workspace scrolls). */
   #workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     /* The map row effectively runs at its floor: once a track is loaded the
        metrics row's content pushes the base sizes past the viewport, grid
        free space goes negative and the 44vh growth limit is never reached.

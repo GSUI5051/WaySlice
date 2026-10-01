@@ -25,7 +25,8 @@ setProfileTrack(track);                                // main.js, on every load
 DOM contract: `#profile-body` with `#profile-canvas`, `#profile-tooltip`, `#handle-start`,
 `#handle-end` inside it; `#profile-readout` (the touch probe's fixed telemetry band,
 between `.profile-head` and `#profile-body`), `#btn-x-distance`, `#btn-x-time`,
-`#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector` outside it. Never rename these ids. The
+`#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector`, `#btn-more-controls` with the
+`#profile-overflow-panel` outside it. Never rename these ids. The
 `#profile-tooltip` node stays inside `#profile-body` (absolute) so it tracks the
 workspace scroll natively; the touch probe renders its readings into the fixed band
 between the profile header and the chart instead — part of the profile module itself, so it can never cover
@@ -40,7 +41,7 @@ the plot and never shifts the layout when readings come and go (see
 | `profile-state.js` | The one chart instance's shared mutable state (`state`) + `isWideLayout` | `state`, `isWideLayout` |
 | `profile-data.js` | Pure computation: per-point caches, downsampling, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
 | `profile-render.js` | All canvas drawing: the `sync()` pass and every layer in it, `scheduleSync`, handle/mask positioning | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels` |
-| `profile-interaction.js` | The three input pathways (header controls, canvas pointer — hover/select/zoom + the touch probe gestures, sector handles) + toast + waypoint snapping. The touch pinch/pan/double-tap state machine is NOT here: it is the shared `js/charts/viewport-gestures.js` the dual-variable chart runs too. Never draws | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshSnapToggle`, `unpinWaypoint` |
+| `profile-interaction.js` | The three input pathways (header controls, canvas pointer — hover/select/zoom + the touch probe gestures, sector handles) + toast + waypoint snapping. The touch pinch/pan/double-tap state machine is NOT here: it is the shared `js/charts/viewport-gestures.js` the dual-variable chart runs too. Never draws | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshControlsFit`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | The hover tooltip and the touch probe's readout DOM + content | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |
 
 Dependency graph (arrows = imports; verified against the current import statements and
@@ -195,6 +196,9 @@ conversion, add it there as a pure function with explicit parameters.
   `wirePointer`, sector handles → `wireHandles`).
 - Mutate `state`, then call `scheduleSync()`. Interaction code **never draws** and never
   touches `ctx`.
+- A **header** control also declares its responsive priority: register it in
+  `movableControls()` and in every `LEVEL_ROW` entry that keeps it in the row (rule 8). Its
+  business state must survive any level change.
 
 ### Touch heart-rate zone data
 
@@ -240,6 +244,18 @@ conversion, add it there as a pure function with explicit parameters.
    wheel zoom commits through `zoomStep` for exactly that reason. Never re-derive the window math
    (`zoomWindow` / `panWindow`) or its clamps locally — two copies would drift apart at the edges.
 
+8. The header toolbar degrades by MEASUREMENT, never by a breakpoint or a language check:
+   `refreshControlsFit` walks full → is-compact → is-overflow → is-emergency → is-minimum and keeps
+   the first level whose row fits the pane's real width. `LEVEL_CLASSES` is the level list (the
+   classes are cumulative, so the CSS layers) and `LEVEL_ROW` says which controls stay in the row
+   per level; below the last level the row overflows and the parent layout owns the width. The row
+   never wraps, shrinks a control below its hit area, truncates a label or overlaps buttons — do not
+   add rules that do. Controls that leave the row move as the SAME node into the overflow panel
+   (`#profile-overflow-panel`), so state, listeners and aria survive every level change; nothing is
+   re-implemented for the panel. Priority order is the spec's: Distance/Time is the core axis control
+   (leaves the row last), Fit to sector is the last ACTION to leave, and the identity title folds
+   into its icon only at the emergency level.
+
 ## Testing
 
 **Automated** — `tests/index.html` (serve the repo root, e.g. `python -m http.server`).
@@ -277,6 +293,11 @@ replay at least:
 - x-mode: Distance ↔ Time
 - live switches: language, theme, units, HR-zone edits, the drawer's two heart-rate
   display toggles (bands on/off, hover highlight) while the chart is open
+- header levels: drag the window narrow and watch the toolbar step full → compact → overflow →
+  emergency (and back) — one line at every width, the action labels turn into icons, then the
+  lower-priority controls move into the "More" panel and keep working from there (toggles,
+  overlays menu, axis mode, fit), with a tooltip and an accessible name on every icon-only button.
+  Repeat in French / Spanish / German: no second line, no truncated label
 - mobile viewport (~390 px): no horizontal overflow, layering intact
 
 **Canvas assertions** — pixel probes via `ctx.getImageData` are the practical way to assert

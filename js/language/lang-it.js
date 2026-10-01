@@ -84,6 +84,7 @@ const lang_it = {
   overlays: 'Sovrapposizioni',
   fitToSector: 'Adatta al tratto',
   fitToSectorHint: 'Adatta il grafico al tratto',
+  moreControls: 'Altre azioni',
   legendHr: 'Frequenza cardiaca',
   legendSpeed: 'Velocità',
   legendPace: 'Ritmo',

@@ -26,7 +26,7 @@ setProfileTrack(track);                                // main.js、トラック
 DOM 契約：`#profile-body` の中に `#profile-canvas`、`#profile-tooltip`、`#handle-start`、
 `#handle-end`。外に `#profile-readout`（タッチプローブの固定テレメトリバンド。`.profile-head` と
 `#profile-body` の間）、`#btn-x-distance`、`#btn-x-time`、
-`#btn-waypoint-snap`、`#btn-overlays`、`#btn-profile-fit-sector`。これらの id は絶対に変更しないこと。
+`#btn-waypoint-snap`、`#btn-overlays`、`#btn-profile-fit-sector`、`#btn-more-controls`（`#profile-overflow-panel` 付き）。これらの id は絶対に変更しないこと。
 `#profile-tooltip` ノードは `#profile-body` 内 (absolute) にあり、ワークスペースのスクロールに
 ネイティブに追従します。タッチプローブの読み取りは、ヘッダーとチャートの間にある固定バンド
 （`#profile-readout`）に描かれます。バンドはプロファイルモジュール自身の一部なので、チャートを
@@ -41,7 +41,7 @@ DOM 契約：`#profile-body` の中に `#profile-canvas`、`#profile-tooltip`、
 | `profile-state.js` | チャートインスタンス 1 個分の共有ミュータブル状態（`state`）+ `isWideLayout` | `state`、`isWideLayout` |
 | `profile-data.js` | 純粋計算：ポイント別キャッシュ、ダウンサンプリング、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`sampleOverlay`、`sampleElevation`、`seriesExtremes`、`distToX`、`xToDist`、`clientXtoX`、`xvToPx`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle`、`sectorFitWindow`、`FIT_SECTOR_FRACTION` |
 | `profile-render.js` | Canvas 描画のすべて：`sync()` の描画パスと各レイヤー、`scheduleSync`、ハンドル / マスク配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`refreshHandleLabels` |
-| `profile-interaction.js` | 3 つの入力経路（ヘッダーコントロール、キャンバスポインター——ホバー / ドラッグ選択 / ズームとタッチプローブのジェスチャ、セクターハンドル）+ toast + ウェイポイントスナップ。タッチのピンチ/パン/ダブルタップの状態機械はここにはありません（双変数チャートも動かす共有モジュール `js/charts/viewport-gestures.js` です）。描画はしない | `wireControls`、`wirePointer`、`wireHandles`、`refreshControls`、`refreshSnapToggle`、`unpinWaypoint` |
+| `profile-interaction.js` | 3 つの入力経路（ヘッダーコントロール、キャンバスポインター——ホバー / ドラッグ選択 / ズームとタッチプローブのジェスチャ、セクターハンドル）+ toast + ウェイポイントスナップ。タッチのピンチ/パン/ダブルタップの状態機械はここにはありません（双変数チャートも動かす共有モジュール `js/charts/viewport-gestures.js` です）。描画はしない | `wireControls`、`wirePointer`、`wireHandles`、`refreshControls`、`refreshControlsFit`、`refreshSnapToggle`、`unpinWaypoint` |
 | `profile-tooltip.js` | ホバー tooltip とタッチプローブ読み取りの DOM と内容 | `showTooltipAt`、`hideTooltip`、`resetProbeReadout` |
 
 依存グラフ（矢印 = import。現在の import 文に対照済み。循環なしを維持）：
@@ -179,6 +179,9 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
   `wirePointer`、セクターハンドル → `wireHandles`）。
 - `state` を変更してから `scheduleSync()` を呼ぶ。interaction コードは**描画しない**、`ctx` にも
   触れない。
+- **ヘッダー**のコントロールはレスポンシブ優先度も宣言すること：`movableControls()` と、それを
+  行に残す各 `LEVEL_ROW` エントリに登録する（ルール 8）。ビジネス上の状態はどのレベル変化でも
+  保たれること。
 
 ### 心拍ゾーンデータを扱う
 
@@ -225,6 +228,18 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
    ウィンドウの計算（`zoomWindow` / `panWindow`）やクランプをローカルで再実装しないでください
    —— 2 つの実装は端で必ず食い違います。
 
+8. ヘッダーツールバーは**実測**で段階を下げます。ブレークポイントも言語判定も使いません：
+   `refreshControlsFit` が full → is-compact → is-overflow → is-emergency → is-minimum を順に試し、
+   その行がペインの実際の幅に収まる最初のレベルを採用します。`LEVEL_CLASSES` がレベルの一覧
+   （クラスは累積なので CSS は重ねて書けます）、`LEVEL_ROW` がレベルごとに行へ残すコントロールを
+   決めます。最後のレベルでも収まらない場合は行が右へはみ出し、幅の責任は親レイアウトに移ります。
+   行は決して折り返さず、コントロールをヒットエリア未満に縮めず、ラベルを省略せず、ボタンを
+   重ねません——そうするルールを追加しないでください。行を離れるコントロールは**同じノード**のまま
+   オーバーフローパネル（`#profile-overflow-panel`）へ移るので、状態・リスナー・aria はどのレベル
+   変化でも維持されます（パネル用に実装を複製しないこと）。優先順位は仕様どおり：距離/時間は中核の
+   軸コントロール（最後に行を離れる）、セクターにフィットは最後に行を離れる**アクション**、
+   タイトルがアイコンに畳まれるのは emergency レベルだけです。
+
 ## テスト
 
 **自動** — `tests/index.html`（リポジトリルートを serve、例：`python -m http.server`）。
@@ -259,6 +274,12 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 - x 軸モード：距離 ↔ 時間
 - ライブ切替：言語、テーマ、単位、チャートを開いたままの心拍ゾーン編集、設定ドロワーの
   2 つの心拍表示トグル（バンド ON/OFF、ホバーハイライト）
+- ヘッダーのレベル：ウィンドウを狭めていき、ツールバーが full → compact → overflow →
+  emergency と段階的に変化すること（逆順も）——どの幅でも 1 行、操作ラベルはアイコンになり、
+  次に優先度の低いコントロールが「その他の操作」パネルへ移り、そこからも機能し続けること
+  （トグル、オーバーレイメニュー、軸モード、フィット）。アイコンのみのボタンにはツールチップと
+  アクセシブル名があること。フランス語 / スペイン語 / ドイツ語でも繰り返し、2 行目や
+  省略されたラベルが出ないこと
 - モバイルビューポート（約 390 px）：横方向のオーバーフローなし、レイヤー維持
 
 **Canvas アサーション** — ピクセルプローブ（`ctx.getImageData`）が Canvas 機能を検証する

@@ -81,6 +81,7 @@ const lang_fr = {
   overlays: 'Superpositions',
   fitToSector: 'Ajuster au tronçon',
   fitToSectorHint: 'Ajuster le graphique au tronçon',
+  moreControls: 'Plus d’actions',
   legendHr: 'Fréquence cardiaque',
   legendSpeed: 'Vitesse',
   legendPace: 'Allure',

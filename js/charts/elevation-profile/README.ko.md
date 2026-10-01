@@ -25,7 +25,7 @@ setProfileTrack(track);                                // main.js, 트랙 로드
 DOM 계약: `#profile-body` 안에 `#profile-canvas`, `#profile-tooltip`, `#handle-start`,
 `#handle-end`. 바깥에 `#profile-readout`(터치 프로브의 고정 텔레메트리 밴드. `.profile-head`와
 `#profile-body` 사이), `#btn-x-distance`, `#btn-x-time`,
-`#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector`. 이 id들은 절대 이름을 바꾸지 않습니다.
+`#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector`, `#btn-more-controls`(`#profile-overflow-panel` 포함). 이 id들은 절대 이름을 바꾸지 않습니다.
 `#profile-tooltip` 노드는 `#profile-body` 안(absolute)에 있어 워크스페이스 스크롤을 네이티브하게
 따라갑니다. 터치 프로브의 읽기는 헤더와 차트 사이의 고정 밴드(`#profile-readout`)에 그려집니다. 밴드는
 프로필 모듈 자체의 일부라 차트를 덮을 수 없고, 읽기가 나타나거나 사라져도 레이아웃이 움직이지
@@ -40,7 +40,7 @@ initProfile 참조).
 | `profile-state.js` | 차트 인스턴스 하나의 공유 가변 상태(`state`) + `isWideLayout` | `state`, `isWideLayout` |
 | `profile-data.js` | 순수 계산: 포인트별 캐시, 다운샘플링, 좌표 변환, 오버레이 정의와 토글 규칙. DOM 없음, 형제 모듈 비의존 | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
 | `profile-render.js` | Canvas 그리기 전부: `sync()` 패스와 그 안의 모든 레이어, `scheduleSync`, 핸들 / 마스크 배치 | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels` |
-| `profile-interaction.js` | 세 입력 경로(헤더 컨트롤, 캔버스 포인터 — 호버 / 드래그 선택 / 줌과 터치 프로브 제스처, 구간 핸들) + toast + 웨이포인트 스냅. 터치의 핀치/이동/두 번 탭 상태 머신은 여기 없습니다(이변수 차트도 함께 쓰는 공용 모듈 `js/charts/viewport-gestures.js`입니다). 그리지 않음 | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshSnapToggle`, `unpinWaypoint` |
+| `profile-interaction.js` | 세 입력 경로(헤더 컨트롤, 캔버스 포인터 — 호버 / 드래그 선택 / 줌과 터치 프로브 제스처, 구간 핸들) + toast + 웨이포인트 스냅. 터치의 핀치/이동/두 번 탭 상태 머신은 여기 없습니다(이변수 차트도 함께 쓰는 공용 모듈 `js/charts/viewport-gestures.js`입니다). 그리지 않음 | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshControlsFit`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | 호버 툴팁과 터치 프로브 읽기의 DOM과 내용 | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |
 
 의존 그래프(화살표 = import. 현재 import 문 기준으로 대조 완료. 비순환 유지):
@@ -173,6 +173,9 @@ tap 판정, 차트 밖 tap 기록)를 소유.
   구간 핸들 → `wireHandles`).
 - `state`를 변경한 뒤 `scheduleSync()` 호출. interaction 코드는 **그리지 않고**, `ctx`를
   만지지 않습니다.
+- **헤더** 컨트롤은 반응형 우선순위도 선언해야 합니다: `movableControls()`와, 그 컨트롤을 행에
+  남기는 각 `LEVEL_ROW` 항목에 등록하세요(규칙 8). 비즈니스 상태는 어떤 레벨 변화에서도
+  유지되어야 합니다.
 
 ### 심박 존 데이터 다루기
 
@@ -217,6 +220,18 @@ tap 판정, 차트 밖 tap 기록)를 소유.
    `zoomStep`을 거치는 이유도 같습니다. 창 계산(`zoomWindow` / `panWindow`)이나 클램프를
    로컬에서 다시 구현하지 마세요. 두 벌이 되면 가장자리에서 반드시 어긋납니다.
 
+8. 헤더 도구 모음은 **실측**으로 단계를 내립니다. 브레이크포인트도 언어 판정도 쓰지 않습니다:
+   `refreshControlsFit`이 full → is-compact → is-overflow → is-emergency → is-minimum을 차례로
+   적용하고, 그 행이 페인의 실제 폭에 들어가는 첫 레벨을 채택합니다. `LEVEL_CLASSES`가 레벨
+   목록(클래스는 누적이므로 CSS는 겹쳐 씁니다)이고, `LEVEL_ROW`가 레벨별로 행에 남는 컨트롤을
+   정합니다. 마지막 레벨에서도 들어가지 않으면 행이 오른쪽으로 넘치고 폭의 책임은 상위
+   레이아웃으로 넘어갑니다. 행은 절대 줄바꿈하지 않고, 컨트롤을 히트 영역 아래로 줄이지 않으며,
+   라벨을 자르지 않고, 버튼을 겹치지 않습니다——그렇게 만드는 규칙을 추가하지 마세요. 행을 떠나는
+   컨트롤은 **같은 노드** 그대로 오버플로 패널(`#profile-overflow-panel`)로 옮겨가므로 상태 ·
+   리스너 · aria가 모든 레벨 변화에서 유지됩니다(패널용 구현을 복제하지 마세요). 우선순위는
+   사양 그대로입니다: 거리/시간은 핵심 축 컨트롤(가장 마지막에 행을 떠남), 구간에 맞춤은 가장
+   마지막에 행을 떠나는 **동작**, 제목이 아이콘으로 접히는 것은 emergency 레벨뿐입니다.
+
 ## 테스트
 
 **자동** — `tests/index.html`(저장소 루트를 serve, 예: `python -m http.server`). 스위트는 이 모듈의
@@ -248,6 +263,11 @@ import합니다. Canvas/DOM 부분은 스위트 밖입니다. 공유 수학(`met
 - x축 모드: 거리 ↔ 시간
 - 라이브 전환: 언어, 테마, 단위, 차트가 열린 상태에서의 심박 존 편집, 설정 드로어의 두 심박 표시
   토글(밴드 ON/OFF, 호버 하이라이트)
+- 헤더 레벨: 창을 점점 좁히며 도구 모음이 full → compact → overflow → emergency로 단계적으로
+  바뀌는지(역순도) 확인——모든 폭에서 한 줄, 동작 라벨은 아이콘이 되고, 다음으로 우선순위가 낮은
+  컨트롤이 「기타 동작」 패널로 옮겨가 거기서도 계속 동작해야 합니다(토글, 오버레이 메뉴, 축 모드,
+  맞춤). 아이콘만 있는 버튼에는 툴팁과 접근성 이름이 있어야 합니다. 프랑스어 / 스페인어 /
+  독일어에서도 반복해 두 번째 줄이나 잘린 라벨이 나오지 않는지 확인
 - 모바일 뷰포트(약 390px): 가로 오버플로 없음, 레이어 유지
 
 **Canvas 어설션** — 픽셀 프로브(`ctx.getImageData`)가 Canvas 기능을 검증하는 실용적 방법입니다:

@@ -86,6 +86,7 @@ const lang_es = {
   overlays: 'Superposiciones',
   fitToSector: 'Ajustar al tramo',
   fitToSectorHint: 'Ajustar el gráfico al tramo',
+  moreControls: 'Más acciones',
   legendHr: 'Frecuencia cardíaca',
   legendSpeed: 'Velocidad',
   legendPace: 'Ritmo',

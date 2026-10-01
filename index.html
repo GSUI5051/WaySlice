@@ -189,7 +189,7 @@
 
       <section id="profile-pane" aria-label="Elevation profile">
         <div class="profile-head">
-          <span class="profile-head-icon" data-icon="mountain"></span>
+          <span class="profile-head-icon" data-icon="mountain" data-i18n-title="elevationProfile"></span>
           <h2 data-i18n="elevationProfile">Elevation profile</h2>
           <span id="profile-note" class="profile-note" data-i18n="noElevationData" hidden></span>
           <!-- The whole control row starts hidden: with no track there is
@@ -211,6 +211,7 @@
             <button type="button" id="btn-waypoint-snap" class="btn btn-ghost btn-small snap-toggle" aria-pressed="true"
                     data-i18n-aria="waypointSnap" data-i18n-title="waypointSnap" hidden>
               <span class="btn-icon-slot" data-icon="magnet"></span>
+              <span data-i18n="waypointSnap">Waypoint snap</span>
             </button>
             <button type="button" id="btn-dual-variable" class="btn btn-ghost btn-small" hidden
                     aria-haspopup="dialog" aria-controls="dual-variable-dialog"
@@ -228,6 +229,20 @@
               <span class="btn-icon-slot" data-icon="focus"></span>
               <span data-i18n="fitToSector">Fit to sector</span>
             </button>
+            <!-- Overflow (levels 3+): the responsive controller moves the
+                 lower-priority action BUTTONS themselves into the panel — same
+                 nodes, same listeners, same state, nothing duplicated. The
+                 trigger is a disclosure (aria-expanded + aria-controls), not a
+                 menu: the panel hosts real buttons, not menuitems. -->
+            <div class="profile-overflow" hidden>
+              <button type="button" id="btn-more-controls" class="btn btn-ghost btn-small"
+                      aria-expanded="false" aria-controls="profile-overflow-panel"
+                      data-i18n-aria="moreControls" data-i18n-title="moreControls">
+                <span class="btn-icon-slot" data-icon="ellipsis"></span>
+              </button>
+              <div id="profile-overflow-panel" class="profile-overflow-panel" hidden
+                   role="group" data-i18n-aria="moreControls"></div>
+            </div>
           </div>
         </div>
         <div id="profile-readout" class="profile-readout num"></div>

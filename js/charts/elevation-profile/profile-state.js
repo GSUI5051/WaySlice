@@ -37,6 +37,9 @@ export const state = {
     controls: null,    // the header's .profile-controls row (hidden pre-track)
     snapBtn: null,
     fitBtn: null,
+    overflowWrap: null,  // .profile-overflow — the More trigger + panel wrapper
+    moreBtn: null,       // #btn-more-controls (the ellipsis trigger)
+    overflowPanel: null, // #profile-overflow-panel — hosts the moved buttons
   },
 
   /** The loaded track and its per-point caches (built by profile-data). */

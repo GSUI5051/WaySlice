@@ -79,6 +79,7 @@ const lang_ja = {
   overlays: 'オーバーレイ',
   fitToSector: 'セクターにフィット',
   fitToSectorHint: 'グラフをセクターにフィット',
+  moreControls: 'その他の操作',
   legendHr: '心拍数',
   legendSpeed: '速度',
   legendPace: 'ペース',
