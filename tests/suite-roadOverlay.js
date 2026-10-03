@@ -236,7 +236,7 @@ suite('road overlay / layer stack', () => {
     assert.equal(ROAD_OVERLAY_LAYERS.find((l) => l.id === 'road-overlay-label-road').layout['text-field'][2][3], ' ', 'road labels one-line');
   });
 
-  test('labels are bilingual with the local name smaller; per-layer line layout', () => {
+  test('labels are bilingual with same-size text; per-layer line layout', () => {
     for (const { code } of language.getLanguages()) {
       for (const layerId of ['road-overlay-label-road', 'road-overlay-label-place']) {
         const multiline = layerId === 'road-overlay-label-place';
@@ -252,10 +252,11 @@ suite('road overlay / layer stack', () => {
         assert.deepEqual(primaryKeys, [`name:${code}`, 'name:en', 'name_int', 'name:latin', 'name', 'ref', ''], `primary chain for ${code}/${layerId}`);
         // Secondary: ONLY the raw local name — never name_int/name:latin.
         assert.deepEqual(both[5], ['coalesce', ['get', 'name'], ''], `secondary source for ${code}/${layerId}`);
-        // The primary carries no font-scale; the secondary genuinely reads
-        // smaller at 0.85×.
+        // Both sections styled identically — same font, NO font-scale: the
+        // secondary is exactly as large as the primary, the deliberate
+        // bilingual-map convention (two scripts equally readable).
         assert.deepEqual(both[2], { 'text-font': ['literal', ['Noto Sans Regular']] }, `primary section styling for ${code}/${layerId}`);
-        assert.deepEqual(both[6], { 'text-font': ['literal', ['Noto Sans Regular']], 'font-scale': 0.85 }, `secondary font-scale for ${code}/${layerId}`);
+        assert.deepEqual(both[6], both[2], `identical section styling (no font-scale) for ${code}/${layerId}`);
         // Hidden whenever the primary already is the local name
         // (case-insensitive) or the feature has no local name at all.
         assert.deepEqual(field[1], [

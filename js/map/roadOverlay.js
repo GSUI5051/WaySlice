@@ -10,9 +10,11 @@
  * host the OpenFreeMap basemap styles already use (keyless, CORS-enabled,
  * OpenMapTiles schema, attribution via the TileJSON). Labels are bilingual:
  * primary name follows the UI language (roadOverlayTextField: name:xx →
- * name:en → name_int → name:latin → name) and the local name joins as a
- * smaller second line when it differs — all in the single Noto Sans Regular
- * glyph set. GLYPHS below is the matching style-level font endpoint, which
+ * name:en → name_int → name:latin → name → ref) and the local name joins
+ * at exactly the primary's size when it differs (the bilingual-map
+ * convention — two scripts equally readable; two lines for place names,
+ * one line for road names) — all in the single Noto Sans Regular glyph
+ * set. GLYPHS below is the matching style-level font endpoint, which
  * the raster basemaps' minimal style carries.
  */
 
@@ -93,9 +95,10 @@ const LABEL_PAINT_PLACE = {
  * MapLibre expressions have no whitespace-stripping, so space-only
  * differences still show (vanishingly rare in practice). `name_int`/
  * `name:latin` feed the primary fallback exclusively — the secondary is
- * always the local name itself. The secondary renders at 0.85× the
- * primary's zoom-adaptive size (`font-scale`), so it genuinely reads
- * smaller.
+ * always the local name itself. Both sections carry identical styling —
+ * the secondary renders at exactly the primary's zoom-adaptive size: the
+ * deliberate bilingual-map convention (two scripts equally readable, as
+ * on bilingual street plates), never a size hierarchy.
  *
  * Layout variant by layer: place names stack on two lines (`\n`), road
  * names share one line (space separator).
@@ -126,18 +129,17 @@ export function roadOverlayTextField(layerId, code) {
     ['!=', secondary, ''],
     ['!=', ['downcase', secondary], ['downcase', primary]],
   ];
-  const primarySection = { 'text-font': ['literal', LABEL_FONT] };
-  const secondarySection = { 'text-font': ['literal', LABEL_FONT], 'font-scale': 0.85 };
+  const section = { 'text-font': ['literal', LABEL_FONT] };
   return [
     'case',
     isDifferentName,
     [
       'format',
-      primary, primarySection,
+      primary, section,
       layerId === 'road-overlay-label-place' ? '\n' : ' ', {},
-      secondary, secondarySection,
+      secondary, section,
     ],
-    ['format', primary, primarySection],
+    ['format', primary, section],
   ];
 }
 
