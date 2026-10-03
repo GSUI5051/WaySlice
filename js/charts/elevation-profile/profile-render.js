@@ -63,9 +63,9 @@ const ACTIVE_BAND_ALPHA = 0.54;
 // chart exists; nothing draws before a track anyway).
 const MARGIN = { left: 58, right: 14, top: 4, bottom: 22 };
 
-// Draw order inside uPlot: the overlay curves sit BENEATH the elevation
-// series (its translucent fill tints them, like the old canvas renderer's
-// fixed layer order). series[0] is uPlot's x placeholder.
+// Draw order inside uPlot: the overlay curves draw BENEATH the elevation
+// line (the old canvas renderer's fixed layer order). series[0] is uPlot's
+// x placeholder.
 const SERIES_ORDER = ['hr', 'speed', 'cad', 'temp', 'power', 'ele'];
 
 // One uPlot scale per series; the speed family shares the m/s 'speed' scale
@@ -474,10 +474,10 @@ function buildSeriesConfigs() {
       width: 1.5,
       spanGaps: true,
       stroke: () => tokens.line,
-      fill: () => withAlpha(tokens.line, 0.14),
-      // The area fill reaches the scale's lower bound (the plot bottom), not
-      // y=0 — elevation scales never start at sea level.
-      fillTo: (u) => u.scales.ele.min,
+      // Line only — the area fill below the curve was dropped by design
+      // (user decision, 2026-10-03): the profile reads as a clean line,
+      // the sector highlight carries the accent.
+      fill: null,
       points: { show: () => false },
     },
   ];
@@ -599,27 +599,6 @@ function monoFont() {
   return `10px ${css.getPropertyValue('--font-mono') || 'monospace'}`;
 }
 
-/** @private Hex/rgb token value → rgba() at `alpha`; unknown formats pass
- *  through unchanged (the tokens are plain hex in both themes). */
-function withAlpha(color, alpha) {
-  let m = /^#([0-9a-f]{6})$/i.exec(color);
-  if (m) {
-    const n = parseInt(m[1], 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-  }
-  m = /^#([0-9a-f]{3})$/i.exec(color);
-  if (m) {
-    const n = parseInt(m[1], 16);
-    return `rgba(${(n >> 8) & 15} * 17, ${(n >> 4) & 15} * 17, ${(n & 15) * 17}, ${alpha})`;
-  }
-  m = /^rgba?\(([^)]+)\)$/i.exec(color);
-  if (m) {
-    const parts = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
-    return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
-  }
-  return color;
-}
-
 // ---------------------------------------------------------------------------
 // Annotation canvas — WaySlice's business layers over the uPlot chart.
 // ---------------------------------------------------------------------------
@@ -714,8 +693,9 @@ function drawOverlayStrip() {
 /** @private The sector highlight: the full-resolution elevation path
  *  re-drawn in the accent color, clipped to the sector ∩ visible window —
  *  a pure view-layer statement about the SAME series uPlot drew (no second
- *  data pass, no re-sampling). Paths are cached per (sector, view, plot,
- *  track, mode) so hover frames only re-stroke. */
+ *  data pass, no re-sampling). The path is cached per (sector, view, plot,
+ *  track, mode) so hover frames only re-stroke. Line only: the area fill
+ *  below the curve was dropped by design (user decision, 2026-10-03). */
 function drawSectorAccent() {
   const { track, view, xs, plot } = state;
   if (!track.hasElevation || !scalesCache?.ele) return;
@@ -734,16 +714,13 @@ function drawSectorAccent() {
     plot.x0, plot.y0, plot.w, plot.h,
   ].join('|');
   if (!accentCache || accentCache.key !== cacheKey) {
-    accentCache = { key: cacheKey, ...buildAccentPaths(sA, sB) };
+    accentCache = { key: cacheKey, stroke: buildAccentPath(sA, sB) };
   }
+  if (!accentCache.stroke) return;
   ctx.save();
   ctx.beginPath();
   ctx.rect(pxA, plot.y0, pxB - pxA, plot.h);
   ctx.clip();
-  ctx.globalAlpha = 0.22;
-  ctx.fillStyle = tokens.accent;
-  ctx.fill(accentCache.fill);
-  ctx.globalAlpha = 1;
   ctx.strokeStyle = tokens.accent;
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
@@ -751,11 +728,11 @@ function drawSectorAccent() {
   ctx.restore();
 }
 
-/** @private Builds the accent stroke path (the elevation polyline across the
- *  sector span) and its area fill (closed down to the scale's lower bound).
- *  Points one bracket outside each edge are included so the clip cuts clean
- *  vertical boundaries. Null readings bridge, exactly like uPlot's spanGaps. */
-function buildAccentPaths(sA, sB) {
+/** @private Builds the accent stroke path — the elevation polyline across
+ *  the sector span. Points one bracket outside each edge are included so
+ *  the clip cuts clean vertical boundaries. Null readings bridge, exactly
+ *  like uPlot's spanGaps. */
+function buildAccentPath(sA, sB) {
   const { xs, view, plot } = state;
   const ele = trackSeries(state.track).ele;
   const [n0] = bracketX(sA, xs);
@@ -764,30 +741,14 @@ function buildAccentPaths(sA, sB) {
   const hi = Math.min(xs.length - 1, n1 + 1);
   const px = (v) => xvToPx(v, view, xs, plot);
   const stroke = new Path2D();
-  const fill = new Path2D();
   let pen = false;
-  let first = null;
-  let last = null;
   for (let i = lo; i <= hi; i++) {
     const eleVal = ele[i];
     if (eleVal == null) continue;
-    const xPx = px(xs[i]);
-    const yPx = pyOf(eleVal, 'ele');
-    stroke.lineTo(xPx, yPx);
-    if (pen) fill.lineTo(xPx, yPx);
-    else fill.moveTo(xPx, yPx);
+    stroke.lineTo(px(xs[i]), pyOf(eleVal, 'ele'));
     pen = true;
-    first ??= xPx;
-    last = xPx;
   }
-  if (pen) {
-    // Area fill from the polyline down to the plot bottom (the scale's
-    // lower bound — the same fillTo the uPlot elevation series uses).
-    fill.lineTo(last, plot.y0 + plot.h);
-    fill.lineTo(first, plot.y0 + plot.h);
-    fill.closePath();
-  }
-  return { stroke, fill };
+  return pen ? stroke : null;
 }
 
 /** @private Waypoint annotations on the profile — the map's pins in profile

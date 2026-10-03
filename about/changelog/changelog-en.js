@@ -20,6 +20,7 @@ export const CHANGELOG_EN = {
       ps: [
         'The elevation profile is now rendered by the uPlot chart library, which is lazy-loaded on the first imported track — opening the app downloads nothing of it.',
         'The profile chart draws the complete raw track series: the per-pixel-column downsampling was removed, so narrow spikes render at full amplitude and the overlay axis strip always reads the same values as the metrics list.',
+        'The elevation profile is drawn as a line only: the translucent area fill below the curve is gone.'
       ],
     },
     {

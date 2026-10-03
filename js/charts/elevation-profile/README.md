@@ -11,7 +11,7 @@ code belongs, which rules keep the architecture sound, and how changes are verif
 
 The elevation / telemetry profile is the chart under the map, rendered by **uPlot** (the
 vendored ES module in `vendor/uplot/`, lazy-loaded on the first track — see
-`uplot-loader.js`): elevation area, metric overlay curves (heart rate, speed/pace/GAP,
+`uplot-loader.js`): elevation line, metric overlay curves (heart rate, speed/pace/GAP,
 cadence, temperature, power), heart-rate zone bands, grid and axes. uPlot always draws the
 COMPLETE raw series — zooming and the sector view act on the chart's x scale range, never
 on the data; there is no per-pixel-column downsampling anywhere in the draw path. WaySlice
@@ -127,7 +127,8 @@ every y scale is set explicitly with `setScale` (uPlot never re-ranges an explic
 setScale — WaySlice's full-resolution ranges ARE the chart's ranges); the x scale is set
 to the view window (`state.view`, or the full domain). uPlot then draws: grid, axes, x
 ticks (the shared `niceStep` rule), HR zone bands (`drawAxes` hook, beneath every
-series), the overlay curves and the elevation area (full-resolution, `spanGaps`), and —
+series), the overlay curves and the elevation line (full-resolution, `spanGaps`, line only —
+the area fill below the curve was dropped by design, user decision 2026-10-03), and —
 for tracks without elevation — the flat dashed reference line (`draw` hook, above the
 series). uPlot's cursor and legend are disabled: it binds no pointer listeners.
 
@@ -171,7 +172,7 @@ Rules baked into this pass:
   highlight — and no highlight without the drawer's
   highlight toggle either (`js/metrics/heartRateDisplay.js`): it needs the band toggle on,
   and its stored choice survives while the bands are hidden.
-- Draw order matters: zone bands → overlay lines → elevation area → highlight → hover.
+- Draw order matters: zone bands → overlay lines → elevation line → highlight → hover.
 - Chart update granularity: view change → `setScale('x')` only; overlay toggle → `show`
   flags; track/x-mode → `setData` with the swapped caches; theme → per-draw color
   functions (a plain redraw); resize → `setSize` (never destroy/recreate). Hover frames
