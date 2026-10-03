@@ -8,7 +8,7 @@
 import * as theme from './theme/theme.js';
 import * as language from './language/language.js';
 import * as units from './units/units.js';
-import { initMap, setTrack as mapSetTrack, fitTrack, fitSector, showHover as mapShowHover, setWaypointsVisible } from './map/mapView.js';
+import { initMap, setTrack as mapSetTrack, fitTrack, fitSector, showHover as mapShowHover, setWaypointsVisible, toggleRoadOverlay } from './map/mapView.js';
 import { initProfile, setProfileTrack } from './charts/elevation-profile/index.js';
 import { initDualVariableAnalysis } from './charts/dual-variable-analysis/index.js';
 import { initMetricsPanel } from './ui/metricsPanel.js';
@@ -67,6 +67,7 @@ async function boot() {
   });
   wireHeader();
   wireWaypoints();
+  wireRoadOverlay();
   wireStores();
   wireLanguage();
 }
@@ -126,6 +127,22 @@ function refreshWaypointsButton() {
   const key = waypointsVisible ? 'waypointsHide' : 'waypointsShow';
   btn.title = t(key);
   btn.setAttribute('aria-label', t(key));
+}
+
+/**
+ * @private Satellite road-network overlay toggle (top-left map button).
+ * mapView owns the state — it force-resets on every basemap change — and
+ * broadcasts roadOverlay:changed {available, enabled}; this only mirrors it
+ * into the button. The label is static (data-i18n), so the language switch
+ * needs no listener here.
+ */
+function wireRoadOverlay() {
+  const btn = document.getElementById('btn-road-overlay');
+  btn.addEventListener('click', () => toggleRoadOverlay());
+  on('roadOverlay:changed', ({ available, enabled }) => {
+    btn.disabled = !available;
+    btn.setAttribute('aria-pressed', String(enabled));
+  });
 }
 
 /**

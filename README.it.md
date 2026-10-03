@@ -88,6 +88,10 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   cliccandola la mappa si centra su di essa senza cambiare il livello di zoom. Le puntine funzionano
   anche da tastiera: Tab passa da una all'altra, Invio o Spazio centra la mappa e una puntina con il
   focus mostra la sua soffietta, come al passaggio del mouse.
+- **Mappa satellite ibrida.** Il pulsante in alto a sinistra dell'area mappa attiva una
+  sovrapposizione della rete stradale sulle basi satellitari: strade vettoriali, nomi delle strade
+  ed etichette dei luoghi vengono disegnati sopra le immagini — sempre sotto la traccia. Il
+  pulsante è attivo solo con una base satellitare, e cambiare base spegne la sovrapposizione.
 - **Zoom a rotella del profilo (desktop), zoom a pizzico (touch).** Passa col cursore sul profilo
   altimetrico e scorri per ingrandire l'asse distanza/tempo attorno al cursore; Maiusc + trascinamento
   per spostarlo; sul touch, un dito sposta e un pizzico di due dita fa zoom. Un doppio clic in un punto qualsiasi del

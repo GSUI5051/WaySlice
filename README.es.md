@@ -89,6 +89,10 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   zoom. Las chinchetas también se manejan con el teclado: Tab se mueve entre ellas, Intro o Espacio
   centra el mapa, y al enfocar una chincheta se muestra su ventana emergente con el nombre, igual que
   al pasar el cursor.
+- **Mapa satelital híbrido.** El botón en la esquina superior izquierda del mapa activa una
+  superposición de red viaria en las bases satelitales: carreteras vectoriales, nombres de calles
+  y etiquetas de lugares se dibujan sobre la imagen — siempre bajo la traza. El botón solo está
+  activo con una base satelital, y cambiar de base apaga la superposición.
 - **Zoom con rueda en el perfil (escritorio), zoom por pellizco (táctil).** Coloca el cursor sobre el
   perfil altimétrico y haz scroll para hacer zoom en su eje de distancia/tiempo alrededor del cursor;
   Mayús + arrastre para desplazarlo; en pantallas táctiles, un dedo desplaza y un pellizco de dos dedos hace zoom. Doble

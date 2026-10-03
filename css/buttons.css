@@ -35,9 +35,11 @@
 @media (hover: none) and (pointer: coarse) {
   #app-header .btn,
   #map-fit .btn,
+  #map-tools .btn,
   .profile-head .btn { position: relative; }
   #app-header .btn::after,
-  #map-fit .btn::after { content: ""; position: absolute; inset: -6px; }
+  #map-fit .btn::after,
+  #map-tools .btn::after { content: ""; position: absolute; inset: -6px; }
   .profile-head .btn::after { content: ""; position: absolute; inset: -8px -5px; }
 }
 

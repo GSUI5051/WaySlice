@@ -35,6 +35,7 @@ const lang_en = {
 
   // Header controls
   mapSource: 'Map',
+  roadOverlay: 'Road network overlay',
   appearance: 'Theme',
   language: 'Language',
   units: 'Units',

@@ -167,6 +167,16 @@
     <main id="workspace">
       <section id="map-pane" aria-label="Track map">
         <div id="map"></div>
+        <!-- Road-network overlay column (top-left): a vertical group that
+             currently holds one toggle. Enabled only while a satellite
+             basemap is active — js/map/mapView.js owns the state and
+             broadcasts roadOverlay:changed, wired in js/main.js. -->
+        <div id="map-tools">
+          <button type="button" id="btn-road-overlay" class="btn btn-icon btn-elevated" aria-pressed="false" disabled
+                  data-i18n-aria="roadOverlay" data-i18n-title="roadOverlay">
+            <span class="btn-icon-slot" data-icon="map"></span>
+          </button>
+        </div>
         <div id="map-fit">
           <button type="button" id="btn-fit" class="btn btn-icon btn-elevated" data-i18n-aria="zoomToFit" data-i18n-title="zoomToFit">
             <span class="btn-icon-slot" data-icon="maximize"></span>

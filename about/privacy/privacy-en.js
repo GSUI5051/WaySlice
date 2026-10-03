@@ -30,7 +30,7 @@ export const PRIVACY_EN = {
     {
       h: 'The only network-dependent feature: the map',
       ps: [
-        'The only network-dependent feature is the map. Basemap tiles are downloaded from the map providers\' servers: OpenStreetMap, OpenTopoMap, CyclOSM, Thunderforest, Mapy, Stadia, OpenFreeMap, EOX and Esri.',
+        'The only network-dependent feature is the map. Basemap tiles are downloaded from the map providers\' servers: OpenStreetMap, OpenTopoMap, CyclOSM, Thunderforest, Mapy, Stadia, OpenFreeMap, EOX and Esri. On a satellite basemap, the optional road-network overlay additionally loads vector road tiles from OpenFreeMap.',
         'The map request is the only web request, like image loading on any page. Your track, your files and your settings never leave your own browser.',
       ],
     },

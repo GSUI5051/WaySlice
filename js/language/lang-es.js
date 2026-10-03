@@ -39,6 +39,7 @@ const lang_es = {
 
   // Header controls
   mapSource: 'Mapa',
+  roadOverlay: 'Superposición de red viaria',
   appearance: 'Tema',
   language: 'Idioma',
   units: 'Unidades',

@@ -19,9 +19,10 @@
 .overlay-state .state-card { pointer-events: auto; }
 
 /* No track, no map chrome: while the state overlay is up the map area shows
-   only the state card. #map-fit would otherwise show through the frost —
-   the .maplibregl-ctrl-* counterpart lives in css/map.css. */
-#map-pane:has(#overlay-state:not([hidden])) #map-fit {
+   only the state card. #map-fit and #map-tools would otherwise show through
+   the frost — the .maplibregl-ctrl-* counterpart lives in css/map.css. */
+#map-pane:has(#overlay-state:not([hidden])) #map-fit,
+#map-pane:has(#overlay-state:not([hidden])) #map-tools {
   display: none;
 }
 

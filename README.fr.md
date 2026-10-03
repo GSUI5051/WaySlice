@@ -89,6 +89,10 @@ majuscule, il faut le prendre exactement au sens suivant :
   altimétrique, et cliquer dessus centre la carte dessus sans changer le niveau de zoom. Les épingles
   se manipulent aussi au clavier : Tab passe de l'une à l)autre, Entrée ou Espace centre la carte, et
   le focus sur une épingle affiche son info-bulle, comme au survol.
+- **Carte satellite hybride.** Le bouton en haut à gauche de la carte active une superposition du
+  réseau routier sur les fonds satellite : routes vectorielles, noms de rues et toponymes se
+  dessinent au-dessus de l'imagerie — toujours sous la trace. Le bouton n'est actif que sur un
+  fond satellite, et changer de fond désactive la superposition.
 - **Zoom molette du profil (bureau), zoom par pincement (tactile).** Survolez le profil altimétrique
   et faites défiler pour zoomer son axe distance/temps autour du curseur ; Maj + glisser pour
   déplacer ; sur tactile, un doigt déplace et un pincement à deux doigts fait de même. Double-cliquer n'importe où sur

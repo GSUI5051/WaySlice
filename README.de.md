@@ -88,6 +88,10 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   Karte darauf, ohne die Zoomstufe zu ändern. Die Pins lassen sich auch per Tastatur bedienen: Tab
   springt zwischen ihnen, Enter oder Leertaste zentriert die Karte, und ein fokussierter Pin zeigt
   seinen Namens-Tooltip genauso wie beim Überfahren mit der Maus.
+- **Hybrid-Satellitenkarte.** Der Knopf oben links im Kartenbereich blendet bei Satellitenbasemaps
+  ein Straßenoverlay ein: Vektorstraßen, Straßennamen und Ortsbeschriftungen liegen über dem
+  Satellitenbild — immer unter deinem Track. Der Schalter ist nur bei einer Satellitenbasemap
+  aktiv, und ein Basemap-Wechsel blendet das Overlay wieder aus.
 - **Profil-Zoom mit dem Mausrad (Desktop), Pinch-Zoom (Touchscreen).** Fahre über das Höhenprofil
   und scrolle, um seine Distanz-/Zeitachse um den Zeiger herum zu zoomen; mit Umschalt + Ziehen
   verschiebst du es; am Touchscreen verschiebt ein Finger und zoomt ein Zwei-Finger-Pinch. Ein Doppelklick irgendwo auf das

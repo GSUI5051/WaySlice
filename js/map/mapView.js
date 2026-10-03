@@ -23,6 +23,9 @@ import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
 import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
 import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
+import {
+  ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
+} from './roadOverlay.js';
 import { cssToken } from '../utils/cssToken.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
 import { formatDistanceShort } from '../utils/format.js';
@@ -56,6 +59,10 @@ let trackWired = false;
 /** True while the basemap is a provider style (vector) rather than our
  * minimal style with a raster layer hung off it. */
 let styleIsProvider = false;
+/** Satellite road-network overlay: true while the vector road/label layers
+ * ride above the satellite raster. Only reachable while a satellite basemap
+ * is active — any switch to another group resets it (see syncRoadOverlay). */
+let roadOverlayOn = false;
 
 const layers = {
   startHandle: null,
@@ -111,8 +118,15 @@ function switchStyle(style, fn, contentful = true) {
 }
 
 /** The bare style the raster basemaps hang off. Fresh object per use —
- * MapLibre takes ownership of what it is handed. */
-const minimalStyle = () => ({ version: 8, sources: {}, layers: [] });
+ * MapLibre takes ownership of what it is handed. The glyphs endpoint exists
+ * for the satellite road overlay's text layers and stays unfetched until
+ * such a layer actually renders. */
+const minimalStyle = () => ({
+  version: 8,
+  glyphs: ROAD_OVERLAY_GLYPHS,
+  sources: {},
+  layers: [],
+});
 
 /** Re-styles track, sector, handle and waypoint colors after a theme flip. */
 function applyMapTheme() {
@@ -329,8 +343,10 @@ function setSource(source) {
     // Vector basemap (Stadia Direct Access): the provider style replaces the
     // whole style and carries its own attribution via the TileJSON. setStyle
     // wipes the track vectors along with the old basemap, so they are re-hung
-    // on readiness; markers are DOM and survive on their own.
+    // on readiness; markers are DOM and survive on their own. Leaving the
+    // satellite group retires the road overlay (and its button) up front.
     styleIsProvider = true;
+    syncRoadOverlay();
     switchStyle(source.styleUrl, () => {
       map.setMaxZoom(source.maxZoom);
       hangTrackGeometry();
@@ -345,11 +361,13 @@ function setSource(source) {
       hangTrackGeometry();
       addRasterLayers(source);
       map.setMaxZoom(source.maxZoom);
+      syncRoadOverlay();
     }, false);
     return;
   }
   addRasterLayers(source);
   map.setMaxZoom(source.maxZoom);
+  syncRoadOverlay();
 }
 
 /** @private Adds the raster basemap layer(s) at the bottom of the style stack,
@@ -360,6 +378,95 @@ function addRasterLayers(source) {
   if (map.getSource('basemap')) map.removeSource('basemap');
   map.addSource('basemap', createRasterSource(source));
   map.addLayer({ id: 'basemap-layer', type: 'raster', source: 'basemap' }, beforeId);
+}
+
+/* Satellite road-network overlay ------------------------------------------------
+ *
+ * Strictly a satellite-basemap feature: every catalog source in the
+ * `satellite` group is a raster basemap on the minimal style, so the overlay
+ * source/layers can never collide with a provider style — switching to any
+ * vector provider basemap turns the overlay off and drops it (its style is
+ * wiped by setStyle anyway). Toggle OFF keeps the layers mounted and hides
+ * them through MapLibre's native visibility; leaving the satellite group
+ * removes source and layers outright. */
+
+/** @private True while the active basemap belongs to the satellite group. */
+function satelliteBasemapActive() {
+  const source = MAP_SOURCES.find((s) => s.id === currentSourceId);
+  return !!source && source.group === 'satellite';
+}
+
+/** @private Broadcasts the button state (disabled + pressed) to the UI. */
+function emitRoadOverlayState() {
+  emit('roadOverlay:changed', { available: satelliteBasemapActive(), enabled: roadOverlayOn });
+}
+
+/** @private Shows or hides the mounted overlay layers (no-op before a mount). */
+function setRoadOverlayVisibility(visible) {
+  for (const layer of ROAD_OVERLAY_LAYERS) {
+    if (map.getLayer(layer.id)) {
+      map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
+    }
+  }
+}
+
+/** @private Idempotently mounts the overlay on the ACTIVE style and shows it —
+ * after the first enable or any setStyle wipe. Each layer goes before the
+ * track vectors (above the satellite raster), and a layer that already exists
+ * is only flipped back to visible, so reloads never duplicate source/layers. */
+function ensureRoadOverlayLayers() {
+  if (!map.getSource(ROAD_OVERLAY_SOURCE_ID)) map.addSource(ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE);
+  const beforeId = map.getLayer('track-casing') ? 'track-casing' : undefined;
+  for (const layer of ROAD_OVERLAY_LAYERS) {
+    if (map.getLayer(layer.id)) {
+      map.setLayoutProperty(layer.id, 'visibility', 'visible');
+      continue;
+    }
+    map.addLayer(layer, beforeId);
+  }
+}
+
+/** @private Drops the overlay source and layers entirely (idempotent). */
+function removeRoadOverlay() {
+  for (const layer of ROAD_OVERLAY_LAYERS) {
+    if (map.getLayer(layer.id)) map.removeLayer(layer.id);
+  }
+  if (map.getSource(ROAD_OVERLAY_SOURCE_ID)) map.removeSource(ROAD_OVERLAY_SOURCE_ID);
+}
+
+/** @private Aligns the overlay with the current basemap. Every setSource
+ * funnels through here (inline for raster→raster swaps, in the style-ready
+ * callback after a provider-style round trip), so the mounted layers, the
+ * toggle state and the button can never drift apart — including across style
+ * reloads, which wipe the layers and are re-mounted by the ensure step. */
+function syncRoadOverlay() {
+  if (!map) return;
+  if (!satelliteBasemapActive()) {
+    roadOverlayOn = false;
+    removeRoadOverlay();
+  } else if (roadOverlayOn) {
+    ensureRoadOverlayLayers();
+  } else {
+    setRoadOverlayVisibility(false);
+  }
+  emitRoadOverlayState();
+}
+
+/** Toggles the satellite road-network overlay. A no-op while a non-satellite
+ * basemap is active — the button is disabled there. */
+export function toggleRoadOverlay() {
+  if (!map || !satelliteBasemapActive()) return;
+  roadOverlayOn = !roadOverlayOn;
+  if (roadOverlayOn) ensureRoadOverlayLayers();
+  else setRoadOverlayVisibility(false);
+  emitRoadOverlayState();
+}
+
+/** Scenario-tool hook: the live MapLibre instance, or null before the first
+ * track creates it. Read-only — tools assert style state (overlay layers,
+ * duplicates, stacking order) against the real map. */
+export function getMapInstance() {
+  return map;
 }
 
 /**

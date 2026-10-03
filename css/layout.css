@@ -192,6 +192,27 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   gap: 8px;
 }
 
+/* The map area's top-left button column (satellite road-network overlay).
+   Mirrors #map-fit's geometry: same offsets, same column flow, same
+   .btn/.btn-elevated component styling. */
+#map-tools {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-start: 12px;
+  z-index: var(--z-map-controls);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Pressed toggle state follows the app's toggle family (snap toggle, segment
+   chips): accent fill with accent text. The id keeps it above .btn:hover. */
+#map-tools .btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-strong);
+}
+
 #metrics-pane {
   grid-area: metrics;
   background: var(--surface);

@@ -36,6 +36,7 @@ const lang_de = {
 
   // Header controls
   mapSource: 'Karte',
+  roadOverlay: 'Straßennetz-Overlay',
   appearance: 'Design',
   language: 'Sprache',
   units: 'Einheiten',
