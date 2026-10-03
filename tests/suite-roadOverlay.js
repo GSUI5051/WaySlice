@@ -10,7 +10,7 @@ import { suite, test, assert } from './runner.js';
 import { MAP_SOURCES } from '../js/map/sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
-  roadOverlayTextField,
+  roadOverlayTextField, ROAD_OVERLAY_STORAGE_KEY, savedRoadOverlayOn, saveRoadOverlayOn,
 } from '../js/map/roadOverlay.js';
 import * as language from '../js/language/language.js';
 import '../js/language/langs.js';
@@ -150,6 +150,24 @@ suite('road overlay / layer stack', () => {
     for (const layer of ROAD_OVERLAY_LAYERS) {
       assert.equal(layer.layout.visibility, 'visible', `initial visibility of ${layer.id}`);
     }
+  });
+});
+
+suite('road overlay / persisted toggle', () => {
+  test('the preference round-trips through localStorage and defaults to off', () => {
+    localStorage.removeItem(ROAD_OVERLAY_STORAGE_KEY);
+    assert.equal(savedRoadOverlayOn(), false, 'absent preference = off');
+    saveRoadOverlayOn(true);
+    assert.equal(localStorage.getItem(ROAD_OVERLAY_STORAGE_KEY), 'on');
+    assert.equal(savedRoadOverlayOn(), true);
+    saveRoadOverlayOn(false);
+    assert.equal(localStorage.getItem(ROAD_OVERLAY_STORAGE_KEY), 'off');
+    assert.equal(savedRoadOverlayOn(), false);
+    localStorage.removeItem(ROAD_OVERLAY_STORAGE_KEY);
+  });
+
+  test('the storage key follows the wayslice- convention', () => {
+    assert.equal(ROAD_OVERLAY_STORAGE_KEY, 'wayslice-road-overlay');
   });
 });
 

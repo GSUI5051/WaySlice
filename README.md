@@ -184,7 +184,7 @@ Then open <http://localhost:8080> and drop a GPX/FIT/TCX/KML/KMZ file.
 - Your track is processed **only** in your browser: parse → analyze → render, all local.
 - The only network requests are **map tiles** from the basemap you choose. Your track data is
   never transmitted, and there is no analytics.
-- Theme, language, basemap and unit choices are stored in `localStorage` on your device only.
+- Theme, language, basemap, unit and road-overlay toggle choices are stored in `localStorage` on your device only.
 - This statement is also available in the app: **About → Privacy** in the `Settings` drawer
   (gear button in the header).
 
@@ -301,7 +301,7 @@ edit a JavaScript file, you can translate the app.
 5. Submit a pull request.
 
 Missing keys fall back to English (and then to the key itself), so the UI never shows
-`undefined`. Language, theme and basemap choices survive reloads in `localStorage`.
+`undefined`. Language, theme, basemap and road-overlay choices survive reloads in `localStorage`.
 
 ### Adding or editing basemaps
 

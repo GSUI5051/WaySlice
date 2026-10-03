@@ -199,7 +199,7 @@ Poi apri <http://localhost:8080> e trascina un file GPX/FIT/TCX/KML/KMZ.
   locale.
 - Le uniche richieste di rete sono i **tile cartografici** della mappa di base che scegli. I dati della
   tua traccia non vengono mai trasmessi e non ci sono statistiche d'uso.
-- Tema, lingua, mappa di base e unità sono salvati solo nel `localStorage` del tuo dispositivo.
+- Tema, lingua, mappa di base, unità e lo stato della sovrapposizione stradale sono salvati solo nel `localStorage` del tuo dispositivo.
 - Questo testo è disponibile anche nell'app: **Informazioni → Privacy** in `Impostazioni`
   (bottone a ingranaggio dell'intestazione).
 
@@ -323,7 +323,7 @@ modificare un file JavaScript, puoi tradurre l'app.
 5. Invia una pull request.
 
 Le chiavi mancanti ripiegano sull'inglese (poi sulla chiave stessa), quindi l'interfaccia non mostra
-mai `undefined`. Le scelte di lingua, tema e mappa di base sopravvivono ai ricaricamenti nel
+mai `undefined`. Le scelte di lingua, tema, mappa di base e sovrapposizione stradale sopravvivono ai ricaricamenti nel
 `localStorage`.
 
 ### Aggiungere o modificare mappe di base

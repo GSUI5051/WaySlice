@@ -25,7 +25,7 @@ import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
 import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
-  roadOverlayTextField,
+  roadOverlayTextField, savedRoadOverlayOn, saveRoadOverlayOn,
 } from './roadOverlay.js';
 import { cssToken } from '../utils/cssToken.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
@@ -59,9 +59,11 @@ let trackWired = false;
 /** True while the basemap is a provider style (vector) rather than our
  * minimal style with a raster layer hung off it. */
 let styleIsProvider = false;
-/** Satellite road-network overlay: true while the vector road/label layers
- * ride above the satellite raster. Only reachable while a satellite basemap
- * is active — any switch to another group resets it (see syncRoadOverlay). */
+/** Satellite road-network overlay: the LIVE flag — true while the vector
+ * road/label layers ride above the satellite raster. On a satellite basemap
+ * it mirrors the persisted preference (re-read on every sync); any
+ * non-satellite basemap resets it to false while the preference survives
+ * (see syncRoadOverlay). */
 let roadOverlayOn = false;
 
 const layers = {
@@ -373,10 +375,12 @@ function addRasterLayers(source) {
  * Strictly a satellite-basemap feature: every catalog source in the
  * `satellite` group is a raster basemap on the minimal style, so the overlay
  * source/layers can never collide with a provider style — switching to any
- * vector provider basemap turns the overlay off and drops it (its style is
- * wiped by setStyle anyway). Toggle OFF keeps the layers mounted and hides
- * them through MapLibre's native visibility; leaving the satellite group
- * removes source and layers outright. */
+ * vector provider basemap suspends the overlay (layers dropped, button
+ * disabled) without erasing the choice, and the next satellite basemap
+ * restores it from localStorage. Toggle OFF hides the mounted layers through
+ * MapLibre's native visibility. The stored preference is the truth: every
+ * sync re-reads it, so the overlay state is stable across basemap switches
+ * and page reloads alike. */
 
 /** @private True while the active basemap belongs to the satellite group. */
 function satelliteBasemapActive() {
@@ -446,28 +450,31 @@ function removeRoadOverlay() {
  * funnels through here (inline for raster→raster swaps, in the style-ready
  * callback after a provider-style round trip), so the mounted layers, the
  * toggle state and the button can never drift apart — including across style
- * reloads, which wipe the layers and are re-mounted by the ensure step. */
+ * reloads, which wipe the layers and are re-mounted by the ensure step. On a
+ * satellite basemap the stored preference is the truth and is re-read on
+ * every pass, so the overlay state survives basemap switches and page
+ * reloads alike; a non-satellite basemap suspends it without erasing. */
 function syncRoadOverlay() {
   if (!map) return;
   if (!satelliteBasemapActive()) {
     roadOverlayOn = false;
     removeRoadOverlay();
-  } else if (roadOverlayOn) {
-    ensureRoadOverlayLayers();
   } else {
-    setRoadOverlayVisibility(false);
+    roadOverlayOn = savedRoadOverlayOn();
+    if (roadOverlayOn) ensureRoadOverlayLayers();
+    else setRoadOverlayVisibility(false);
   }
   emitRoadOverlayState();
 }
 
-/** Toggles the satellite road-network overlay. A no-op while a non-satellite
+/** Toggles the satellite road-network overlay and persists the choice — the
+ * stored preference is what every later sync restores, so the state holds
+ * across basemap switches and sessions. A no-op while a non-satellite
  * basemap is active — the button is disabled there. */
 export function toggleRoadOverlay() {
   if (!map || !satelliteBasemapActive()) return;
-  roadOverlayOn = !roadOverlayOn;
-  if (roadOverlayOn) ensureRoadOverlayLayers();
-  else setRoadOverlayVisibility(false);
-  emitRoadOverlayState();
+  saveRoadOverlayOn(!savedRoadOverlayOn());
+  syncRoadOverlay();
 }
 
 /** Scenario-tool hook: the live MapLibre instance, or null before the first

@@ -205,12 +205,32 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
   gap: 8px;
 }
 
-/* Pressed toggle state follows the app's toggle family (snap toggle, segment
-   chips): accent fill with accent text. The id keeps it above .btn:hover. */
+/* Pressed toggle state — the shared "lit" language of the accent toggles
+   (Entire-track capsule, selected Distance/Time segment): accent-soft fill
+   with accent-strong glyph. Those sit on opaque app surfaces, but
+   --accent-soft is translucent and this button floats over map tiles — so
+   the elevated surface is painted UNDER the wash (gradient layering), giving
+   the same tint-on-panel look without the imagery showing through. ON keeps
+   the accent fill in every state: hover and active deepen the wash (a second
+   gradient layer) and lift the shadow a step, never switching to the neutral
+   background. The id keeps both rules above .btn:hover/.btn:active.
+   (Visual port of the WaySliceTerra terrain toggles.) */
 #map-tools .btn[aria-pressed="true"] {
-  background: var(--accent-soft);
-  border-color: transparent;
+  background:
+    linear-gradient(var(--accent-soft), var(--accent-soft)),
+    var(--surface-elevated);
   color: var(--accent-strong);
+}
+
+#map-tools .btn[aria-pressed="true"]:hover,
+#map-tools .btn[aria-pressed="true"]:active {
+  background:
+    linear-gradient(var(--accent-soft), var(--accent-soft)),
+    linear-gradient(var(--accent-soft), var(--accent-soft)),
+    var(--surface-elevated);
+  color: var(--accent-strong);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-2);
 }
 
 #metrics-pane {

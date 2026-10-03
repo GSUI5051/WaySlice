@@ -200,7 +200,7 @@ Dann öffne <http://localhost:8080> und ziehe eine GPX-/FIT-/TCX-/KML-/KMZ-Datei
 - Dein Track wird **nur** in deinem Browser verarbeitet: parsen → analysieren → rendern, alles lokal.
 - Die einzigen Netzwerkanfragen sind **Kartenkacheln** der Basiskarte deiner Wahl. Deine Trackdaten
   werden nie übertragen, und es gibt keine Nutzungsstatistik.
-- Design, Sprache, Basiskarte und Einheiten werden nur im `localStorage` deines Geräts gespeichert.
+- Design, Sprache, Basiskarte, Einheiten und der Straßenoverlay-Schalter werden nur im `localStorage` deines Geräts gespeichert.
 - Diese Erklärung gibt es auch in der App: **Über → Privacy** in der `Einstellungen`-Seitenleiste
   (Zahnradknopf im Kopfbereich).
 
@@ -322,7 +322,7 @@ JavaScript-Datei editieren kann, kann die App übersetzen.
 5. Reiche einen Pull Request ein.
 
 Fehlende Schlüssel fallen auf Englisch zurück (danach auf den Schlüssel selbst), die Oberfläche zeigt
-also nie `undefined`. Sprache, Design und Basiskartenwahl überleben Neuladen im `localStorage`.
+also nie `undefined`. Sprache, Design, Basiskartenwahl und Straßenoverlay überleben Neuladen im `localStorage`.
 
 ### Basiskarten hinzufügen oder bearbeiten
 

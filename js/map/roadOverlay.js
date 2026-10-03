@@ -23,6 +23,32 @@ export const ROAD_OVERLAY_GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontsta
 
 export const ROAD_OVERLAY_SOURCE_ID = 'road-overlay';
 
+/**
+ * Persisted toggle preference. Like the basemap/theme keys, the value lives
+ * in localStorage under a `wayslice-` key and every access is guarded. It is
+ * the source of truth on satellite basemaps: every sync re-reads it, so the
+ * overlay state is stable across basemap switches and across sessions — a
+ * non-satellite basemap only suspends it (live layers drop, button disables)
+ * without erasing the choice.
+ */
+export const ROAD_OVERLAY_STORAGE_KEY = 'wayslice-road-overlay';
+
+/** True when the stored preference says the overlay was last toggled on. */
+export function savedRoadOverlayOn() {
+  try {
+    return localStorage.getItem(ROAD_OVERLAY_STORAGE_KEY) === 'on';
+  } catch {
+    return false;
+  }
+}
+
+/** Persists the user's toggle choice. @param {boolean} on */
+export function saveRoadOverlayOn(on) {
+  try {
+    localStorage.setItem(ROAD_OVERLAY_STORAGE_KEY, on ? 'on' : 'off');
+  } catch { /* ignore */ }
+}
+
 /** OpenMapTiles schema via OpenFreeMap's planet TileJSON (native z14, with
  * MapLibre overzoom past it — same as the OFM basemap styles). */
 export const ROAD_OVERLAY_SOURCE = {

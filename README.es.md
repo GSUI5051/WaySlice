@@ -198,7 +198,7 @@ Después abre <http://localhost:8080> y suelta un archivo GPX/FIT/TCX/KML/KMZ.
 - Tu traza se procesa **solo** en tu navegador: analizar → calcular → dibujar, todo en local.
 - Las únicas peticiones de red son las **teselas cartográficas** del mapa base que elijas. Los datos de
   tu traza nunca se transmiten y no hay estadísticas de uso.
-- El tema, el idioma, el mapa base y las unidades se guardan solo en el `localStorage` de tu
+- El tema, el idioma, el mapa base, las unidades y el estado de la superposición viaria se guardan solo en el `localStorage` de tu
   dispositivo.
 - Este texto también está disponible en la app: **Acerca de → Privacy** en `Ajustes`
   (botón del engranaje de la cabecera).
@@ -327,7 +327,7 @@ Si sabes editar un archivo JavaScript, puedes traducir la aplicación.
 5. Envía una pull request.
 
 Las claves que falten recurren al inglés (y después a la propia clave), así que la interfaz nunca
-muestra `undefined`. El idioma, el tema y el mapa base elegidos sobreviven a las recargas en el
+muestra `undefined`. El idioma, el tema, el mapa base y el estado de la superposición viaria sobreviven a las recargas en el
 `localStorage`.
 
 ### Añadir o editar mapas base

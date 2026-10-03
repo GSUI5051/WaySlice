@@ -18,6 +18,8 @@ export const CHANGELOG_EN = {
     {
       h: '2026-10-03',
       ps: [
+        'The road-network toggle is now remembered: its state lives in localStorage like the basemap choice, surviving reloads and basemap switches — a non-satellite basemap only suspends it until a satellite one returns.',
+        'The road-network toggle\'s pressed state now paints the accent tint over its opaque elevated panel — the imagery no longer shows through — and hover and active deepen the tint and lift the shadow instead of falling back to the neutral button style.',
         'The road overlay now draws tunnels too: a dimmed dashed line beneath the surface roads from the street-detail zooms, so a route through a mountain shows where it goes underground.',
         'The map no longer shows the scale bar in its bottom-left corner.',
         'Satellite basemaps gained a hybrid view: the new road-network toggle at the map area\'s top-left draws vector roads, road names and place labels over the imagery, always beneath your track. The toggle is only active on a satellite basemap, switching basemaps turns it off, and the overlay reuses OpenFreeMap\'s keyless road tiles.',

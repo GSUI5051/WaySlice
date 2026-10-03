@@ -199,7 +199,7 @@ Ouvrez ensuite <http://localhost:8080> et déposez un fichier GPX/FIT/TCX/KML/KM
   local.
 - Les seules requêtes réseau sont les **tuiles cartographiques** du fond de carte choisi. Vos
   données de trace ne sont jamais transmises, et il n'y a aucune statistique d'usage.
-- Thème, langue, fond de carte et unités sont stockés dans le `localStorage` de votre appareil
+- Thème, langue, fond de carte, unités et l'état de la superposition du réseau routier sont stockés dans le `localStorage` de votre appareil
   uniquement.
 - Ce texte est également disponible dans l'app : **À propos → Privacy** dans le tiroir
   `Paramètres` (roue dentée de l'en-tête).
@@ -326,7 +326,7 @@ données**. Si vous savez éditer un fichier JavaScript, vous pouvez traduire l'
 5. Soumettez une pull request.
 
 Les clés manquantes retombent vers l'anglais (puis vers la clé elle-même), donc l'interface
-n'affiche jamais `undefined`. Les choix de langue, de thème et de fond de carte survivent aux
+n'affiche jamais `undefined`. Les choix de langue, de thème, de fond de carte et de superposition du réseau routier survivent aux
 rechargements dans le `localStorage`.
 
 ### Ajouter ou modifier des fonds de carte
