@@ -188,7 +188,7 @@ suite('road overlay / layer stack', () => {
     assert.truthy(!('filter' in road), 'no class filter — every named road labels, trails included');
     assert.equal(road.minzoom, 12);
     assert.equal(road.layout['symbol-placement'], 'line', '2D labels repeat along the line');
-    assert.deepEqual(road.layout['text-size'].slice(3), [12, 10, 16, 12.5, 19, 14], 'text-size anchors');
+    assert.deepEqual(road.layout['text-size'].slice(3), [12, 15, 16, 18.75, 19, 21], 'text-size anchors');
     assert.equal(road.paint['text-color'], 'rgba(45, 45, 45, 0.95)', 'dark text riding the white roads');
     assert.equal(road.paint['text-halo-color'], 'rgba(255, 255, 255, 0.9)', 'white halo');
     assert.equal(road.paint['text-halo-width'], 1.1);
@@ -205,17 +205,17 @@ suite('road overlay / layer stack', () => {
     assert.equal(place.layout['text-max-width'], 8);
     // Spot-check the gate table: class, entered-at zoom, z19 anchor.
     assert.deepEqual(classStop(place.layout['text-size'], 10, 'place sizes z10'), {
-      city: 13.5, town: 11.5, village: 9.5, suburb: 8.5, quarter: 8.5, neighbourhood: 8.5, hamlet: 0,
+      city: 20.25, town: 17.25, village: 14.25, suburb: 12.75, quarter: 12.75, neighbourhood: 12.75, hamlet: 0,
     });
     assert.deepEqual(classStop(place.layout['text-size'], 13, 'place sizes z13'), {
-      city: 15.5, town: 13, village: 10.5, suburb: 9.5, quarter: 9.5, neighbourhood: 9.5, hamlet: 8.5,
+      city: 23.25, town: 19.5, village: 15.75, suburb: 14.25, quarter: 14.25, neighbourhood: 14.25, hamlet: 12.75,
     });
     assert.deepEqual(classStop(place.layout['text-size'], 19, 'place sizes z19'), {
-      city: 17, town: 15, village: 13, suburb: 12, quarter: 12, neighbourhood: 12, hamlet: 11,
+      city: 25.5, town: 22.5, village: 19.5, suburb: 18, quarter: 18, neighbourhood: 18, hamlet: 16.5,
     });
     // A 0 output hides the class; every class enters at its documented zoom.
     assert.deepEqual(classStop(place.layout['text-size'], 3, 'place sizes z3'), {
-      city: 11, town: 0, village: 0, suburb: 0, quarter: 0, neighbourhood: 0, hamlet: 0,
+      city: 16.5, town: 0, village: 0, suburb: 0, quarter: 0, neighbourhood: 0, hamlet: 0,
     });
     assert.equal(place.paint['text-color'], '#ffffff', 'white text straight on the imagery');
     assert.equal(place.paint['text-halo-color'], 'rgba(40, 40, 40, 0.9)', 'dark halo');

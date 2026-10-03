@@ -204,16 +204,16 @@ const CORE_WIDTHS = [
 const PLACE_SIZE_CLASSES = ['city', 'town', 'village', ['suburb', 'quarter', 'neighbourhood'], 'hamlet'];
 const PLACE_SIZES = [
   // zoom, city, town, village, suburb/quarter/neighbourhood, hamlet
-  [3, 11, 0, 0, 0, 0],
-  [5, 12, 9.5, 0, 0, 0],
-  [8, 13, 11, 0, 0, 0],
-  [9, 13, 11, 9, 0, 0],
-  [10, 13.5, 11.5, 9.5, 8.5, 0],
-  [11, 14, 12, 10, 8.5, 0],
-  [12, 15, 12.5, 10, 9, 0],
-  [13, 15.5, 13, 10.5, 9.5, 8.5],
-  [16, 16, 14, 12, 11, 10],
-  [19, 17, 15, 13, 12, 11],
+  [3, 16.5, 0, 0, 0, 0],
+  [5, 18, 14.25, 0, 0, 0],
+  [8, 19.5, 16.5, 0, 0, 0],
+  [9, 19.5, 16.5, 13.5, 0, 0],
+  [10, 20.25, 17.25, 14.25, 12.75, 0],
+  [11, 21, 18, 15, 12.75, 0],
+  [12, 22.5, 18.75, 15, 13.5, 0],
+  [13, 23.25, 19.5, 15.75, 14.25, 12.75],
+  [16, 24, 21, 18, 16.5, 15],
+  [19, 25.5, 22.5, 19.5, 18, 16.5],
 ];
 
 /** Road layers draw white lines (the classic hybrid look over imagery) —
@@ -364,7 +364,7 @@ export const ROAD_OVERLAY_LAYERS = [
       'symbol-placement': 'line',
       'text-field': TEXT_FIELD_ROAD,
       'text-font': LABEL_FONT,
-      'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 16, 12.5, 19, 14],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 12, 15, 16, 18.75, 19, 21],
       visibility: 'visible',
     },
     paint: LABEL_PAINT_ROAD,
