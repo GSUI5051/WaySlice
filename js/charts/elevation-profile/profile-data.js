@@ -214,6 +214,27 @@ export function overlayYRange(id, ext) {
 }
 
 /**
+ * The uPlot scale range that lands an overlay's DISPLAYED extremes on the
+ * band rows the axis strip labels sit on. uPlot maps a scale's min/max onto
+ * the FULL plot rect, but the strip rows sit inside it: the elevation grid
+ * rows (data extremes), with headroom above and below. Extending the scale
+ * by the same headroom fractions puts the displayed lo/hi exactly on those
+ * rows — the drawn curve tops out on the row its label is printed on, the
+ * contract the canvas renderer's overlayYTop/overlayYBottom mapping kept.
+ * @param {number} lo  displayed minimum (the strip's bottom label value)
+ * @param {number} hi  displayed maximum (the strip's top label value)
+ * @param {number} topFrac  plot-height fraction ABOVE the top band row
+ * @param {number} bottomFrac  plot-height fraction BELOW the bottom band row
+ * @returns {[number, number]} the scale range to hand to setScale
+ */
+export function bandScaleRange(lo, hi, topFrac, bottomFrac) {
+  const band = 1 - topFrac - bottomFrac;
+  if (!(hi > lo) || !(band > 0)) return [lo, hi];
+  const scaleSpan = (hi - lo) / band;
+  return [lo - bottomFrac * scaleSpan, hi + topFrac * scaleSpan];
+}
+
+/**
  * Elevation y range: ~8% headroom above and below the data (at least 4 m,
  * so a dead-flat track still gets a usable band). The chart's grid rows
  * anchor to the DATA extremes and the midpoint — the top row IS the track's

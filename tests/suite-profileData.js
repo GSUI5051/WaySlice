@@ -4,8 +4,8 @@
 import { suite, test, assert } from './runner.js';
 import * as profileData from '../js/charts/elevation-profile/profile-data.js';
 import {
-  buildCaches, seriesExtremes, overlayExtremes, overlayYRange, eleYRange,
-  sectorFitWindow, FIT_SECTOR_FRACTION,
+  buildCaches, seriesExtremes, overlayExtremes, overlayYRange, bandScaleRange,
+  eleYRange, sectorFitWindow, FIT_SECTOR_FRACTION,
 } from '../js/charts/elevation-profile/profile-data.js';
 import { loadUPlot } from '../js/charts/elevation-profile/uplot-loader.js';
 import {
@@ -310,6 +310,22 @@ suite('profile / chart scale ranges (full-resolution, uPlot inputs)', () => {
 
   test('eleYRange returns null without elevation data', () => {
     assert.equal(eleYRange({ hasElevation: false, eleMin: 0, eleMax: 1 }), null);
+  });
+
+  test('bandScaleRange lands the displayed extremes on the band rows', () => {
+    // The strip rows sit 10% of the plot height from each edge; the scale
+    // must extend beyond the displayed range so data lo/hi map onto them.
+    const [sLo, sHi] = bandScaleRange(100, 200, 0.1, 0.1);
+    assert.closeTo(sHi - sLo, 100 / 0.8, 1e-9);
+    assert.closeTo(sHi, 200 + 0.1 * (100 / 0.8), 1e-9);
+    assert.closeTo(sLo, 100 - 0.1 * (100 / 0.8), 1e-9);
+    // asymmetric headroom: more space above the top row than below the bottom
+    const [aLo, aHi] = bandScaleRange(0, 10, 0.2, 0.05);
+    assert.closeTo(aHi, 10 + 0.2 * (10 / 0.75), 1e-9);
+    assert.closeTo(aLo, -0.05 * (10 / 0.75), 1e-9);
+    // degenerate inputs pass through unchanged (the renderer hides them)
+    assert.deepEqual(bandScaleRange(5, 5, 0.1, 0.1), [5, 5]);
+    assert.deepEqual(bandScaleRange(0, 10, 0.5, 0.5), [0, 10]);
   });
 });
 

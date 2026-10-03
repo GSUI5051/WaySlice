@@ -47,7 +47,7 @@ import {
 import { state } from './profile-state.js';
 import {
   OVERLAY_METRICS, SPEED_FAMILY, overlayExtremes, overlayYRange, eleYRange,
-  distToX, xToDist, xvToPx, formatOverlayValue,
+  bandScaleRange, distToX, xToDist, xvToPx, formatOverlayValue,
 } from './profile-data.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
 import { niceStep } from '../ticks.js';
@@ -297,29 +297,61 @@ function trackId(track) {
   return trackIds.get(track);
 }
 
+/** @private The plot-height fractions ABOVE and BELOW the band rows the
+ *  overlay curves and their strip labels share: the elevation grid rows
+ *  (data extremes, inside the padded elevation scale), or the old 8px
+ *  insets when there is no elevation. The elevation case is pixel-free
+ *  (fractions of the elevation scale); the no-elevation case depends on
+ *  the current plot height, which the scale-cache stamp carries. */
+function bandFractions(track, eleRange) {
+  if (eleRange && track.hasElevation && track.eleMax != null && track.eleMin != null) {
+    const [eLo, eHi] = eleRange;
+    const span = eHi - eLo;
+    if (span > 0) {
+      return { top: (eHi - track.eleMax) / span, bottom: (track.eleMin - eLo) / span };
+    }
+  }
+  const h = state.plot.h || 1;
+  const f = Math.min(8 / h, 0.45);
+  return { top: f, bottom: f };
+}
+
 /** @private Scale cache — recomputed only when the track, axis mode or the
- *  drawn speed-family variant changes (never per frame, never per width). */
+ *  drawn speed-family variant changes (never per frame). Each overlay
+ *  carries its DISPLAYED extremes (lo/hi — what the axis strip prints) and
+ *  the extended scale range that lands them on the strip's band rows. */
 let scalesCache = null;
 function ensureScales() {
   const family = familyDataId();
+  const stampTail = state.track?.hasElevation ? 'ele' : String(Math.round(state.plot.h));
   if (scalesCache &&
       scalesCache.track === state.track &&
       scalesCache.xMode === state.xMode &&
-      scalesCache.family === family) {
+      scalesCache.family === family &&
+      scalesCache.stampTail === stampTail) {
     return scalesCache;
   }
+  const track = state.track;
+  const ele = eleYRange(track);
+  const frac = track ? bandFractions(track, ele) : { top: 0, bottom: 0 };
   const overlays = new Map();
   for (const def of OVERLAY_METRICS) {
-    const ext = overlayExtremes(def.id, state.track, state);
-    overlays.set(def.id, ext ? overlayYRange(def.id, ext) : null);
+    const ext = overlayExtremes(def.id, track, state);
+    if (!ext) {
+      overlays.set(def.id, null);
+      continue;
+    }
+    const [lo, hi] = overlayYRange(def.id, ext);
+    overlays.set(def.id, { lo, hi, scale: bandScaleRange(lo, hi, frac.top, frac.bottom) });
   }
   scalesCache = {
-    track: state.track,
+    track,
     xMode: state.xMode,
     family,
-    ele: eleYRange(state.track),
+    ele,
     overlays,
-    stamp: `${trackId(state.track)}|${state.xMode}|${family}`,
+    stampTail,
+    stamp: `${trackId(track)}|${state.xMode}|${family}|${stampTail}`,
   };
   return scalesCache;
 }
@@ -335,8 +367,8 @@ function computeShows(sc) {
     ele: !!sc.ele && state.track.hasElevation,
   };
   for (const id of state.selectedOverlays) {
-    const range = sc.overlays.get(id);
-    if (range && range[1] > range[0]) shows[SCALE_KEY[id]] = true;
+    const entry = sc.overlays.get(id);
+    if (entry && entry.hi > entry.lo) shows[SCALE_KEY[id]] = true;
   }
   return {
     map: shows,
@@ -364,11 +396,11 @@ function createChart(uPlot) {
     scales: {
       x: { time: false, auto: true },
       ele: { auto: false, range: () => scalesCache?.ele ?? [0, 1] },
-      hr: { auto: false, range: () => scalesCache?.overlays.get('hr') ?? [0, 1] },
-      speed: { auto: false, range: () => scalesCache?.overlays.get(familyDataId()) ?? [0, 1] },
-      cad: { auto: false, range: () => scalesCache?.overlays.get('cad') ?? [0, 1] },
-      temp: { auto: false, range: () => scalesCache?.overlays.get('temp') ?? [0, 1] },
-      power: { auto: false, range: () => scalesCache?.overlays.get('power') ?? [0, 1] },
+      hr: { auto: false, range: () => scalesCache?.overlays.get('hr')?.scale ?? [0, 1] },
+      speed: { auto: false, range: () => scalesCache?.overlays.get(familyDataId())?.scale ?? [0, 1] },
+      cad: { auto: false, range: () => scalesCache?.overlays.get('cad')?.scale ?? [0, 1] },
+      temp: { auto: false, range: () => scalesCache?.overlays.get('temp')?.scale ?? [0, 1] },
+      power: { auto: false, range: () => scalesCache?.overlays.get('power')?.scale ?? [0, 1] },
     },
     axes: [
       {
@@ -475,18 +507,25 @@ function syncChart() {
       appliedShows = shows.key;
     }
     // Explicit scales — uPlot never re-ranges an explicit setScale, so the
-    // chart's y mapping IS the full-resolution range profile-data computed.
-    // Degenerate ranges (hi == lo, e.g. a fully paused speed series) never
+    // chart's y mapping IS the full-resolution range profile-data computed,
+    // extended so the displayed extremes land on the strip's band rows.
+    // Degenerate entries (hi == lo, e.g. a fully paused speed series) never
     // reach the chart: uPlot would skip them and the scale would go stale.
     // Without elevation the ele scale gets an inert [0,1] instead of the
     // previous track's range — the axis size fn collapses it to zero width,
     // and a stale range would keep the axis slot alive after a track swap.
     if (sc.ele) chart.setScale('ele', { min: sc.ele[0], max: sc.ele[1] });
     else chart.setScale('ele', { min: 0, max: 1 });
-    for (const [id, range] of sc.overlays) {
-      if (range && range[1] > range[0]) {
-        chart.setScale(SCALE_KEY[id], { min: range[0], max: range[1] });
-      }
+    for (const def of OVERLAY_METRICS) {
+      const entry = sc.overlays.get(def.id);
+      if (!entry || !(entry.hi > entry.lo)) continue;
+      const key = SCALE_KEY[def.id];
+      // The speed family's three views share ONE scale — only the DRAWN
+      // variant may define it. GAP's descents amplify speed by 1/minetti,
+      // so letting the gap entry write last would widen the speed axis and
+      // print GAP's maximum on the speed strip.
+      if (key === 'speed' && def.id !== sc.family) continue;
+      chart.setScale(key, { min: entry.scale[0], max: entry.scale[1] });
     }
     applyX();
     // Show-flag flips are not auto-committed by uPlot.
@@ -621,10 +660,12 @@ function drawOverlayStrip() {
     // Same gate as the drawn curve: the series show flag, so a series with
     // no usable scale (no readings) contributes no strip column either.
     if (!chart.series[SERIES_INDEX[SCALE_KEY[id]]].show) continue;
-    const sc = chart.scales[SCALE_KEY[id]];
-    if (!sc || sc.min == null) continue;
+    const entry = scalesCache?.overlays.get(id);
+    if (!entry) continue;
     const def = OVERLAY_METRICS.find((d) => d.id === id);
-    entries.push({ def, lo: sc.min, hi: sc.max });
+    // The DISPLAYED extremes — the values the curve tops out / bottoms out
+    // at on the band rows (the scale range itself carries extra headroom).
+    entries.push({ def, lo: entry.lo, hi: entry.hi });
   }
   if (!entries.length) return;
 
@@ -960,11 +1001,13 @@ function currentHoverXv() {
 function drawZoneBands(u) {
   if (!state.track) return;
   const sc = u.scales.hr;
-  if (!sc || sc.min == null || !u.series[1].show) return;
+  if (!sc || sc.min == null || !u.series[SERIES_INDEX.hr].show) return;
   const display = getHeartRateDisplay();
   if (!display.showZones) return;
   const bounds = computeZoneBounds(loadHeartRateSettings());
   if (!bounds) return;
+  const hrEntry = scalesCache?.overlays.get('hr');
+  if (!hrEntry) return;
   const active = display.highlight
     ? hrHoverZone(bounds, state.probe ? state.probe.dist : state.hoverDist)
     : null;
@@ -972,8 +1015,11 @@ function drawZoneBands(u) {
   const { left, width } = u.bbox; // device px
   const yOf = (bpm) => u.valToPos(bpm, 'hr', true); // device px, absolute
   for (let i = 0; i < 5; i++) {
-    const zLo = Math.max(bounds.zones[i].lo, sc.min);
-    const zHi = Math.min(bounds.zones[i].hi ?? sc.max, sc.max);
+    // Clamp to the DISPLAYED hr extremes (the curve's own band rows), not
+    // the extended scale bounds — zone 5's open top ends on the top row,
+    // exactly where the old renderer clipped it.
+    const zLo = Math.max(bounds.zones[i].lo, hrEntry.lo);
+    const zHi = Math.min(bounds.zones[i].hi ?? hrEntry.hi, hrEntry.hi);
     if (zHi - zLo < 1e-9) continue;
     c.globalAlpha = i === active ? ACTIVE_BAND_ALPHA : BAND_ALPHA;
     c.fillStyle = tokens.zone[i];
