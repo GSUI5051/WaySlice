@@ -104,7 +104,8 @@ const TEXT_FIELD_ROAD = roadOverlayTextField('road-overlay-label-road', 'en');
 const TEXT_FIELD_PLACE = roadOverlayTextField('road-overlay-label-place', 'en');
 
 /** Road layers draw white lines (the classic hybrid look over imagery);
- * tunnels are skipped — buried roads are invisible in reality. */
+ * surface layers skip tunnels — those get the dedicated dimmed dashed
+ * tunnel layer at the bottom of the stack, so no road ever draws twice. */
 const ROAD_PAINT_BASE = { 'line-color': '#ffffff' };
 
 /**
@@ -116,13 +117,37 @@ const ROAD_PAINT_BASE = { 'line-color': '#ffffff' };
  */
 export const ROAD_OVERLAY_LAYERS = [
   {
+    // Tunnels: buried roads read as a ghost of the route, not a road —
+    // dimmed, dashed, under every surface layer, from the street-detail
+    // zooms. The surface layers exclude brunnel=tunnel, so the two never
+    // double-draw the same geometry.
+    id: 'road-overlay-line-tunnel',
+    type: 'line',
+    source: ROAD_OVERLAY_SOURCE_ID,
+    'source-layer': 'transportation',
+    minzoom: 8,
+    filter: [
+      'all',
+      ['==', ['get', 'brunnel'], 'tunnel'],
+      ['match', ['get', 'class'],
+        ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service', 'track', 'path'], true, false],
+    ],
+    layout: { 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' },
+    paint: {
+      ...ROAD_PAINT_BASE,
+      'line-opacity': 0.6,
+      'line-dasharray': [1.5, 1.5],
+      'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 15, 1.5, 19, 3],
+    },
+  },
+  {
     // Main road classes, from the first zooms where the planet tiles carry
-    // them (z7).
+    // them (z8).
     id: 'road-overlay-line-major',
     type: 'line',
     source: ROAD_OVERLAY_SOURCE_ID,
     'source-layer': 'transportation',
-    minzoom: 7,
+    minzoom: 8,
     filter: [
       'all',
       ['!=', ['get', 'brunnel'], 'tunnel'],

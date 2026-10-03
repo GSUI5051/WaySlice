@@ -46,6 +46,7 @@ suite('road overlay / layer stack', () => {
   test('layers are unique, ordered roads-then-labels, and bound to the overlay source', () => {
     const ids = ROAD_OVERLAY_LAYERS.map((l) => l.id);
     assert.deepEqual(ids, [
+      'road-overlay-line-tunnel',
       'road-overlay-line-major',
       'road-overlay-line-minor',
       'road-overlay-line-path',
@@ -69,21 +70,27 @@ suite('road overlay / layer stack', () => {
     }
     const lineLayers = ROAD_OVERLAY_LAYERS.filter((l) => l.type === 'line');
     const symbolLayers = ROAD_OVERLAY_LAYERS.filter((l) => l.type === 'symbol');
-    assert.equal(lineLayers.length, 3, 'three road line layers');
+    assert.equal(lineLayers.length, 4, 'four road line layers (tunnel included)');
     assert.equal(symbolLayers.length, 2, 'two label layers');
   });
 
-  test('road line layers skip tunnels and start where their classes appear', () => {
+  test('surface road layers skip tunnels; a dedicated dashed layer draws them dimmed', () => {
     const minzooms = Object.fromEntries(ROAD_OVERLAY_LAYERS.map((l) => [l.id, l.minzoom]));
-    assert.equal(minzooms['road-overlay-line-major'], 7);
+    assert.equal(minzooms['road-overlay-line-major'], 8);
     assert.equal(minzooms['road-overlay-line-minor'], 11);
     assert.equal(minzooms['road-overlay-line-path'], 13);
-    for (const layer of ROAD_OVERLAY_LAYERS.filter((l) => l.type === 'line')) {
+    for (const layer of ROAD_OVERLAY_LAYERS.filter((l) => l.type === 'line' && l.id !== 'road-overlay-line-tunnel')) {
       const hasTunnelDrop = JSON.stringify(layer.filter).includes('tunnel')
         && layer.filter[0] === 'all'
         && JSON.stringify(layer.filter[1]) === JSON.stringify(['!=', ['get', 'brunnel'], 'tunnel']);
       assert.truthy(hasTunnelDrop, `tunnel exclusion in ${layer.id}`);
     }
+    const tunnel = ROAD_OVERLAY_LAYERS.find((l) => l.id === 'road-overlay-line-tunnel');
+    assert.equal(tunnel.minzoom, 8, 'tunnels draw from the major-road zoom');
+    assert.deepEqual(tunnel.filter[0], 'all', 'tunnel filter shape');
+    assert.deepEqual(tunnel.filter[1], ['==', ['get', 'brunnel'], 'tunnel'], 'tunnel layer draws ONLY tunnels');
+    assert.truthy(Array.isArray(tunnel.paint['line-dasharray']), 'tunnels render dashed');
+    assert.truthy(tunnel.paint['line-opacity'] < 0.8, 'tunnels render dimmer than surface roads');
   });
 
   test('labels use the shared glyphs set and the language-first name fallback', () => {
