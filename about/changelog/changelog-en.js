@@ -16,6 +16,14 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-04',
+      ps: [
+        'The satellite road overlay gained a full road symbol system: every major road now draws with a dark casing beneath the white line, so roads keep their edge on bright imagery, with graduated widths per road class from the continent zooms (z5) down to z19.',
+        'The overlay now distinguishes the small roads: minor roads draw as hairlines from z9, service roads (park and scenic-area loops, parking aisles) as thin faint lines from z13, and tracks (forest and farm roads) as a long dash that clearly reads coarser than the short-dashed walking paths.',
+        'Overlay labels repainted and broadened: road names render dark with a white halo riding the white roads (place names stay white with a dark halo on the imagery), every named road labels regardless of class — trail names included — falling back to the route number when a road has no name, place names start at z3 across the full seven-class settlement hierarchy, and the bilingual secondary name now genuinely renders smaller than the primary.',
+      ],
+    },
+    {
       h: '2026-10-03',
       ps: [
         'Switching between satellite basemaps no longer buries the road overlay: the fresh imagery restacks beneath the road network on every basemap change.',
