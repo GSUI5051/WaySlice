@@ -74,9 +74,9 @@ suite('road overlay / layer stack', () => {
 
   test('road line layers skip tunnels and start where their classes appear', () => {
     const minzooms = Object.fromEntries(ROAD_OVERLAY_LAYERS.map((l) => [l.id, l.minzoom]));
-    assert.equal(minzooms['road-overlay-line-major'], 5);
-    assert.equal(minzooms['road-overlay-line-minor'], 13);
-    assert.equal(minzooms['road-overlay-line-path'], 14);
+    assert.equal(minzooms['road-overlay-line-major'], 7);
+    assert.equal(minzooms['road-overlay-line-minor'], 11);
+    assert.equal(minzooms['road-overlay-line-path'], 13);
     for (const layer of ROAD_OVERLAY_LAYERS.filter((l) => l.type === 'line')) {
       const hasTunnelDrop = JSON.stringify(layer.filter).includes('tunnel')
         && layer.filter[0] === 'all'

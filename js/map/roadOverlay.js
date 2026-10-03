@@ -51,12 +51,12 @@ const ROAD_PAINT_BASE = { 'line-color': '#ffffff' };
 export const ROAD_OVERLAY_LAYERS = [
   {
     // Main road classes, from the first zooms where the planet tiles carry
-    // them (z5).
+    // them (z7).
     id: 'road-overlay-line-major',
     type: 'line',
     source: ROAD_OVERLAY_SOURCE_ID,
     'source-layer': 'transportation',
-    minzoom: 5,
+    minzoom: 7,
     filter: [
       'all',
       ['!=', ['get', 'brunnel'], 'tunnel'],
@@ -76,7 +76,7 @@ export const ROAD_OVERLAY_LAYERS = [
     type: 'line',
     source: ROAD_OVERLAY_SOURCE_ID,
     'source-layer': 'transportation',
-    minzoom: 13,
+    minzoom: 11,
     filter: [
       'all',
       ['!=', ['get', 'brunnel'], 'tunnel'],
@@ -95,7 +95,7 @@ export const ROAD_OVERLAY_LAYERS = [
     type: 'line',
     source: ROAD_OVERLAY_SOURCE_ID,
     'source-layer': 'transportation',
-    minzoom: 14,
+    minzoom: 13,
     filter: ['all', ['!=', ['get', 'brunnel'], 'tunnel'], ['==', ['get', 'class'], 'path']],
     layout: { 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' },
     paint: {
@@ -112,7 +112,7 @@ export const ROAD_OVERLAY_LAYERS = [
     type: 'symbol',
     source: ROAD_OVERLAY_SOURCE_ID,
     'source-layer': 'transportation_name',
-    minzoom: 13,
+    minzoom: 11,
     filter: ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor'], true, false],
     layout: {
       'symbol-placement': 'line',
@@ -131,7 +131,7 @@ export const ROAD_OVERLAY_LAYERS = [
     type: 'symbol',
     source: ROAD_OVERLAY_SOURCE_ID,
     'source-layer': 'place',
-    minzoom: 4,
+    minzoom: 2,
     filter: ['match', ['get', 'class'], ['city', 'town', 'village'], true, false],
     layout: {
       'text-field': TEXT_FIELD,
