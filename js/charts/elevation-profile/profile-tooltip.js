@@ -259,9 +259,9 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
   tooltip.style.left = `${px}px`;
   if (isProbe) {
     // Probe fallback: the bottom edge sits on the profile module's top edge
-    // — the map's bottom line — so the box covers Leaflet's scale bar and
-    // attribution strip where they overlap (it out-stacks them,
-    // --z-profile-tooltip), and the plot below stays unobstructed. What
+    // — the map's bottom line — so the box covers the map's bottom control
+    // strip where they overlap (it out-stacks them, --z-profile-tooltip),
+    // and the plot below stays unobstructed. What
     // pokes above the workspace scrollport is covered by the fixed app
     // header (--z-header). The pane-to-body offset is scroll-invariant
     // (both rects shift equally when the workspace scrolls), so this

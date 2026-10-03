@@ -30,7 +30,6 @@ import {
 import { cssToken } from '../utils/cssToken.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
 import { formatDistanceShort } from '../utils/format.js';
-import { getUnitSystem } from '../units/units.js';
 import { t, getCurrentLanguage } from '../language/language.js';
 import { emit, on } from '../core/events.js';
 
@@ -75,7 +74,6 @@ const layers = {
 let dragHints = { start: null, end: null };
 const dragging = { start: false, end: false };
 let hoverHint = null;
-let scaleControl = null;
 
 /** Resolves once the active style is loaded — addSource/addLayer/setMaxZoom
  * require it even for a literal style object, and every setStyle (vector
@@ -158,7 +156,6 @@ function applyMapTheme() {
 export function initMap(node) {
   container = node;
   sectorStore.subscribe(scheduleSectorSync);
-  on('units:changed', refreshScaleControl);
   on('theme:changed', applyMapTheme);
   on('language:changed', refreshRoadOverlayLanguage);
 }
@@ -244,7 +241,6 @@ function createMapInstance() {
   for (const b of map.getContainer().querySelectorAll('.maplibregl-ctrl-group button')) {
     b.classList.add('btn', 'btn-elevated');
   }
-  refreshScaleControl();
   armStyleGate(false);
 
   // A click anywhere on the map unpins the profile's waypoint line (a
@@ -313,16 +309,6 @@ function armBasemapAfterFlight() {
       loadInitialBasemap();
     }
   }, 250);
-}
-
-function refreshScaleControl() {
-  if (!map) return;
-  if (!scaleControl) {
-    scaleControl = new maplibregl.ScaleControl({ unit: getUnitSystem() });
-    map.addControl(scaleControl, 'bottom-left');
-    return;
-  }
-  scaleControl.setUnit(getUnitSystem());
 }
 
 /** Switches the tile layer to the given source id and persists the choice. */

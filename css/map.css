@@ -26,13 +26,6 @@
   z-index: var(--z-map-controls);
 }
 
-/* The scale bar rides the same corner level as the other controls: the
-   vendor corner containers sit at z-index 2, under the map markers —
-   Leaflet's control container floated above every marker. */
-.maplibregl-ctrl-bottom-left {
-  z-index: var(--z-map-controls);
-}
-
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group {
   margin-inline-end: 12px;
   border: 1px solid var(--border) !important;
@@ -107,18 +100,11 @@
 
 .maplibregl-ctrl-attrib a { color: var(--foreground-muted) !important; }
 
-.maplibregl-ctrl-scale {
-  background: color-mix(in srgb, var(--surface-elevated) 80%, transparent) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--foreground-muted) !important;
-}
-
 /* No track, no map chrome: while the state overlay is up the map area shows
    only the state card. (components.css carries the counterpart that hides
    the app's own #map-fit column.) Attribution stays — tiles render beneath
    it and the providers require the credit. */
-#map-pane:has(#overlay-state:not([hidden])) .maplibregl-ctrl-group,
-#map-pane:has(#overlay-state:not([hidden])) .maplibregl-ctrl-scale {
+#map-pane:has(#overlay-state:not([hidden])) .maplibregl-ctrl-group {
   display: none;
 }
 

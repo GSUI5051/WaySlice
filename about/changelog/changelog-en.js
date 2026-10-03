@@ -18,6 +18,7 @@ export const CHANGELOG_EN = {
     {
       h: '2026-10-03',
       ps: [
+        'The map no longer shows the scale bar in its bottom-left corner.',
         'Satellite basemaps gained a hybrid view: the new road-network toggle at the map area\'s top-left draws vector roads, road names and place labels over the imagery, always beneath your track. The toggle is only active on a satellite basemap, switching basemaps turns it off, and the overlay reuses OpenFreeMap\'s keyless road tiles.',
         'Overlay labels are bilingual: the primary name follows the selected UI language (name:xx, then English, international, Latin and the raw local name), and where the local name differs it joins at the same size — stacked as a second line for place names, on one line for road names; a localized name that already is the local name never repeats.',
         'The elevation profile is now rendered by the uPlot chart library, which is lazy-loaded on the first imported track — opening the app downloads nothing of it.',
