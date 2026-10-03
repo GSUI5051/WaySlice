@@ -75,7 +75,7 @@ export const STORY_EN = {
     {
       h: 'How is real outdoor activity data handled?',
       ps: [
-        'Tracks with 100,000+ points stay smooth: Douglas–Peucker and per-pixel sampling simplify the display only — every metric is always computed from the full data.',
+        'Tracks with 100,000+ points stay smooth: the Douglas–Peucker algorithm simplifies the display only — every metric is always computed from the full data.',
         'For the noise in GPS altitude and barometric altitude there is the 3 m threshold filter on climbs; for device positioning drift there is speed spike cleaning; for supply stops and mid-route rests there is pause detection.',
         'Raw records do not turn into reliable analysis on their own. WaySlice does the post-processing of outdoor activity data, and the post-processing steps it applies are written into hints visible to the user.',
         '3D distance and horizontal distance are computed separately, so grade, the profile and GAP stand on a correct basis. GAP uses the classic model proposed by Minetti in 2002, no commercial model.',
