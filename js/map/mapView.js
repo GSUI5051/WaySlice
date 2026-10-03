@@ -405,14 +405,20 @@ function setRoadOverlayVisibility(visible) {
 /** @private Idempotently mounts the overlay on the ACTIVE style and shows it —
  * after the first enable or any setStyle wipe. Each layer goes before the
  * track vectors (above the satellite raster), and a layer that already exists
- * is only flipped back to visible, so reloads never duplicate source/layers.
- * Label layers get their text-field built for the CURRENT UI language (the
- * static defs carry the English default). */
+ * is restacked to the same anchor instead of re-added, so reloads never
+ * duplicate source/layers. Label layers get their text-field built for the
+ * CURRENT UI language (the static defs carry the English default). */
 function ensureRoadOverlayLayers() {
   if (!map.getSource(ROAD_OVERLAY_SOURCE_ID)) map.addSource(ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE);
   const beforeId = map.getLayer('track-casing') ? 'track-casing' : undefined;
   for (const layer of ROAD_OVERLAY_LAYERS) {
     if (map.getLayer(layer.id)) {
+      // A raster→raster basemap switch re-inserted the opaque imagery above
+      // the hung overlay — restack each layer back under the track vectors.
+      // Every move targets the same anchor, preserving paint order. The
+      // visibility flip still applies: this path also runs for layers hidden
+      // by a previous toggle-off.
+      map.moveLayer(layer.id, beforeId);
       map.setLayoutProperty(layer.id, 'visibility', 'visible');
       continue;
     }
@@ -424,6 +430,14 @@ function ensureRoadOverlayLayers() {
       continue;
     }
     map.addLayer(layer, beforeId);
+  }
+  // The same raster→raster switch buries the whole custom stack under the
+  // fresh imagery (the re-inserted basemap layer lands just under the track
+  // vectors). Walk the imagery back down — directly under the first overlay
+  // layer. Idempotent when it never moved.
+  const firstOverlay = ROAD_OVERLAY_LAYERS.find((l) => map.getLayer(l.id));
+  if (map.getLayer('basemap-layer') && firstOverlay) {
+    map.moveLayer('basemap-layer', firstOverlay.id);
   }
 }
 
