@@ -27,6 +27,7 @@ const lang_de = {
 
   // Loading / errors
   parsingTrack: 'Track wird geparst …',
+  profileChartError: 'Die Diagrammbibliothek konnte nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen.',
   errorTitle: 'Diese Datei kann nicht gelesen werden',
   errorInvalidFile: 'Die Datei scheint ungültig oder unvollständig zu sein.',
   errorUnsupportedType: 'Nicht unterstützter Dateityp. Bitte verwende eine GPX-, FIT-, TCX-, KML- oder KMZ-Datei.',

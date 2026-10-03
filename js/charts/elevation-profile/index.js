@@ -12,10 +12,10 @@
  * exclusively through render.scheduleSync(); interaction modules mutate the
  * shared state (profile-state.js) and never draw.
  *
- * Canvas rendering (min–max downsampling per pixel column keeps 100k-point
- * tracks fast and faithful) with DOM overlay handles for the sector
- * boundaries. Two x-axis modes share one data path; metric overlays can be
- * layered on top, each with its own global right-hand scale. On desktop
+ * uPlot renders the chart (lazily loaded on the first track — see
+ * uplot-loader.js) from the complete raw series, with DOM overlay handles
+ * for the sector boundaries. Two x-axis modes share one data path; metric
+ * overlays can be layered on top, each with its own global scale. On desktop
  * (fine pointers) the wheel zooms the x axis around the cursor,
  * gpx.studio-style; Shift + drag pans the zoomed window. A double-click
  * (mouse) or double-tap (touch) anywhere restores the full track — zoom
@@ -41,6 +41,7 @@ import { state, isWideLayout } from './profile-state.js';
 import { buildCaches, distToX, overlayAvailability } from './profile-data.js';
 import {
   initRender, resizeCanvas, sync, scheduleSync, refreshHandleLabels,
+  invalidateChartStyle,
 } from './profile-render.js';
 import {
   wireControls, wirePointer, wireHandles, refreshControls,
@@ -54,6 +55,7 @@ export function initProfile(rootEl) {
   dom.root = rootEl;
   dom.canvas = rootEl.querySelector('#profile-canvas');
   dom.ctx = dom.canvas.getContext('2d');
+  dom.chart = rootEl.querySelector('#profile-chart');
   dom.tooltip = rootEl.querySelector('#profile-tooltip');
   // The probe's fixed telemetry band sits BETWEEN the profile header and the
   // chart (outside #profile-body, in front of the x-axis labels) — part of
@@ -121,8 +123,16 @@ export function initProfile(rootEl) {
     scheduleSync();
   });
   on('waypoint:deselect', unpinWaypoint);
-  on('theme:changed', () => scheduleSync());
-  on('units:changed', () => scheduleSync());
+  // Theme/units changes re-style the chart through its per-draw color and
+  // label functions — the stamp forces the next sync to re-apply them.
+  on('theme:changed', () => {
+    invalidateChartStyle();
+    scheduleSync();
+  });
+  on('units:changed', () => {
+    invalidateChartStyle();
+    scheduleSync();
+  });
   on('language:changed', () => {
     refreshHandleLabels();
     refreshSnapToggle();

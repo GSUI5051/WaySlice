@@ -23,6 +23,7 @@ const lang_ja = {
 
   // Loading / errors
   parsingTrack: 'トラックを解析中…',
+  profileChartError: 'グラフライブラリを読み込めませんでした。ページを再読み込みして再試行してください。',
   errorTitle: 'ファイルを読み込めません',
   errorInvalidFile: 'ファイルが無効か、壊れているようです。',
   errorUnsupportedType: '対応していない形式です。GPX・FIT・TCX・KML・KMZ をご利用ください。',

@@ -9,10 +9,16 @@ code belongs, which rules keep the architecture sound, and how changes are verif
 
 ## What this directory is
 
-The elevation / telemetry profile is the canvas chart under the map: elevation band, metric
-overlay curves (heart rate, speed/pace/GAP, cadence, temperature, power), heart-rate zone
-bands, the sector selection, hover crosshair and the map-linked interactions. It used to be
-one ~1500-line file; it is now a system of responsibility modules.
+The elevation / telemetry profile is the chart under the map, rendered by **uPlot** (the
+vendored ES module in `vendor/uplot/`, lazy-loaded on the first track — see
+`uplot-loader.js`): elevation area, metric overlay curves (heart rate, speed/pace/GAP,
+cadence, temperature, power), heart-rate zone bands, grid and axes. uPlot always draws the
+COMPLETE raw series — zooming and the sector view act on the chart's x scale range, never
+on the data; there is no per-pixel-column downsampling anywhere in the draw path. WaySlice
+owns the business layers: the sector selection, hover crosshair, waypoint pins, the
+per-overlay axis strip (drawn on its own annotation canvas above the chart) and the
+map-linked interactions. It used to be one ~1500-line file; it is now a system of
+responsibility modules.
 
 The **public API is two functions** and nothing else:
 
@@ -22,12 +28,13 @@ initProfile(document.getElementById('profile-body'));  // main.js, boot
 setProfileTrack(track);                                // main.js, on every loaded track
 ```
 
-DOM contract: `#profile-body` with `#profile-canvas`, `#profile-tooltip`, `#handle-start`,
-`#handle-end` inside it; `#profile-readout` (the touch probe's fixed telemetry band,
-between `.profile-head` and `#profile-body`), `#btn-x-distance`, `#btn-x-time`,
-`#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector`, `#btn-more-controls` with the
-`#profile-overflow-panel` outside it. Never rename these ids. The
-`#profile-tooltip` node stays inside `#profile-body` (absolute) so it tracks the
+DOM contract: `#profile-body` with `#profile-chart` (the uPlot host, beneath),
+`#profile-canvas` (WaySlice's annotation canvas and the pointer surface, above),
+`#profile-tooltip`, `#handle-start`, `#handle-end` inside it; `#profile-readout` (the touch
+probe's fixed telemetry band, between `.profile-head` and `#profile-body`), `#btn-x-distance`,
+`#btn-x-time`, `#btn-waypoint-snap`, `#btn-overlays`, `#btn-profile-fit-sector`,
+`#btn-more-controls` with the `#profile-overflow-panel` outside it. Never rename these ids.
+The `#profile-tooltip` node stays inside `#profile-body` (absolute) so it tracks the
 workspace scroll natively; the touch probe renders its readings into the fixed band
 between the profile header and the chart instead — part of the profile module itself, so it can never cover
 the plot and never shifts the layout when readings come and go (see
@@ -39,8 +46,9 @@ the plot and never shifts the layout when readings come and go (see
 |---|---|---|
 | `index.js` | Orchestrator: DOM assembly, external event surface, track lifecycle, resize handling | `initProfile`, `setProfileTrack` |
 | `profile-state.js` | The one chart instance's shared mutable state (`state`) + `isWideLayout` | `state`, `isWideLayout` |
-| `profile-data.js` | Pure computation: per-point caches, downsampling, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `sampleOverlay`, `sampleElevation`, `seriesExtremes`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
-| `profile-render.js` | All canvas drawing: the `sync()` pass and every layer in it, `scheduleSync`, handle/mask positioning | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels` |
+| `profile-data.js` | Pure computation: per-point caches, full-resolution scale ranges, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `seriesExtremes`, `overlayExtremes`, `overlayYRange`, `eleYRange`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
+| `profile-render.js` | The uPlot chart lifecycle (lazy create, setData/setScale/setSize updates) + the annotation canvas pass (axis strip, sector highlight, waypoint pins, crosshair), `scheduleSync`, handle/mask positioning | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels`, `invalidateChartStyle` |
+| `uplot-loader.js` | The lazy loader for the vendored uPlot ES module: one cached download promise (reset on failure, retryable), the vendor CSS link | `loadUPlot` |
 | `profile-interaction.js` | The three input pathways (header controls, canvas pointer — hover/select/zoom + the touch probe gestures, sector handles) + toast + waypoint snapping. The touch pinch/pan/double-tap state machine is NOT here: it is the shared `js/charts/viewport-gestures.js` the dual-variable chart runs too. Never draws | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshControlsFit`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | The hover tooltip and the touch probe's readout DOM + content | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |
 
@@ -50,8 +58,9 @@ kept acyclic):
 ```text
 index       → state, data, render, interaction, tooltip
 interaction → state, data, render (scheduleSync only), tooltip, ../viewport-gestures (touch pinch / pan / double-tap reset)
-render      → state, data, tooltip (showTooltipAt, called from drawHover)
+render      → state, data, tooltip (showTooltipAt, called from the crosshair pass), ./uplot-loader
 tooltip     → state, data
+loader      → nothing in this directory (imports the vendored vendor/uplot module)
 data        → nothing in this directory (only geo / metrics / utils outside it)
 state       → nothing in this directory (re-exports isWideLayout from ../utils/layout)
 ```
@@ -67,7 +76,7 @@ one module uses stays a module-private `let` — check before moving a field in.
 
 `state.dom` (assembled once during initialization: `index.js` fills the queried nodes and
 `initRender` creates the masks and binds canvas/ctx; `wireControls` fills `snapBtn`):
-`root`, `canvas`, `ctx`, `tooltip`, `readout` (the probe's band, outside root),
+`root`, `canvas`, `ctx`, `chart` (the uPlot host), `tooltip`, `readout` (the probe's band, outside root),
 `handles.{start,end}`, `masks.{left,right}`, `xButtons.{distance,time}`, `snapBtn`.
 
 Chart data: `track`, `xs` (per-point x in the current axis mode), `speeds`, `gapSpeeds`,
@@ -79,7 +88,7 @@ each side);
 fully computed series take the 3σ clean (`cleanComputedSpeeds`: outliers replaced by interpolation from
 the nearest kept neighbors); rest-stop zeros are data and take part in the window mean.
 Chart view: `xMode` (`'distance' | 'time'`), `view` (`{start,end}` or `null` = full track),
-`plot` (`{x0,y0,w,h}` in CSS px).
+`plot` (`{x0,y0,w,h}` in CSS px — mirrored from uPlot's plot bbox on every chart sync/resize).
 Overlays: `selectedOverlays` (selection order).
 Hover: `hoverDist`, `hoverX`, `hoverOrigin` (`'profile' | 'map' | 'waypoint'`),
 `waypointHover`, `pinnedWaypoint`.
@@ -90,8 +99,9 @@ active the hover crosshair stands down and the readout belongs to the probe
 (`showTooltipAt` ignores non-probe calls, `hideTooltip` needs `force`).
 Misc: `waypointsShown` (mirror of the map's waypoint toggle).
 
-Module-private (do **not** move into `state`): render owns `syncPending`, `hrHoverCurve`,
-`MARGIN` and the bound DOM aliases; interaction owns `lastSpeedVariant`, `overlaysMenu`,
+Module-private (do **not** move into `state`): render owns `syncPending`, the uPlot
+instance, its per-track series/scale caches, the style-token snapshot and the bound DOM
+aliases; interaction owns `lastSpeedVariant`, `overlaysMenu`,
 `waypointSnap`, `lastSnapDist`, the toast timer, the pan-hint flags and the touch-gesture
 flags (virtual handle, probe drag, outside-tap map). The tap candidate, the pinch baseline and the pan window belong to the shared gesture machine (`js/charts/viewport-gestures.js`), which interaction only feeds.
 
@@ -101,46 +111,56 @@ Conventions:
   stays visible in review.
 - Immutable-after-init references (ctx, canvas, handles…) are destructured once in the
   owning module's init (`initRender`) into module-level `let`s.
-- The renderer is the only writer of `state.plot` (via `resizeCanvas`) and of `hrHoverCurve`.
+- The renderer is the only writer of `state.plot` (mirrored from the uPlot bbox).
 
-## The render pass (`sync()`)
+## The render pass
 
-Actual call sequence — insert new layers at the right slot, never reorder casually:
+Rendering is async (the first pass awaits the uPlot download; later passes are
+microtask-fast) and single-flight: scheduleSync batches through rAF, and a sync requested
+while a render runs re-runs once when it finishes. Each pass is two halves:
 
-1. x ticks (distance or elapsed time, per `xMode`)
-2. clipped block: **HR zone bands**, then overlay curves (two-pass: pass 1 samples every
-   visible overlay and derives its scale, pass 2 draws the lines — bands therefore sit
-   *under* the curves)
-3. `placeMasks()` — the sector veil DOM elements are positioned here (before the
-   elevation branch)
-4. elevation branch: flat dashed reference line if the track has no elevation, otherwise
-   grid + y labels, overlay axis strip, elevation band (full track), sector highlight,
-   waypoint pins
-5. `positionHandles()` — the handle DOM elements are positioned (both branches)
-6. hover crosshair (+ surface-filled dot with an accent ring on the elevation curve, +
-   solid dot where the crosshair crosses the drawn HR polyline). While a touch probe is
-   active it draws in the crosshair's place — same line and dots, anchored to the probe's
-   data position; its readings render into the fixed telemetry band between the profile header and
-   the chart — a fixed 2×4 slot grid, position / elevation / speed family / heart rate over
-   cadence / temperature / power / empty: position and elevation always show; a sensor
-   slot shows its value while its overlay is enabled, a muted "Not selected" while the
-   track carries the data but the overlay is off, and stays blank when the track lacks
-   the sensor; an enabled slot without a reading shows an em dash. The heart-rate slot
-   is two-level — value on top, zone underneath — and all slots center their content,
-   so single-line slots stay vertically centered in the taller row (`#profile-readout`,
-   coarse-pointer devices; fine-pointer devices keep the floating fallback box capped
-   at half the screen width, rows breaking between readings, never inside one)
+**Chart half (`syncChart` inside `chart.batch()` — one synchronous uPlot draw):** the
+scale cache is recomputed only when track / x-mode / speed-family variant changes
+(`ensureScales`); the data tuple is swapped by REFERENCE when the caches changed
+(`setData` — uPlot never gets a copy); series visibility flags are applied (`show`);
+every y scale is set explicitly with `setScale` (uPlot never re-ranges an explicit
+setScale — WaySlice's full-resolution ranges ARE the chart's ranges); the x scale is set
+to the view window (`state.view`, or the full domain). uPlot then draws: grid, axes, x
+ticks (the shared `niceStep` rule), HR zone bands (`drawAxes` hook, beneath every
+series), the overlay curves and the elevation area (full-resolution, `spanGaps`), and —
+for tracks without elevation — the flat dashed reference line (`draw` hook, above the
+series). uPlot's cursor and legend are disabled: it binds no pointer listeners.
+
+**Annotation half (the `#profile-canvas` pass, after the chart):** overlay axis strip →
+sector highlight (the full-resolution elevation path re-drawn in the accent color,
+clipped to sector ∩ window; its Path2D cache rebuilds only on sector/view/plot/track
+changes) → waypoint pins → hover/probe crosshair (hairline, surface-filled dot with an
+accent ring on the elevation curve, solid dot where the crosshair crosses the drawn HR
+polyline — interpolated along the same segment the drawn line spans). While a touch probe
+is active it draws in the crosshair's place — same line and dots, anchored to the probe's
+data position; its readings render into the fixed telemetry band between the profile header and
+the chart — a fixed 2×4 slot grid, position / elevation / speed family / heart rate over
+cadence / temperature / power / empty: position and elevation always show; a sensor
+slot shows its value while its overlay is enabled, a muted "Not selected" while the
+track carries the data but the overlay is off, and stays blank when the track lacks
+the sensor; an enabled slot without a reading shows an em dash. The heart-rate slot
+is two-level — value on top, zone underneath — and all slots center their content,
+so single-line slots stay vertically centered in the taller row (`#profile-readout`,
+coarse-pointer devices; fine-pointer devices keep the floating fallback box capped
+at half the screen width, rows breaking between readings, never inside one).
+`placeMasks()` and `positionHandles()` close the pass (the sector veil and handle DOM
+elements position from the same plot rect).
 
 Rules baked into this pass:
 
 - Overlays scale over the **full track** (global y); zooming stretches only x.
 - The speed family's axis strip ends at the speed series' **per-point maximum**
-  (`seriesExtremes`), so the top label always reads the same value the metrics
-  list's Maximum Speed reports; the drawn curve itself stays on `sampleOverlay`'s
-  column means. Every other overlay keeps the padded sampled top.
+  (`overlayYRange` keeps the raw `hi`), so the top label always reads the same value the
+  metrics list's Maximum Speed reports. Every other overlay keeps the padded top
+  (`hi + pad`); bpm/rpm/speed scales never drop below zero.
 - Zone bands and the hover dot map bpm → y through the **hr overlay's own lo/hi scale** and
-  are clipped to it; they are drawn only while that scale exists (hr curve visible with
-  data). Never widen the axis for a zone; never invent a second mapping. The bands are
+  are clipped to it; they are drawn only while the hr series is shown with data. Never
+  widen the axis for a zone; never invent a second mapping. The bands are
   additionally gated by the settings drawer's band toggle (`showZones`,
   `js/metrics/heartRateDisplay.js`); the crosshair's intersection dot is not — it belongs
   to the crosshair, not to the bands.
@@ -151,16 +171,20 @@ Rules baked into this pass:
   highlight — and no highlight without the drawer's
   highlight toggle either (`js/metrics/heartRateDisplay.js`): it needs the band toggle on,
   and its stored choice survives while the bands are hidden.
-- Draw order matters: zone bands → overlay lines → elevation band → highlight → hover.
-- Pass-1 sampling is cached: the per-overlay column means and the per-point speed maxima are
-  recomputed only when the track, x-mode, plot width or overlay selection changes — hover,
-  probe and handle frames redraw from the stored samples (`sampleVisibleOverlays` +
-  `overlaySamples` in `profile-render.js`).
-- `sync()` reads chart state without mutating it; the one render-owned write is
-  `hrHoverCurve`. Its output is determined by `state`, `sectorStore` and the current theme
-  tokens (`getComputedStyle`), and its writes go to the canvas plus the render-owned DOM
-  (masks, handles) and, via `showTooltipAt`, the tooltip. It is deterministic per frame,
-  but not a pure function — it draws.
+- Draw order matters: zone bands → overlay lines → elevation area → highlight → hover.
+- Chart update granularity: view change → `setScale('x')` only; overlay toggle → `show`
+  flags; track/x-mode → `setData` with the swapped caches; theme → per-draw color
+  functions (a plain redraw); resize → `setSize` (never destroy/recreate). Hover frames
+  touch only the annotation canvas — uPlot is not asked to redraw.
+- A failed uPlot download surfaces a muted note inside `#profile-body`
+  (`t('profileChartError')`) plus a console error; the loader resets its cached promise so
+  the NEXT explicit render trigger retries — nothing retries in a loop, and nothing else
+  in the app is affected.
+- The annotation pass reads chart state without mutating it. Its output is determined by
+  `state`, `sectorStore` and the current theme tokens (`getComputedStyle`), and its writes
+  go to the annotation canvas plus the render-owned DOM (masks, handles) and, via
+  `showTooltipAt`, the tooltip. It is deterministic per frame, but not a pure function —
+  it draws.
 
 ## Coordinate conversions
 
@@ -178,17 +202,23 @@ conversion, add it there as a pure function with explicit parameters.
 
 1. Add the definition to `OVERLAY_METRICS` (`id`, `colorToken`, `labelKey`, `axis`).
 2. Give the track a `hasX` flag in the parser, wire it into `overlayAvailability`.
-3. Add the per-point reader to `overlayValueAt`.
-4. Add `labelKey` to **all five** language packs (`js/language/` — parity is test-enforced).
+3. Add the per-point reader to `overlayValueAt` — the scale (via `overlayExtremes`) and
+   the uPlot series data both derive from it; nothing else is needed.
+4. Add `labelKey` to **all** language packs (`js/language/` — parity is test-enforced).
 5. Slot cap: extend `maxOverlays()` in `profile-interaction.js` if the family should get a slot.
 
 ### Add a drawn layer
 
-- Sample through `profile-data.js` (`sampleOverlay`/`sampleElevation`); never read
-  `track.points[]` inside the renderer directly except in existing hover paths.
-- Colors come from CSS design tokens (`--series-*`, `--hr-zone-*`), re-read per frame for
-  theme switches.
-- Insert at the correct z-order slot in `sync()`; update the layer list in this README.
+- uPlot-drawn series layers: add a series config in `buildSeriesConfigs` (draw order =
+  array order) and its data array in `currentRefs`/`buildData`; the scale, if new, goes
+  into the `scales` config plus the explicit `setScale` loop in `syncChart`.
+- WaySlice business layers: draw on the annotation canvas (`drawAnnotation`), positioning
+  through `xvToPx`/`pyOf` — never read pixel positions from the chart canvas.
+- Colors come from CSS design tokens (`--series-*`, `--hr-zone-*`), snapshotted per
+  render pass for theme switches.
+- Insert at the correct z-order slot (chart hooks: zone bands beneath / reference line
+  above; annotation pass: strip → highlight → pins → crosshair); update the layer list
+  in this README.
 
 ### Add an interactive control
 
@@ -197,7 +227,7 @@ conversion, add it there as a pure function with explicit parameters.
 - Mutate `state`, then call `scheduleSync()`. Interaction code **never draws** and never
   touches `ctx`.
 - A **header** control also declares its responsive priority: register it in
-  `movableControls()` and in every `LEVEL_ROW` entry that keeps it in the row (rule 8). Its
+  `movableControls()` and in every `LEVEL_ROW` entry that keeps it in the row (rule 9). Its
   business state must survive any level change.
 
 ### Touch heart-rate zone data
@@ -232,19 +262,26 @@ conversion, add it there as a pure function with explicit parameters.
    applies the returned `{selected}` to `state` and updates `lastSpeedVariant`.
 4. Import depth: modules live one directory deeper than the old flat file — `menus.js` is
    `../../ui/menus.js`, stores are `../../core/…`, NOT `../…`.
-5. No new libraries, no globals: ES modules only, same as the rest of the project.
-6. Canvas caching: during development the browser may serve stale modules — the project
+5. Libraries only via the vendor directory: uPlot is the ONE vendored chart library
+   (`vendor/uplot/`, version-pinned in its VENDOR-NOTE) and is loaded exclusively through
+   `uplot-loader.js`'s cached promise — never import it statically, never fetch it from a
+   CDN, never copy a second chart library in. No globals: ES modules only.
+6. The chart renderer receives the FULL-RESOLUTION series — never reintroduce a
+   per-pixel-column sampler (bucketing by canvas width, per-column min/max/mean) as a
+   "uPlot adapter": the suite pins `sampleElevation`/`sampleOverlay` to `undefined`, and
+   any new pixel-width-dependent data path is a regression, not an optimization.
+7. Canvas caching: during development the browser may serve stale modules — the project
    has no build step and the dev server sends no explicit caching directives, so browsers
    can apply heuristic caching. Hard-reload via CDP `Page.reload {ignoreCache: true}`
    before doubting your changes.
 
-7. Viewport gestures are shared, not forked: the pinch / pan / tap / double-tap machine lives in
+8. Viewport gestures are shared, not forked: the pinch / pan / tap / double-tap machine lives in
    `js/charts/viewport-gestures.js` and is what the dual-variable chart runs as well. The profile
    supplies one x-axis adapter (domain, zoom floor, plot geometry, `state.view` accessors); the
    wheel zoom commits through `zoomStep` for exactly that reason. Never re-derive the window math
    (`zoomWindow` / `panWindow`) or its clamps locally — two copies would drift apart at the edges.
 
-8. The header toolbar degrades by MEASUREMENT, never by a breakpoint or a language check:
+9. The header toolbar degrades by MEASUREMENT, never by a breakpoint or a language check:
    `refreshControlsFit` walks full → is-compact → is-overflow → is-emergency → is-minimum and keeps
    the first level whose row fits the pane's real width. `LEVEL_CLASSES` is the level list (the
    classes are cumulative, so the CSS layers) and `LEVEL_ROW` says which controls stay in the row
@@ -260,7 +297,8 @@ conversion, add it there as a pure function with explicit parameters.
 
 **Automated** — `tests/index.html` (serve the repo root, e.g. `python -m http.server`).
 The suite imports this module's pure data layer directly (`tests/suite-profileData.js` over
-`profile-data.js` — caches, sampling, conversions); the Canvas/DOM parts are outside the suite.
+`profile-data.js` — caches, scale ranges, conversions, plus the sampling-removal pin and
+the uPlot loader's promise-caching rule); the chart/annotation parts are outside the suite.
 It is also the regression net for the shared math (`metrics/`, `geo/`) and for
 `tests/suite-viewport.js` (the shared zoom/pan window math + the double-tap rule). Expected: all green.
 

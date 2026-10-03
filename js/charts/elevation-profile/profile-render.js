@@ -1,34 +1,44 @@
 /**
- * Elevation profile — the canvas renderer.
+ * Elevation profile — the uPlot renderer.
  *
- * One full-redraw pass (`sync`) paints every layer in a fixed order:
- * x ticks → very faint HR zone bands → overlay curves (HR, speed/pace/GAP,
- * cadence, temperature, power) → elevation band + sector highlight →
- * waypoint pins → hover crosshair. Min–max
- * downsampling per pixel column keeps 100k-point tracks fast and faithful.
+ * uPlot owns the chart: the plot coordinate system, the elevation series,
+ * the overlay series (HR, speed/pace/GAP, cadence, temperature, power),
+ * the x/y scales, grid and axes, and the drawing of every series from its
+ * COMPLETE raw data. The renderer receives the full-resolution series —
+ * zooming, the sector view and the x-axis mode act on the chart's scale
+ * range (or swap cached arrays), never on the data; there is no
+ * per-pixel-column downsampling anywhere in this module.
  *
- * Every drawn element is positioned from a per-point x array (`xs`), so the
- * two x-axis modes are aligned by TRACK POINT, never by screen position:
+ * WaySlice keeps the business layers it always owned, drawn on its own
+ * annotation canvas (#profile-canvas — the same element the pointer
+ * handlers listen on, layered above uPlot): the per-overlay axis strip,
+ * the sector highlight (the accent-colored redraw of the full-resolution
+ * elevation path inside the sector), waypoint pins, and the hover/probe
+ * crosshair. The DOM overlays (sector handles, masks, tooltip) keep their
+ * existing architecture untouched.
  *
- *   distance mode → x = cumulative distance (m)
- *   time mode     → x = elapsed time since the first point (ms)
+ * Chart lifecycle:
+ *   No track         → no chart; uPlot is not even loaded (uplot-loader)
+ *   First render     → loadUPlot() exactly once → chart created from the
+ *                      raw series (Promise cached, concurrent renders share it)
+ *   View change      → setScale('x', …) — data untouched
+ *   Overlay toggle   → series.show flags — chart instance untouched
+ *   Track / x mode   → setData(swap the cached arrays) — chart instance kept
+ *   Theme / units    → colors and labels are per-draw functions → redraw
+ *   Resize           → setSize — no destroy/recreate
  *
- * Each visible overlay is auto-scaled over the FULL track (global y scale —
- * zooming only stretches the x axis) and keeps its own right-hand scale
- * labels. While the heart-rate curve is shown, the five configured zones
- * shade the plot as very faint horizontal bands, mapped through the hr
- * scale exactly like the curve's y values; the hover crosshair gains a
- * small solid dot where it crosses the drawn hr polyline.
- *
- * Rendering is stateless over the shared chart state (profile-state.js) +
- * the pure sampling math (profile-data.js); the interaction layer triggers
- * redraws exclusively through scheduleSync().
+ * uPlot config notes: cursor and legend are disabled entirely (the profile
+ * hover is WaySlice's crosshair + DOM tooltip; uPlot must bind no pointer
+ * listeners — the annotation canvas above it is the interaction surface).
+ * The y scales are explicit: WaySlice computes every range from the
+ * full-resolution data (profile-data.js) and sets it with setScale, which
+ * uPlot never re-ranges — so chart scales and the metrics list always read
+ * the same raw numbers.
  */
 import { sectorStore } from '../../sector/sectorStore.js';
 import { pointAtDistance } from '../../geo/interpolate.js';
 import { loadHeartRateSettings } from '../../metrics/heartRateSettings.js';
 import { getHeartRateDisplay } from '../../metrics/heartRateDisplay.js';
-import { cssToken } from '../../utils/cssToken.js';
 import { computeZoneBounds, classifyHr } from '../../metrics/heartRateZones.js';
 import { t } from '../../language/language.js';
 import {
@@ -36,13 +46,12 @@ import {
 } from '../../utils/format.js';
 import { state } from './profile-state.js';
 import {
-  OVERLAY_METRICS, SPEED_FAMILY, sampleOverlay, sampleElevation, overlayValueAt,
-  seriesExtremes, distToX, xToDist, xvToPx, formatOverlayValue,
+  OVERLAY_METRICS, SPEED_FAMILY, overlayExtremes, overlayYRange, eleYRange,
+  distToX, xToDist, xvToPx, formatOverlayValue,
 } from './profile-data.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
 import { niceStep } from '../ticks.js';
-
-const MARGIN = { left: 58, right: 14, top: 4, bottom: 22 };
+import { loadUPlot } from './uplot-loader.js';
 
 // Zone band tint. The band under the hover dot is drawn about twice as deep
 // so the eye reads the active zone — still faint, still background.
@@ -50,472 +59,597 @@ const MARGIN = { left: 58, right: 14, top: 4, bottom: 22 };
 const BAND_ALPHA = 0.22;
 const ACTIVE_BAND_ALPHA = 0.54;
 
-// Bound once by initRender — the DOM assets never change afterwards.
+// Pre-chart fallback plot geometry (the chart's own bbox takes over once a
+// chart exists; nothing draws before a track anyway).
+const MARGIN = { left: 58, right: 14, top: 4, bottom: 22 };
+
+// Draw order inside uPlot: the overlay curves sit BENEATH the elevation
+// series (its translucent fill tints them, like the old canvas renderer's
+// fixed layer order). series[0] is uPlot's x placeholder.
+const SERIES_ORDER = ['hr', 'speed', 'cad', 'temp', 'power', 'ele'];
+
+// One uPlot scale per series; the speed family shares the m/s 'speed' scale
+// (pace and GAP are views of the same speed data, formatted differently).
+const SCALE_KEY = {
+  hr: 'hr', speed: 'speed', pace: 'speed', gap: 'speed',
+  cad: 'cad', temp: 'temp', power: 'power',
+};
+
+// uPlot series index per scale key (series[0] is uPlot's x placeholder).
+const SERIES_INDEX = Object.fromEntries(SERIES_ORDER.map((id, i) => [id, i + 1]));
+
+// The series-text token per overlay (strip labels) — the graphics tokens
+// live in the same map under their own names.
+const TEXT_TOKEN = {
+  '--series-hr-text': 'hrText',
+  '--series-speed-text': 'speedText',
+  '--series-cadence-text': 'cadenceText',
+  '--series-temp-text': 'tempText',
+  '--series-power-text': 'powerText',
+};
+
 let ctx = null;
 let canvas = null;
 let handles = null;
 let masks = null;
+let chartHost = null;
 
-/** rAF-batched redraw flag. @private */
-let syncPending = false;
-// Sampled heart-rate curve + scale for the hover intersection dot; null
-// whenever the hr curve is not currently drawn. @private
-let hrHoverCurve = null;
-// Cached Pass-1 overlay sampling, keyed by (track, x-mode, plot width,
-// overlay selection). Hover, probe and handle frames redraw from it without
-// re-reading any track point. @private
-let overlaySamples = null;
-// Overlay curves map their values between these two y rows — the same rows
-// the axis strip labels sit on — so a curve can never paint past its axis
-// label. sync() sets them before pass 2: from the elevation grid rows (top
-// row = the track's highest point) or the fixed 8 px inset without one.
-let overlayYTop = 0;
-let overlayYBottom = 0;
-/** @private y position for an overlay value between the axis strip rows. */
-function overlayYOf(v, lo, hi) {
-  return overlayYBottom - ((v - lo) / (hi - lo)) * (overlayYBottom - overlayYTop);
-}
+/** The uPlot instance once the first track render created it. */
+let chart = null;
+// Style tokens snapshotted once per render pass — the series stroke/fill
+// functions and the annotation canvas read these (theme changes re-run the
+// pass, so the functions never hold a stale theme).
+let tokens = {};
+// uPlot's canvas backing ratio (its bbox is in device pixels).
+let pxRatio = 1;
+// Per-track plain arrays for the series uPlot reads directly (nulls mark
+// missing readings). The speed family feeds uPlot the cached Float64Arrays.
+let seriesCache = null;      // { track, ele, hr, cad, temp, power }
+// What the chart was last given — compared by REFERENCE (every state change
+// that swaps series arrays builds new ones).
+let appliedData = null;      // { xs, family, ele, hr, cad, temp, power }
+let appliedShows = '';       // visibility flags currently on the chart
+let appliedX = null;         // x window currently set on the chart scale
+let appliedKey = null;       // the last chartKey() handed to syncChart
+// Cached sector-accent paths (Path2D) — rebuilt only when the sector, view,
+// plot rect, track or axis mode changes; hover frames re-stroke for free.
+let accentCache = null;
+// Restrained failure state for the lazy uPlot load (uplot-loader).
+let errorEl = null;
 
 /** Binds the canvas-side DOM assets and creates the sector veils. */
 export function initRender() {
   ({ canvas, ctx } = state.dom);
+  chartHost = state.dom.chart;
   handles = state.dom.handles;
   masks = state.dom.masks;
   masks.left = createMask();
   masks.right = createMask();
 }
 
-/** @private One transparent veil over the area outside the sector handles
- *  (see .profile-mask in profile.css). */
-function createMask() {
-  const m = document.createElement('div');
-  m.className = 'profile-mask';
-  m.hidden = true;
-  state.dom.root.appendChild(m);
-  return m;
+/** Style stamp — bumped on theme/units changes so the next render
+ *  re-applies chart style (colors are per-draw functions; only the axis
+ *  label re-derivation needs a forced re-converge, which every syncChart
+ *  data pass or setScale issues anyway). */
+let styleStamp = 0;
+export function invalidateChartStyle() {
+  styleStamp++;
 }
 
 /** rAF-batched redraw. */
+let syncPending = false;
 export function scheduleSync() {
   if (syncPending) return;
   syncPending = true;
   requestAnimationFrame(() => {
     syncPending = false;
-    sync();
+    render();
   });
 }
 
-/** @private Full redraw: axes, elevation bands, overlays, handles, hover. */
+/** Immediate redraw (resize path). */
 export function sync() {
-  if (!state.track) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    positionHandles();
-    return;
-  }
-  const { track, xs, view, plot } = state;
-  const css = getComputedStyle(document.documentElement);
-  const color = (name) => css.getPropertyValue(name).trim();
-  const cMuted = color('--profile-line');
-  const cAccent = color('--accent');
-  const cAccentStrong = color('--accent-strong');
-  const cText = color('--foreground-muted');
-  const cGrid = color('--border');
-  const cSurface = color('--surface-elevated');
-
-  const { x0, y0, w, h } = plot;
-  const xEnd = xs[xs.length - 1];
-  // Every x position maps through the visible window (`view`, null = full
-  // track). Zooming stretches the horizontal axis only.
-  const v0 = view ? view.start : 0;
-  const v1 = view ? view.end : xEnd;
-  // Tick spacing still reads the window width directly; positions go through xvToPx.
-  const vw = Math.max(v1 - v0, 1e-9);
-  const x = (v) => xvToPx(v, view, xs, plot);
-
-  // Elevation y domain: ~8% headroom above and below the data. The three
-  // grid rows anchor to the DATA extremes and the midpoint — the top row IS
-  // the track's highest point — so a curve can never rise past its axis
-  // label. The rows double as the overlay axis strip baselines and the
-  // overlay curves' y range (overlayYTop/overlayYBottom below).
-  let yGridTop = y0 + 8;
-  let yGridBottom = y0 + h - 8;
-  let gridRows = null;
-  let y = null;
-  if (track.hasElevation) {
-    const elePad = Math.max((track.eleMax - track.eleMin) * 0.08, 4);
-    const eleMin = track.eleMin - elePad;
-    const eleMax = track.eleMax + elePad;
-    y = (ele) => y0 + (1 - (ele - eleMin) / (eleMax - eleMin)) * h;
-    gridRows = [
-      { ele: track.eleMax, py: y(track.eleMax) },
-      { ele: (track.eleMin + track.eleMax) / 2, py: y((track.eleMin + track.eleMax) / 2) },
-      { ele: track.eleMin, py: y(track.eleMin) },
-    ];
-    yGridTop = gridRows[0].py;
-    yGridBottom = gridRows[gridRows.length - 1].py;
-  }
-  overlayYTop = yGridTop;
-  overlayYBottom = yGridBottom;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.font = '10px ' + (css.getPropertyValue('--font-mono') || 'monospace');
-
-  // X ticks — distance or elapsed time, per current mode, over the window.
-  if (vw > 1e-9) {
-    const step = niceStep(vw / 5);
-    // Vertical rules start at the top y grid line (the data-maximum row when
-    // elevation exists) so no stub pokes into the headroom above it; without
-    // elevation there is no y grid, keep the full height.
-    const tickTop = track.hasElevation ? yGridTop : y0;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    for (let v = (Math.floor(v0 / step) + 1) * step; v <= v1; v += step) {
-      ctx.strokeStyle = cGrid;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x(v), tickTop);
-      ctx.lineTo(x(v), y0 + h);
-      ctx.stroke();
-      ctx.fillStyle = cText;
-      const label = state.xMode === 'time' ? formatDuration(v / 1000) : formatDistanceShort(v);
-      ctx.fillText(label, x(v), y0 + h + 5);
-    }
-  }
-
-  const { start, end } = sectorStore.get();
-  const xsStart = distToX(start, track, state.xMode);
-  const xsEnd = distToX(end, track, state.xMode);
-
-  // Overlays (drawn for both elevation and no-elevation tracks). Sampled
-  // over the full track — the global scale promised in the header — but
-  // clipped to the plot so a zoomed window never paints into the margins.
-  const visible = state.selectedOverlays;
-  // Pass 1 reads EVERY track point per overlay (plus one full per-point scan
-  // per speed-family overlay for the axis strip top) and depends only on
-  // (track, x-mode, plot width, overlay selection) — none of which a hover,
-  // probe or handle move changes. So it is cached: hover/probe/handle frames
-  // redraw from the stored samples instead of re-reading the track.
-  const cols = Math.max(2, Math.round(w));
-  const visibleKey = visible.join('|');
-  if (!overlaySamples ||
-      overlaySamples.track !== track ||
-      overlaySamples.xMode !== state.xMode ||
-      overlaySamples.cols !== cols ||
-      overlaySamples.visibleKey !== visibleKey) {
-    overlaySamples = sampleVisibleOverlays(visible, cols, xEnd);
-  }
-  const { overlayScale, axisEntries, hrEntry } = overlaySamples;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x0, y0, w, h);
-  ctx.clip();
-  // Pass 2 — the zone bands sit beneath every curve (drawn first), mapped
-  // through the heart-rate scale exactly like drawOverlayLine's y values.
-  // The sampled hr curve doubles as the hover-dot source, so the crosshair's
-  // intersection marker — and the highlighted band under it — land on the
-  // very polyline the eye sees.
-  hrHoverCurve = hrEntry
-    ? { vals: hrEntry.vals, colW: xEnd / hrEntry.vals.length, lo: hrEntry.lo, hi: hrEntry.hi }
-    : null;
-  drawHrZoneBands(overlayScale.get('hr'), zoneBandColors(css));
-  for (const { def, lo, hi, vals } of axisEntries) {
-    drawOverlayLine(vals, 0, xEnd, x, lo, hi, color(def.colorToken));
-  }
-  ctx.restore();
-
-  // The area outside the sector handles is dimmed by two transparent DOM
-  // veils (see .profile-mask) — kept in sync with the sector boundaries.
-  placeMasks();
-
-  if (!track.hasElevation) {
-    // No elevation data: a flat dashed reference line keeps the axis usable.
-    ctx.strokeStyle = cMuted;
-    ctx.setLineDash([4, 4]);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(x0, y0 + h / 2);
-    ctx.lineTo(x0 + w, y0 + h / 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    drawWaypointPins(v0, v1, x, null);
-    positionHandles();
-    drawHover(cAccentStrong, cSurface);
-    drawOverlayAxes(axisEntries, cSurface, yGridTop, yGridBottom);
-    return;
-  }
-
-  // Horizontal grid + y labels. The top/bottom rows sit at the DATA
-  // extremes (the padded domain above/below them is pure headroom), so the
-  // labels never claim an elevation the curve doesn't reach. The rows double
-  // as the baseline rows for the horizontal overlay axis strip, so both
-  // sides read on the same lines.
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  for (const { ele, py } of gridRows) {
-    ctx.strokeStyle = cGrid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x0, py);
-    ctx.lineTo(x0 + w, py);
-    ctx.stroke();
-    ctx.fillStyle = cText;
-    ctx.fillText(formatElevation(Math.round(ele)), x0 - 8, py);
-  }
-  if (axisEntries.length) {
-    drawOverlayAxes(axisEntries, cSurface, yGridTop, yGridBottom);
-  }
-
-  // Full profile band over the visible window, then the sector highlight —
-  // clipped to the window intersection so an out-of-view sector boundary
-  // never drags the highlight off-plot.
-  const full = sampleElevation(track, xs, v0, v1, Math.max(2, Math.round(w)));
-  drawBand(full, v0, x, y, cMuted, 0.14, cMuted, 1.5);
-  const sA = Math.max(xsStart, v0);
-  const sB = Math.min(xsEnd, v1);
-  if (sB > sA) {
-    const secCols = Math.max(2, Math.round(x(sB) - x(sA)));
-    const sec = sampleElevation(track, xs, sA, sB, secCols);
-    drawBand(sec, sA, x, y, cAccent, 0.22, cAccent, 2);
-  }
-
-  drawWaypointPins(v0, v1, x, y);
-  positionHandles();
-  drawHover(cAccentStrong, cSurface);
+  return render();
 }
 
-/**
- * Pass 1 — sample and scale every visible overlay. Deterministic per
- * (track, x-mode, plot width, overlay selection): sampling always spans the
- * FULL track (the global y scale promised in the header — zooming stretches
- * the x axis only, at draw time), so the zoom window and the hover/probe
- * position are deliberately not inputs. sync() caches this — hover frames
- * reuse the result; a new track, axis mode, resize or overlay toggle
- * recomputes it once.
- * @param {string[]} visible  overlay ids, in selection order
- * @param {number} cols  plot width in pixel columns
- * @param {number} xEnd  track-final x value in the current mode
- * @returns {{overlayScale: Map<string, {lo: number, hi: number, idx: number, def: object}>,
- *            axisEntries: object[], hrEntry: object|null}}
- * @private
- */
-function sampleVisibleOverlays(visible, cols, xEnd) {
-  const overlayScale = new Map();
-  const axisEntries = [];
-  const { track, xs } = state;
-  for (let idx = 0; idx < visible.length; idx++) {
-    const def = OVERLAY_METRICS.find((d) => d.id === visible[idx]);
-    const valueAt = overlayValueAt(def.id, track, state);
-    if (!valueAt) continue;
-    const vals = sampleOverlay(0, xEnd, cols, valueAt, xs);
-    let lo = Infinity, hi = -Infinity;
-    for (const v of vals) {
-      if (v == null) continue;
-      if (v < lo) lo = v;
-      if (v > hi) hi = v;
-    }
-    if (!Number.isFinite(lo) || !Number.isFinite(hi)) continue;
-    // A near-constant series (fresh legs on a flat loop!) has a range of
-    // ~0 — padding on the range alone would stretch GPS rounding noise into
-    // a full-height zigzag, so pad at least 4% of the series mean.
-    // bpm/rpm/speed are physically non-negative — keep the scale above zero.
-    // The speed family's axis strip is read as "this curve tops out at X" —
-    // and after the spike clean that top IS a real value worth comparing
-    // against the metrics list — so its top stays at the series maximum,
-    // read PER POINT: the column means above dilute a narrow peak with its
-    // neighbors, which could round the strip below the Maximum Speed the
-    // list reports (width-dependently, up to a whole display step). Every
-    // other overlay keeps the padded top: bpm/watt spikes are dropped, not
-    // interpolated, and their scales have never promised to end at the data
-    // maximum.
-    if (SPEED_FAMILY.includes(def.id)) {
-      const pt = seriesExtremes(valueAt, track.pointCount);
-      if (pt) hi = pt.hi;
-    }
-    const pad = Math.max((hi - lo) * 0.08, Math.abs((lo + hi) / 2) * 0.04) || 1;
-    lo = Math.max(0, lo - pad);
-    if (!SPEED_FAMILY.includes(def.id)) hi += pad;
-    overlayScale.set(def.id, { lo, hi, idx, def });
-    axisEntries.push({ def, lo, hi, vals });
+// Single-flight async render: while the first render awaits the uPlot
+// download, later scheduleSync() calls land in `rerender` and run once the
+// in-flight pass finishes — no dropped frames, no concurrent chart builds,
+// and a failed load is only retried by the NEXT explicit render trigger.
+let rendering = false;
+let rerender = false;
+async function render() {
+  if (rendering) {
+    rerender = true;
+    return;
   }
-  const hrEntry = axisEntries.find((e) => e.def.id === 'hr') ?? null;
+  rendering = true;
+  try {
+    await renderNow();
+  } finally {
+    rendering = false;
+  }
+  if (rerender) {
+    rerender = false;
+    render();
+  }
+}
+
+async function renderNow() {
+  if (!state.track) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+  let uPlot;
+  try {
+    uPlot = await loadUPlot();
+  } catch (error) {
+    showChartError(error);
+    return;
+  }
+  hideChartError();
+  if (!chart) {
+    // The chart config reads the scale cache at construction time (axis
+    // sizes, range fallbacks) — compute it BEFORE the instance exists.
+    ensureScales();
+    try {
+      createChart(uPlot);
+    } catch (error) {
+      showChartError(error);
+      return;
+    }
+  }
+  const key = chartKey();
+  if (key !== appliedKey) {
+    try {
+      syncChart();
+    } catch (error) {
+      showChartError(error);
+      return;
+    }
+    appliedKey = key;
+  }
+  drawAnnotation();
+}
+
+/** @private Everything that decides whether the chart (not the annotation
+ *  canvas) needs re-syncing: scales (track/mode/family), series visibility,
+ *  view window, style. The raw data arrays are re-checked by reference
+ *  inside syncChart itself. */
+function chartKey() {
+  const sc = ensureScales();
+  return [
+    sc.stamp,
+    computeShows(sc).key,
+    state.view ? `${state.view.start}|${state.view.end}` : 'full',
+    styleStamp,
+  ].join('|');
+}
+
+// ---------------------------------------------------------------------------
+// Data assembly — the chart reads cached arrays; nothing here samples.
+// ---------------------------------------------------------------------------
+
+/** @private The speed-family series currently drawn: GAP has its own
+ *  grade-adjusted cache; speed and pace share the plain speed series. */
+function familyDataId() {
+  return state.selectedOverlays.find((id) => SPEED_FAMILY.includes(id)) ?? 'speed';
+}
+
+/** @private Plain (null-able) arrays for the series read off track points —
+ *  built once per track, reused by every redraw. */
+function trackSeries(track) {
+  if (seriesCache?.track === track) return seriesCache;
+  const n = track.pointCount;
+  const pick = (read) => {
+    const a = new Array(n);
+    for (let i = 0; i < n; i++) a[i] = read(i) ?? null;
+    return a;
+  };
+  seriesCache = {
+    track,
+    ele: pick((i) => track.points[i].ele),
+    hr: pick((i) => track.points[i].hr),
+    cad: pick((i) => track.points[i].cad),
+    temp: pick((i) => track.points[i].temp),
+    power: pick((i) => track.points[i].power),
+  };
+  return seriesCache;
+}
+
+/** @private The exact array references the chart currently holds. */
+function currentRefs() {
+  const s = trackSeries(state.track);
   return {
-    // Key components — compared by sync() before every reuse.
-    track: state.track,
-    xMode: state.xMode,
-    cols,
-    visibleKey: visible.join('|'),
-    // Samples.
-    overlayScale, axisEntries, hrEntry,
+    xs: state.xs,
+    family: familyDataId() === 'gap' ? state.gapSpeeds : state.speeds,
+    ele: s.ele, hr: s.hr, cad: s.cad, temp: s.temp, power: s.power,
   };
 }
 
-/**
- * Waypoint annotations on the profile — the map's pins in profile form: a
- * violet dot riding the elevation curve (mid-height when the track has no
- * elevation). No standing vertical line: the only violet line is the thick
- * one drawn while a map pin is hovered. Follows the map's waypoint toggle
- * and the visible x window.
- * @private
- */
-function drawWaypointPins(v0, v1, x, y) {
-  if (!state.waypointsShown || !state.profileWaypoints.length) return;
-  const cWaypoint = cssToken('--map-waypoint');
-  const ring = cssToken('--map-handle-border');
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(state.plot.x0, state.plot.y0, state.plot.w, state.plot.h);
-  ctx.clip();
-  for (const wp of state.profileWaypoints) {
-    const xv = distToX(wp.dist, state.track, state.xMode);
-    if (xv < v0 || xv > v1) continue;
-    const pt = pointAtDistance(state.track, wp.dist);
-    const py = y && pt && pt.ele != null ? y(pt.ele) : state.plot.y0 + state.plot.h / 2;
-    ctx.beginPath();
-    ctx.arc(x(xv), py, 4, 0, Math.PI * 2);
-    ctx.fillStyle = cWaypoint;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = ring;
-    ctx.stroke();
+/** @private Builds the uPlot data tuple for the current state (references
+ *  only — uPlot never gets a copy of anything). */
+function buildData(refs) {
+  const nulls = new Array(refs.xs.length).fill(null);
+  return [
+    refs.xs,
+    refs.hr,
+    refs.family ?? nulls,
+    refs.cad,
+    refs.temp,
+    refs.power,
+    refs.ele,
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Scales — WaySlice computes every y range from FULL-RESOLUTION data
+// (profile-data.js); uPlot only maps values through the ranges it is given.
+// ---------------------------------------------------------------------------
+
+/** @private Per-track identity for cache keys — String(track) is identical
+ *  for every track ("[object Object]"), which would make a swapped track
+ *  look like no change at all. */
+const trackIds = new WeakMap();
+let nextTrackId = 1;
+function trackId(track) {
+  if (!trackIds.has(track)) trackIds.set(track, nextTrackId++);
+  return trackIds.get(track);
+}
+
+/** @private Scale cache — recomputed only when the track, axis mode or the
+ *  drawn speed-family variant changes (never per frame, never per width). */
+let scalesCache = null;
+function ensureScales() {
+  const family = familyDataId();
+  if (scalesCache &&
+      scalesCache.track === state.track &&
+      scalesCache.xMode === state.xMode &&
+      scalesCache.family === family) {
+    return scalesCache;
   }
-  ctx.restore();
-}
-
-/** @private Polyline for an overlay; empty columns are bridged so the
- *  curve stays continuous (gaps only when a series has no data at all). */
-function drawOverlayLine(vals, xStart, xEnd, x, lo, hi, lineColor) {
-  const colW = (xEnd - xStart) / Math.max(1, vals.length);
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 1.5;
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  let pen = false;
-  for (let i = 0; i < vals.length; i++) {
-    const v = vals[i];
-    if (v == null) continue;
-    const px = x(xStart + (i + 0.5) * colW);
-    const py = overlayYOf(v, lo, hi);
-    if (pen) ctx.lineTo(px, py);
-    else ctx.moveTo(px, py);
-    pen = true;
+  const overlays = new Map();
+  for (const def of OVERLAY_METRICS) {
+    const ext = overlayExtremes(def.id, state.track, state);
+    overlays.set(def.id, ext ? overlayYRange(def.id, ext) : null);
   }
-  ctx.stroke();
+  scalesCache = {
+    track: state.track,
+    xMode: state.xMode,
+    family,
+    ele: eleYRange(state.track),
+    overlays,
+    stamp: `${trackId(state.track)}|${state.xMode}|${family}`,
+  };
+  return scalesCache;
 }
 
-/** @private The five HR-zone token colors, shared with the metrics panel's
- *  zone bars (light/dark themes carry their own pairs). */
-function zoneBandColors(css) {
-  return [1, 2, 3, 4, 5].map((i) => css.getPropertyValue(`--hr-zone-${i}`).trim());
-}
-
-/**
- * Heart-rate zone bands — five VERY faint horizontal strips behind the HR
- * curve, one per zone of the user's configured ranges (read only — never
- * recomputed here). Each strip spans exactly its bpm range mapped through
- * the HR overlay's own y scale (the same lo/hi mapping drawOverlayLine
- * uses), so it sits precisely where its bpm values plot; zones outside the
- * visible scale contribute nothing and the open-topped zone 5 is clipped at
- * the scale's high end — the axis itself is never widened. Drawn beneath
- * every curve with no borders: auxiliary context that must never compete
- * with the elevation or heart-rate lines.
- *
- * While hovering, the band containing the hover dot's bpm reading is tinted
- * about twice as deep (ACTIVE_BAND_ALPHA) — still background, but the eye
- * can read the active zone; without a hover every band keeps BAND_ALPHA.
- * Both features are gated by the settings drawer's display toggles
- * (js/metrics/heartRateDisplay.js): showZones hides the bands entirely, and
- * the hover highlight additionally requires the highlight toggle — neither
- * toggle widens the hr scale or turns the HR overlay on by itself.
- * @param {{lo: number, hi: number}|undefined} hrScale  the hr overlay's
- *   scale from sync(); undefined whenever the hr curve is hidden or has no
- *   data — and then no bands are drawn either
- * @param {string[]} colors  the --hr-zone-1..5 token colors
- */
-function drawHrZoneBands(hrScale, colors) {
-  const display = getHeartRateDisplay();
-  if (!hrScale || !display.showZones) return;
-  const bounds = computeZoneBounds(loadHeartRateSettings());
-  if (!bounds) return;
-  const active = display.highlight
-    ? hrHoverZone(bounds, state.probe ? state.probe.dist : state.hoverDist)
-    : null;
-  const { x0, w } = state.plot;
-  const { lo, hi } = hrScale;
-  const yOf = (bpm) => overlayYOf(bpm, lo, hi);
-  for (let i = 0; i < 5; i++) {
-    const zLo = Math.max(bounds.zones[i].lo, lo);
-    const zHi = Math.min(bounds.zones[i].hi ?? hi, hi);
-    if (zHi - zLo < 1e-9) continue;
-    ctx.globalAlpha = i === active ? ACTIVE_BAND_ALPHA : BAND_ALPHA;
-    ctx.fillStyle = colors[i];
-    ctx.fillRect(x0, yOf(zHi), w, yOf(zLo) - yOf(zHi));
+/** @private Which series are drawn: the elevation series only for tracks
+ *  with elevation, an overlay series only while selected AND carrying at
+ *  least one finite reading (a series with no data — or a degenerate
+ *  all-zero range, which cannot form a scale — draws nothing, exactly like
+ *  the previous renderer's scale pass). */
+function computeShows(sc) {
+  const shows = {
+    hr: false, speed: false, cad: false, temp: false, power: false,
+    ele: !!sc.ele && state.track.hasElevation,
+  };
+  for (const id of state.selectedOverlays) {
+    const range = sc.overlays.get(id);
+    if (range && range[1] > range[0]) shows[SCALE_KEY[id]] = true;
   }
-  ctx.globalAlpha = 1;
+  return {
+    map: shows,
+    key: SERIES_ORDER.map((id) => (shows[id] ? id : '-')).join(''),
+  };
 }
 
-/**
- * @private The 0-based band index containing the inspected HR reading, or
- * null — derived through the SAME reading path as the tooltip's zone label
- * (nearest track point's heart rate, classified against the configured
- * zones), so the deepened band always matches the label the tooltip shows.
- * Follows the touch probe's position while one is active, else the hover.
- * No highlight while a waypoint is pinned (the chart hover is inert then)
- * or over columns without a reading.
- * @param {{zones: {lo: number, hi: number|null}[]}} bounds
- * @param {number|null} dist  inspected track distance (probe or hover)
- */
-function hrHoverZone(bounds, dist) {
-  const { track } = state;
-  if (state.pinnedWaypoint || !hrHoverCurve || dist == null || !track) return null;
-  const pt = pointAtDistance(track, dist);
-  if (!pt) return null;
-  const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
-  const v = track.points[idx].hr;
-  if (v == null || !Number.isFinite(v)) return null;
-  const zone = classifyHr(v, bounds);
-  return zone > 0 ? zone - 1 : null;
+// ---------------------------------------------------------------------------
+// Chart lifecycle
+// ---------------------------------------------------------------------------
+
+/** @private Creates the uPlot instance once — lazily, on the first render
+ *  that actually has a track. No track ever touches this path. */
+function createChart(uPlot) {
+  const rect = chartHost.getBoundingClientRect();
+  const width = Math.max(10, Math.round(rect.width));
+  const height = Math.max(10, Math.round(rect.height));
+  // The constructor's own first draw sees no data (built with none); the
+  // following syncChart supplies the arrays and the real scales.
+  chart = new uPlot({
+    width,
+    height,
+    legend: { show: false },
+    cursor: { show: false },
+    scales: {
+      x: { time: false, auto: true },
+      ele: { auto: false, range: () => scalesCache?.ele ?? [0, 1] },
+      hr: { auto: false, range: () => scalesCache?.overlays.get('hr') ?? [0, 1] },
+      speed: { auto: false, range: () => scalesCache?.overlays.get(familyDataId()) ?? [0, 1] },
+      cad: { auto: false, range: () => scalesCache?.overlays.get('cad') ?? [0, 1] },
+      temp: { auto: false, range: () => scalesCache?.overlays.get('temp') ?? [0, 1] },
+      power: { auto: false, range: () => scalesCache?.overlays.get('power') ?? [0, 1] },
+    },
+    axes: [
+      {
+        side: 2, // bottom — distance or elapsed time per current mode
+        stroke: () => tokens.text,
+        grid: { stroke: () => tokens.grid },
+        ticks: { show: false },
+        font: monoFont(),
+        gap: 5,
+        size: 22,
+        splits: (u, i, min, max) => xTickValues(min, max),
+        values: (u, splits) => splits.map(formatXTick),
+      },
+      {
+        scale: 'ele',
+        side: 3, // left — the three data-anchored elevation rows
+        stroke: () => tokens.text,
+        grid: { stroke: () => tokens.grid },
+        ticks: { show: false },
+        font: monoFont(),
+        gap: 8,
+        // No elevation → no y axis at all (the size fn re-converges on the
+        // forced redraw every track/x-mode syncChart pass issues).
+        size: () => (scalesCache?.ele ? 58 : 0),
+        splits: (u, i, min, max) => eleTickValues(),
+        values: (u, splits) => splits.map((v) => formatElevation(Math.round(v))),
+      },
+    ],
+    series: [
+      {},
+      ...buildSeriesConfigs(),
+    ],
+    hooks: {
+      // Zone bands go through uPlot's own draw cycle so they sit beneath
+      // every series, over the grid — exactly where the old renderer put
+      // them. Hooks draw in uPlot's device-pixel canvas space.
+      drawAxes: [drawZoneBands],
+      draw: [drawFlatReference],
+      setSize: [() => updateStatePlot()],
+    },
+  }, null, chartHost);
+  updateStatePlot();
+  appliedData = null;
+  appliedShows = '';
+  appliedX = null;
 }
 
-/**
- * @private Raw x under the current hover — the cursor's raw x for profile
- * hovers, the hovered position's x for map/waypoint hovers; null when
- * nothing is hovered. Shared by the crosshair (drawHover) and the active
- * zone-band highlight so both always agree on the position.
- */
-function currentHoverXv() {
-  if (state.hoverDist == null) return null;
-  if (state.hoverOrigin === 'profile' && state.hoverX != null) return state.hoverX;
-  return distToX(state.hoverDist, state.track, state.xMode);
+/** @private Series configs in draw order (overlays beneath elevation).
+ *  Stroke/fill are FUNCTIONS re-evaluated on every draw, so a theme change
+ *  is just a redraw with the existing geometry. */
+function buildSeriesConfigs() {
+  const overlaySeries = (id, scaleKey, token) => ({
+    label: id,
+    scale: scaleKey,
+    show: false,
+    width: 1.5,
+    spanGaps: true,
+    stroke: () => tokens[token],
+    points: { show: () => false },
+  });
+  return [
+    overlaySeries('hr', 'hr', 'hr'),
+    overlaySeries('speed', 'speed', 'speed'),
+    overlaySeries('cad', 'cad', 'cadence'),
+    overlaySeries('temp', 'temp', 'temp'),
+    overlaySeries('power', 'power', 'power'),
+    {
+      label: 'ele',
+      scale: 'ele',
+      show: false,
+      width: 1.5,
+      spanGaps: true,
+      stroke: () => tokens.line,
+      fill: () => withAlpha(tokens.line, 0.14),
+      // The area fill reaches the scale's lower bound (the plot bottom), not
+      // y=0 — elevation scales never start at sea level.
+      fillTo: (u) => u.scales.ele.min,
+      points: { show: () => false },
+    },
+  ];
 }
 
-/**
- * Horizontal right-hand axis strip for the visible overlays. Every series
- * contributes one column — its max reading on the top row, its min on the
- * bottom row — laid out left→right in the same order as the selected
- * overlays, right-aligned to the plot edge. Font and baseline match
- * the left-hand elevation labels (10px mono, middle), with the rows sitting
- * exactly on the top/bottom grid lines so both axes read level. Labels
- * render in the series TEXT tokens (per-theme, AA for small text) and are
- * haloed with the surface color so they stay legible over the curves. The
- * strip stays pinned to the plot edge and deliberately does NOT dodge the
- * sector handles — a handle bar may cross the values; that overlap is
- * accepted by design (user decision, 2026-09-27).
- * @private
- */
-function drawOverlayAxes(entries, haloColor, yTop, yBottom) {
-  if (!entries.length) return;
+/** @private Re-applies data / visibility / scales / view to the chart. Runs
+ *  inside one batch so every change lands in a single synchronous draw and
+ *  the scales are current for the annotation pass that follows. */
+function syncChart() {
+  refreshTokens();
+  const sc = ensureScales();
+  const refs = currentRefs();
+  const shows = computeShows(sc);
+  chart.batch(() => {
+    if (appliedData === null ||
+        appliedData.xs !== refs.xs || appliedData.family !== refs.family ||
+        appliedData.ele !== refs.ele || appliedData.hr !== refs.hr ||
+        appliedData.cad !== refs.cad || appliedData.temp !== refs.temp ||
+        appliedData.power !== refs.power) {
+      chart.setData(buildData(refs));
+      appliedData = refs;
+    }
+    if (shows.key !== appliedShows) {
+      SERIES_ORDER.forEach((id, i) => {
+        chart.series[i + 1].show = shows.map[id];
+      });
+      appliedShows = shows.key;
+    }
+    // Explicit scales — uPlot never re-ranges an explicit setScale, so the
+    // chart's y mapping IS the full-resolution range profile-data computed.
+    // Degenerate ranges (hi == lo, e.g. a fully paused speed series) never
+    // reach the chart: uPlot would skip them and the scale would go stale.
+    // Without elevation the ele scale gets an inert [0,1] instead of the
+    // previous track's range — the axis size fn collapses it to zero width,
+    // and a stale range would keep the axis slot alive after a track swap.
+    if (sc.ele) chart.setScale('ele', { min: sc.ele[0], max: sc.ele[1] });
+    else chart.setScale('ele', { min: 0, max: 1 });
+    for (const [id, range] of sc.overlays) {
+      if (range && range[1] > range[0]) {
+        chart.setScale(SCALE_KEY[id], { min: range[0], max: range[1] });
+      }
+    }
+    applyX();
+    // Show-flag flips are not auto-committed by uPlot.
+    chart.redraw(false);
+  });
+  updateStatePlot();
+}
+
+/** @private The x scale IS the visible window (null = the full domain) —
+ *  zoom/pan/fit/mode act here, never on the data arrays. */
+function applyX() {
+  const xs = state.xs;
+  const xEnd = xs[xs.length - 1];
+  const v0 = state.view ? state.view.start : 0;
+  const v1 = state.view ? state.view.end : xEnd;
+  if (!appliedX || appliedX[0] !== v0 || appliedX[1] !== v1) {
+    chart.setScale('x', { min: v0, max: v1 });
+    appliedX = [v0, v1];
+  }
+}
+
+/** @private Copies uPlot's plot rect (CSS px within #profile-body) into the
+ *  shared chart state — every interaction conversion (clientXtoX, xvToPx)
+ *  and every DOM overlay position keeps working unchanged. */
+function updateStatePlot() {
+  if (!chart) return;
+  pxRatio = chartPxRatio();
+  const bb = chart.bbox;
+  state.plot = {
+    x0: bb.left / pxRatio,
+    y0: bb.top / pxRatio,
+    w: bb.width / pxRatio,
+    h: bb.height / pxRatio,
+  };
+}
+
+/** @private uPlot's bbox is in device pixels — derive the ratio from its
+ *  canvas rather than trusting devicePixelRatio to have stood still. */
+function chartPxRatio() {
+  const can = chart.ctx.canvas;
+  return can.clientWidth > 0 ? can.width / can.clientWidth : 1;
+}
+
+/** @private Theme snapshot for the per-draw color functions. */
+function refreshTokens() {
   const css = getComputedStyle(document.documentElement);
-  ctx.font = '10px ' + (css.getPropertyValue('--font-mono') || 'monospace');
+  const token = (name) => css.getPropertyValue(name).trim();
+  tokens = {
+    line: token('--profile-line'),
+    accent: token('--accent'),
+    accentStrong: token('--accent-strong'),
+    text: token('--foreground-muted'),
+    grid: token('--border'),
+    surface: token('--surface-elevated'),
+    hr: token('--series-hr'),
+    speed: token('--series-speed'),
+    cadence: token('--series-cadence'),
+    temp: token('--series-temp'),
+    power: token('--series-power'),
+    waypoint: token('--map-waypoint'),
+    handleBorder: token('--map-handle-border'),
+    zone: [1, 2, 3, 4, 5].map((i) => token(`--hr-zone-${i}`)),
+  };
+  for (const [prop, key] of Object.entries(TEXT_TOKEN)) {
+    tokens[key] = token(prop);
+  }
+}
+
+function monoFont() {
+  const css = getComputedStyle(document.documentElement);
+  return `10px ${css.getPropertyValue('--font-mono') || 'monospace'}`;
+}
+
+/** @private Hex/rgb token value → rgba() at `alpha`; unknown formats pass
+ *  through unchanged (the tokens are plain hex in both themes). */
+function withAlpha(color, alpha) {
+  let m = /^#([0-9a-f]{6})$/i.exec(color);
+  if (m) {
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  }
+  m = /^#([0-9a-f]{3})$/i.exec(color);
+  if (m) {
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 8) & 15} * 17, ${(n >> 4) & 15} * 17, ${(n & 15) * 17}, ${alpha})`;
+  }
+  m = /^rgba?\(([^)]+)\)$/i.exec(color);
+  if (m) {
+    const parts = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+    return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+  }
+  return color;
+}
+
+// ---------------------------------------------------------------------------
+// Annotation canvas — WaySlice's business layers over the uPlot chart.
+// ---------------------------------------------------------------------------
+
+/** @private One annotation pass: axis strip → sector highlight → waypoint
+ *  pins → hover/probe crosshair → DOM sector overlays (the old sync()'s
+ *  draw order above the chart layers). All positions derive from the same
+ *  state.plot/xvToPx mapping the interaction layer uses, or from uPlot's
+ *  y scales. */
+function drawAnnotation() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!state.track || !chart) return;
+  drawOverlayStrip();
+  drawSectorAccent();
+  drawWaypointPins();
+  drawHoverCrosshair();
+  placeMasks();
+  positionHandles();
+}
+
+/** @private y pixel (CSS px, annotation-canvas space) of a value on one of
+ *  the chart's scales — the same mapping the drawn series use. */
+function pyOf(val, scaleKey) {
+  return chart.bbox.top / pxRatio + chart.valToPos(val, scaleKey, false);
+}
+
+/** @private Horizontal right-hand axis strip for the visible overlays. Every
+ *  series contributes one column — its max reading on the top row, its min
+ *  on the bottom row — laid out left→right in the same order as the selected
+ *  overlays, right-aligned to the plot edge. Labels render in the series
+ *  TEXT tokens and are haloed with the surface color; the strip stays pinned
+ *  to the plot edge and deliberately does NOT dodge the sector handles
+ *  (overlap accepted by design, user decision 2026-09-27). Readings come
+ *  from the chart's own scales — the exact full-resolution ranges. */
+function drawOverlayStrip() {
+  const entries = [];
+  for (const id of state.selectedOverlays) {
+    // Same gate as the drawn curve: the series show flag, so a series with
+    // no usable scale (no readings) contributes no strip column either.
+    if (!chart.series[SERIES_INDEX[SCALE_KEY[id]]].show) continue;
+    const sc = chart.scales[SCALE_KEY[id]];
+    if (!sc || sc.min == null) continue;
+    const def = OVERLAY_METRICS.find((d) => d.id === id);
+    entries.push({ def, lo: sc.min, hi: sc.max });
+  }
+  if (!entries.length) return;
+
+  const { track } = state;
+  let yTop;
+  let yBottom;
+  if (track.hasElevation && scalesCache?.ele) {
+    // The rows sit on the DATA extremes (the grid rows uPlot drew).
+    yTop = pyOf(track.eleMax, 'ele');
+    yBottom = pyOf(track.eleMin, 'ele');
+  } else {
+    yTop = state.plot.y0 + 8;
+    yBottom = state.plot.y0 + state.plot.h - 8;
+  }
+
+  ctx.font = monoFont();
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  const seriesColor = (token) => css.getPropertyValue(token).trim();
   const GAP = 14;
   const PAD = 4;
   const columns = entries.map(({ def, lo, hi }) => {
     const hiText = formatOverlayValue(def, hi);
     const loText = formatOverlayValue(def, lo);
     return {
-      color: seriesColor(def.textToken),
+      color: tokens[TEXT_TOKEN[def.textToken]],
       hiText, loText,
       w: Math.max(ctx.measureText(hiText).width, ctx.measureText(loText).width),
     };
@@ -525,7 +659,7 @@ function drawOverlayAxes(entries, haloColor, yTop, yBottom) {
   for (const col of columns) {
     const label = (text, ty) => {
       ctx.lineWidth = 3;
-      ctx.strokeStyle = haloColor;
+      ctx.strokeStyle = tokens.surface;
       ctx.strokeText(text, x, ty);
       ctx.fillStyle = col.color;
       ctx.fillText(text, x, ty);
@@ -536,28 +670,427 @@ function drawOverlayAxes(entries, haloColor, yTop, yBottom) {
   }
 }
 
-/** @private Min–max band (area + max line) for the elevation curve. */
-function drawBand(sample, d0, x, y, fillColor, fillAlpha, strokeColor, strokeW) {
-  const { mins, maxs, count, colW } = sample;
-  if (count < 2) return;
-  const { y0 } = state.plot;
-  const colX = (i) => x(d0 + (i + 0.5) * colW);
+/** @private The sector highlight: the full-resolution elevation path
+ *  re-drawn in the accent color, clipped to the sector ∩ visible window —
+ *  a pure view-layer statement about the SAME series uPlot drew (no second
+ *  data pass, no re-sampling). Paths are cached per (sector, view, plot,
+ *  track, mode) so hover frames only re-stroke. */
+function drawSectorAccent() {
+  const { track, view, xs, plot } = state;
+  if (!track.hasElevation || !scalesCache?.ele) return;
+  const xEnd = xs[xs.length - 1];
+  const v0 = view ? view.start : 0;
+  const v1 = view ? view.end : xEnd;
+  const { start, end } = sectorStore.get();
+  const sA = Math.max(distToX(start, track, state.xMode), v0);
+  const sB = Math.min(distToX(end, track, state.xMode), v1);
+  if (!(sB > sA)) return;
 
-  ctx.globalAlpha = fillAlpha;
-  ctx.fillStyle = fillColor;
+  const pxA = xvToPx(sA, view, xs, plot);
+  const pxB = xvToPx(sB, view, xs, plot);
+  const cacheKey = [
+    trackId(track), state.xMode, sA, sB, v0, v1,
+    plot.x0, plot.y0, plot.w, plot.h,
+  ].join('|');
+  if (!accentCache || accentCache.key !== cacheKey) {
+    accentCache = { key: cacheKey, ...buildAccentPaths(sA, sB) };
+  }
+  ctx.save();
   ctx.beginPath();
-  for (let i = 0; i < count; i++) ctx.lineTo(colX(i), y(maxs[i]));
-  for (let i = count - 1; i >= 0; i--) ctx.lineTo(colX(i), y(mins[i]));
-  ctx.closePath();
-  ctx.fill();
+  ctx.rect(pxA, plot.y0, pxB - pxA, plot.h);
+  ctx.clip();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = tokens.accent;
+  ctx.fill(accentCache.fill);
   ctx.globalAlpha = 1;
-
-  ctx.strokeStyle = strokeColor;
-  ctx.lineWidth = strokeW;
+  ctx.strokeStyle = tokens.accent;
+  ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
+  ctx.stroke(accentCache.stroke);
+  ctx.restore();
+}
+
+/** @private Builds the accent stroke path (the elevation polyline across the
+ *  sector span) and its area fill (closed down to the scale's lower bound).
+ *  Points one bracket outside each edge are included so the clip cuts clean
+ *  vertical boundaries. Null readings bridge, exactly like uPlot's spanGaps. */
+function buildAccentPaths(sA, sB) {
+  const { xs, view, plot } = state;
+  const ele = trackSeries(state.track).ele;
+  const [n0] = bracketX(sA, xs);
+  const [, n1] = bracketX(sB, xs);
+  const lo = Math.max(0, n0 - 1);
+  const hi = Math.min(xs.length - 1, n1 + 1);
+  const px = (v) => xvToPx(v, view, xs, plot);
+  const stroke = new Path2D();
+  const fill = new Path2D();
+  let pen = false;
+  let first = null;
+  let last = null;
+  for (let i = lo; i <= hi; i++) {
+    const eleVal = ele[i];
+    if (eleVal == null) continue;
+    const xPx = px(xs[i]);
+    const yPx = pyOf(eleVal, 'ele');
+    stroke.lineTo(xPx, yPx);
+    if (pen) fill.lineTo(xPx, yPx);
+    else fill.moveTo(xPx, yPx);
+    pen = true;
+    first ??= xPx;
+    last = xPx;
+  }
+  if (pen) {
+    // Area fill from the polyline down to the plot bottom (the scale's
+    // lower bound — the same fillTo the uPlot elevation series uses).
+    fill.lineTo(last, plot.y0 + plot.h);
+    fill.lineTo(first, plot.y0 + plot.h);
+    fill.closePath();
+  }
+  return { stroke, fill };
+}
+
+/** @private Waypoint annotations on the profile — the map's pins in profile
+ *  form: a violet dot riding the elevation curve (mid-height when the track
+ *  has no elevation). No standing vertical line: the only violet line is the
+ *  thick one drawn while a map pin is hovered. Follows the map's waypoint
+ *  toggle and the visible x window. */
+function drawWaypointPins() {
+  if (!state.waypointsShown || !state.profileWaypoints.length) return;
+  const { track, view, xs, plot } = state;
+  const xEnd = xs[xs.length - 1];
+  const v0 = view ? view.start : 0;
+  const v1 = view ? view.end : xEnd;
+  const px = (v) => xvToPx(v, view, xs, plot);
+  const yMid = plot.y0 + plot.h / 2;
+  ctx.save();
   ctx.beginPath();
-  for (let i = 0; i < count; i++) ctx.lineTo(colX(i), y(maxs[i]));
+  ctx.rect(plot.x0, plot.y0, plot.w, plot.h);
+  ctx.clip();
+  for (const wp of state.profileWaypoints) {
+    const xv = distToX(wp.dist, track, state.xMode);
+    if (xv < v0 || xv > v1) continue;
+    const pt = pointAtDistance(track, wp.dist);
+    const py = pt && pt.ele != null ? pyOf(pt.ele, 'ele') : yMid;
+    ctx.beginPath();
+    ctx.arc(px(xv), py, 4, 0, Math.PI * 2);
+    ctx.fillStyle = tokens.waypoint;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = tokens.handleBorder;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** @private Hover crosshair drawn on the annotation canvas: hairline + white
+ *  dot with an orange ring on the profile line (kept visible over the orange
+ *  stroke), and a smaller solid series-colored dot where the hairline crosses
+ *  the drawn heart-rate curve — interpolated on the SAME full-resolution
+ *  series uPlot strokes, so the dot sits exactly on the visible line. A
+ *  waypoint pin hover on the MAP draws a thicker violet line instead. */
+function drawHoverCrosshair() {
+  const { track, plot, view, xs, hoverDist, hoverX, hoverOrigin } = state;
+  if (!track) return;
+  const { y0, h } = plot;
+  const xEnd = xs[xs.length - 1] || 1;
+  const v0 = view ? view.start : 0;
+  const v1 = view ? view.end : xEnd;
+
+  // Pinned waypoint (clicked): its violet line + readout stay on the chart
+  // until the next click anywhere — chart hover is inert while pinned.
+  if (state.pinnedWaypoint) {
+    const xv = distToX(state.pinnedWaypoint.dist, track, state.xMode);
+    if (xv >= v0 && xv <= v1) {
+      const px = xvToPx(xv, view, xs, plot);
+      ctx.strokeStyle = tokens.waypoint;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(px, y0);
+      ctx.lineTo(px, y0 + h);
+      ctx.stroke();
+    }
+    showTooltipAt(state.pinnedWaypoint.dist, null, state.pinnedWaypoint.name);
+    return;
+  }
+
+  // Profile hover: pin the crosshair to the mouse (raw x). Map hover: pin it
+  // to the hovered track point (distance → x); outside the zoomed window
+  // there is nothing to pin on. Same derivation the active-band highlight
+  // uses, so crosshair, dot and highlight always agree on the position.
+  // A touch probe takes the crosshair's place while active (it is created by
+  // touch only, so the two cursors never fight over a mouse): same hairline +
+  // elevation dot + HR intersection dot, anchored to the probe's DATA
+  // position (survives pan/zoom/mode switches); its readings render into the
+  // fixed telemetry band between the profile header and the chart
+  // (coarse-pointer devices) or the floating fallback box (see showTooltipAt
+  // / CSS).
+  const probe = state.probe;
+  const xv = probe ? distToX(probe.dist, track, state.xMode) : currentHoverXv();
+  if (xv == null) return;
+  if (xv < v0 || xv > v1) {
+    // Out of the zoomed window there is nothing to pin on; the readouts must
+    // not linger from the last in-view frame — the band falls back to its
+    // idle hint until the probe is visible again.
+    if (probe) {
+      hideTooltip(true);
+      resetProbeReadout();
+    }
+    return;
+  }
+  const px = xvToPx(xv, view, xs, plot);
+  const isWaypoint = !probe && hoverOrigin === 'waypoint';
+  const hoverLineColor = isWaypoint ? tokens.waypoint : tokens.accentStrong;
+  ctx.strokeStyle = hoverLineColor;
+  ctx.lineWidth = isWaypoint ? 3 : 1;
+  ctx.beginPath();
+  ctx.moveTo(px, y0);
+  ctx.lineTo(px, y0 + h);
   ctx.stroke();
+  const d = probe ? probe.dist : (hoverDist != null ? hoverDist : xToDist(hoverX, track, xs));
+  if (track.hasElevation) {
+    const pt = pointAtDistance(track, d);
+    if (pt && pt.ele != null) {
+      const py = pyOf(pt.ele, 'ele');
+      ctx.fillStyle = tokens.surface;
+      ctx.beginPath();
+      ctx.arc(px, py, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = hoverLineColor;
+      ctx.stroke();
+    }
+  }
+  // Intersection dot on the heart-rate curve — a solid series-colored point
+  // where the crosshair crosses the polyline: a touch wider than the 1.5 px
+  // curve, clearly smaller than the elevation hover dot above. Interpolated
+  // across the same span the drawn line bridges, so it sits on the line the
+  // eye sees; over a leading/trailing run of missing readings there is no
+  // line and no dot. None when the hr curve is hidden.
+  const hrReading = hrAtXv(xv);
+  if (hrReading != null) {
+    const py = pyOf(hrReading, 'hr');
+    ctx.fillStyle = tokens.hr;
+    ctx.beginPath();
+    ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (probe) {
+    // The probe readout: same tooltip pipeline (data, formatters, locale) as
+    // the desktop hover; `{ probe: true }` routes it into the fixed band
+    // between the profile header and the chart (or the floating fallback
+    // where the band does not exist — see showTooltipAt / profile.css).
+    showTooltipAt(probe.dist, xv, null, { probe: true });
+    return;
+  }
+  if (hoverOrigin !== 'profile') {
+    // Crosshair drawn from a map hover; tooltip follows the same position.
+    showTooltipAt(hoverDist, null, state.waypointHover && state.waypointHover.dist === hoverDist ? state.waypointHover.name : null);
+  }
+}
+
+/** @private The hr series value under raw x, interpolated along the exact
+ *  segment the drawn hr polyline covers there (null readings are bridged by
+ *  spanGaps — the dot follows the bridge). None when the hr curve is hidden. */
+function hrAtXv(xv) {
+  if (!chart || !chart.series[SERIES_INDEX.hr].show || chart.scales.hr?.min == null) return null;
+  const hr = trackSeries(state.track).hr;
+  const xs = state.xs;
+  let [i0, i1] = bracketX(xv, xs);
+  while (i0 > 0 && !finiteAt(hr, i0)) i0--;
+  while (i1 < xs.length - 1 && !finiteAt(hr, i1)) i1++;
+  const a = hr[i0];
+  const b = hr[i1];
+  if (!finiteAt(hr, i0) || !finiteAt(hr, i1)) return null;
+  if (xs[i1] <= xs[i0]) return a;
+  const frac = Math.min(Math.max((xv - xs[i0]) / (xs[i1] - xs[i0]), 0), 1);
+  return a + (b - a) * frac;
+}
+
+/** @private */
+function finiteAt(arr, i) {
+  return arr[i] != null && Number.isFinite(arr[i]);
+}
+
+/** @private Binary search: the two x-cache entries bracketing raw x. */
+function bracketX(xv, xs) {
+  const last = xs.length - 1;
+  if (xv <= xs[0]) return [0, 0];
+  if (xv >= xs[last]) return [last, last];
+  let lo = 0;
+  let hi = last;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (xs[mid] < xv) lo = mid; else hi = mid;
+  }
+  return [lo, hi];
+}
+
+/** @private Raw x under the current hover — the cursor's raw x for profile
+ *  hovers, the hovered position's x for map/waypoint hovers; null when
+ *  nothing is hovered. Shared by the crosshair (drawHoverCrosshair) and the
+ *  active zone-band highlight so both always agree on the position. */
+function currentHoverXv() {
+  if (state.hoverDist == null) return null;
+  if (state.hoverOrigin === 'profile' && state.hoverX != null) return state.hoverX;
+  return distToX(state.hoverDist, state.track, state.xMode);
+}
+
+// ---------------------------------------------------------------------------
+// uPlot hooks — drawn inside uPlot's device-pixel canvas space, so they
+// layer exactly with the series (bands beneath, reference line above).
+// ---------------------------------------------------------------------------
+
+/**
+ * Heart-rate zone bands — five VERY faint horizontal strips behind the HR
+ * curve, one per zone of the user's configured ranges (read only — never
+ * recomputed here). Each strip spans exactly its bpm range mapped through
+ * the HR overlay's own y scale (the same mapping uPlot strokes the curve
+ * with), so it sits precisely where its bpm values plot; zones outside the
+ * visible scale contribute nothing and the open-topped zone 5 is clipped at
+ * the scale's high end — the axis itself is never widened.
+ *
+ * While hovering, the band containing the hover dot's bpm reading is tinted
+ * about twice as deep (ACTIVE_BAND_ALPHA) — still background, but the eye
+ * can read the active zone; without a hover every band keeps BAND_ALPHA.
+ * Both features are gated by the settings drawer's display toggles
+ * (js/metrics/heartRateDisplay.js): showZones hides the bands entirely, and
+ * the hover highlight additionally requires the highlight toggle — neither
+ * toggle widens the hr scale or turns the HR overlay on by itself.
+ */
+function drawZoneBands(u) {
+  if (!state.track) return;
+  const sc = u.scales.hr;
+  if (!sc || sc.min == null || !u.series[1].show) return;
+  const display = getHeartRateDisplay();
+  if (!display.showZones) return;
+  const bounds = computeZoneBounds(loadHeartRateSettings());
+  if (!bounds) return;
+  const active = display.highlight
+    ? hrHoverZone(bounds, state.probe ? state.probe.dist : state.hoverDist)
+    : null;
+  const c = u.ctx;
+  const { left, width } = u.bbox; // device px
+  const yOf = (bpm) => u.valToPos(bpm, 'hr', true); // device px, absolute
+  for (let i = 0; i < 5; i++) {
+    const zLo = Math.max(bounds.zones[i].lo, sc.min);
+    const zHi = Math.min(bounds.zones[i].hi ?? sc.max, sc.max);
+    if (zHi - zLo < 1e-9) continue;
+    c.globalAlpha = i === active ? ACTIVE_BAND_ALPHA : BAND_ALPHA;
+    c.fillStyle = tokens.zone[i];
+    c.fillRect(left, yOf(zHi), width, yOf(zLo) - yOf(zHi));
+  }
+  c.globalAlpha = 1;
+}
+
+/**
+ * @private The 0-based band index containing the inspected HR reading, or
+ * null — derived through the SAME reading path as the tooltip's zone label
+ * (nearest track point's heart rate, classified against the configured
+ * zones), so the deepened band always matches the label the tooltip shows.
+ * Follows the touch probe's position while one is active, else the hover.
+ * No highlight while a waypoint is pinned (the chart hover is inert then)
+ * or over points without a reading.
+ * @param {{zones: {lo: number, hi: number|null}[]}} bounds
+ * @param {number|null} dist  inspected track distance (probe or hover)
+ */
+function hrHoverZone(bounds, dist) {
+  const { track } = state;
+  if (state.pinnedWaypoint || dist == null || !track) return null;
+  const pt = pointAtDistance(track, dist);
+  if (!pt) return null;
+  const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
+  const v = track.points[idx].hr;
+  if (v == null || !Number.isFinite(v)) return null;
+  const zone = classifyHr(v, bounds);
+  return zone > 0 ? zone - 1 : null;
+}
+
+/**
+ * No-elevation reference — the flat dashed line that keeps the axis usable
+ * when the track carries no elevation data (the elevation series is hidden;
+ * overlays still draw). Drawn in uPlot's `draw` hook so it sits ABOVE the
+ * series, where the old renderer painted it.
+ */
+function drawFlatReference(u) {
+  if (!state.track || state.track.hasElevation) return;
+  const c = u.ctx;
+  const { left, top, width, height } = u.bbox;
+  c.strokeStyle = tokens.line;
+  c.setLineDash([4, 4]);
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(left, top + height / 2);
+  c.lineTo(left + width, top + height / 2);
+  c.stroke();
+  c.setLineDash([]);
+}
+
+// ---------------------------------------------------------------------------
+// Axis ticks — the same 1/2/5×10^k rule and formatters the canvas renderer
+// used, fed to uPlot as split/value functions.
+// ---------------------------------------------------------------------------
+
+/** @private X ticks over the visible window, strictly inside it (a tick at
+ *  the exact window start is not drawn — the old loop's rule). */
+function xTickValues(min, max) {
+  const vw = max - min;
+  if (!(vw > 1e-9)) return [];
+  const step = niceStep(vw / 5);
+  const out = [];
+  for (let v = (Math.floor(min / step) + 1) * step; v <= max; v += step) out.push(v);
+  return out;
+}
+
+/** @private X tick labels — distance or elapsed time, per current mode. */
+function formatXTick(v) {
+  return state.xMode === 'time' ? formatDuration(v / 1000) : formatDistanceShort(v);
+}
+
+/** @private Elevation rows anchored to the DATA extremes and the midpoint —
+ *  the top row IS the track's highest point, so no label claims an
+ *  elevation the curve doesn't reach. Empty when there is no elevation. */
+function eleTickValues() {
+  const track = state.track;
+  if (!track || !track.hasElevation || !scalesCache?.ele) return [];
+  return [track.eleMax, (track.eleMin + track.eleMax) / 2, track.eleMin];
+}
+
+// ---------------------------------------------------------------------------
+// Sizing, DOM overlays, error state
+// ---------------------------------------------------------------------------
+
+/** Sizes the annotation canvas backing store for devicePixelRatio and keeps
+ *  the uPlot chart at the same CSS size (setSize never destroys it). */
+export function resizeCanvas() {
+  const { root, canvas: cv } = state.dom;
+  const rect = root.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.max(1, Math.round(rect.width * dpr));
+  cv.height = Math.max(1, Math.round(rect.height * dpr));
+  cv.style.width = `${rect.width}px`;
+  cv.style.height = `${rect.height}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (chart) {
+    chart.setSize({ width: Math.max(10, Math.round(rect.width)), height: Math.max(10, Math.round(rect.height)) });
+    updateStatePlot();
+  } else {
+    state.plot = {
+      x0: MARGIN.left,
+      y0: MARGIN.top,
+      w: Math.max(10, rect.width - MARGIN.left - MARGIN.right),
+      h: Math.max(10, rect.height - MARGIN.top - MARGIN.bottom),
+    };
+  }
+}
+
+/** @private One transparent veil over the area outside the sector handles
+ *  (see .profile-mask in profile.css). */
+function createMask() {
+  const m = document.createElement('div');
+  m.className = 'profile-mask';
+  m.hidden = true;
+  state.dom.root.appendChild(m);
+  return m;
 }
 
 /** @private Positions the DOM masks around the sector x span (plot-clipped). */
@@ -612,138 +1145,25 @@ export function refreshHandleLabels() {
   if (handles.end) handles.end.setAttribute('aria-label', t('sectorEnd'));
 }
 
-/** @private Hover crosshair drawn on the canvas: hairline + white dot with an
- *  orange ring on the profile line (kept visible over the orange stroke), and
- *  a smaller solid series-colored dot where the hairline crosses the drawn
- *  heart-rate curve. A waypoint pin hover on the MAP draws a thicker violet
- *  line instead. */
-function drawHover(lineColor, dotColor) {
-  const { track, plot, view, xs, hoverDist, hoverX, hoverOrigin } = state;
-  if (!track) return;
-  const { y0, h } = plot;
-  const xEnd = xs[xs.length - 1] || 1;
-  const v0 = view ? view.start : 0;
-  const v1 = view ? view.end : xEnd;
+// ---------------------------------------------------------------------------
+// Lazy-load failure state — restrained: a muted note inside the profile
+// module, the error itself in the console, the rest of WaySlice unaffected.
+// The next explicit render trigger retries (the loader resets its cache).
+// ---------------------------------------------------------------------------
 
-  // Pinned waypoint (clicked): its violet line + readout stay on the chart
-  // until the next click anywhere — chart hover is inert while pinned.
-  if (state.pinnedWaypoint) {
-    const xv = distToX(state.pinnedWaypoint.dist, track, state.xMode);
-    if (xv >= v0 && xv <= v1) {
-      const px = xvToPx(xv, view, xs, plot);
-      ctx.strokeStyle = cssToken('--map-waypoint');
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(px, y0);
-      ctx.lineTo(px, y0 + h);
-      ctx.stroke();
-    }
-    showTooltipAt(state.pinnedWaypoint.dist, null, state.pinnedWaypoint.name);
-    return;
+/** @private */
+function showChartError(error) {
+  console.error('[profile] uPlot failed to load:', error);
+  if (!errorEl) {
+    errorEl = document.createElement('div');
+    errorEl.className = 'profile-chart-error';
+    state.dom.root.appendChild(errorEl);
   }
-
-  // Profile hover: pin the crosshair to the mouse (raw x). Map hover: pin it
-  // to the hovered track point (distance → x); outside the zoomed window
-  // there is nothing to pin on. Same derivation the active-band highlight
-  // uses, so crosshair, dot and highlight always agree on the position.
-  // A touch probe takes the crosshair's place while active (it is created by
-  // touch only, so the two cursors never fight over a mouse): same hairline +
-  // elevation dot + HR intersection dot, anchored to the probe's DATA
-  // position (survives pan/zoom/mode switches); its readings render into the
-  // fixed telemetry band between the profile header and the chart (coarse-pointer devices) or the
-  // floating fallback box (see showTooltipAt / CSS).
-  const probe = state.probe;
-  const xv = probe ? distToX(probe.dist, track, state.xMode) : currentHoverXv();
-  if (xv == null) return;
-  if (xv < v0 || xv > v1) {
-    // Out of the zoomed window there is nothing to pin on; the readouts must
-    // not linger from the last in-view frame — the band falls back to its
-    // idle hint until the probe is visible again.
-    if (probe) {
-      hideTooltip(true);
-      resetProbeReadout();
-    }
-    return;
-  }
-  const px = xvToPx(xv, view, xs, plot);
-  const isWaypoint = !probe && hoverOrigin === 'waypoint';
-  const hoverLineColor = isWaypoint ? cssToken('--map-waypoint') : lineColor;
-  ctx.strokeStyle = hoverLineColor;
-  ctx.lineWidth = isWaypoint ? 3 : 1;
-  ctx.beginPath();
-  ctx.moveTo(px, y0);
-  ctx.lineTo(px, y0 + h);
-  ctx.stroke();
-  const d = probe ? probe.dist : (hoverDist != null ? hoverDist : xToDist(hoverX, track, xs));
-  if (track.hasElevation) {
-    const pt = pointAtDistance(track, d);
-    if (pt && pt.ele != null) {
-      const pad = Math.max((track.eleMax - track.eleMin) * 0.08, 4);
-      const eleMin = track.eleMin - pad;
-      const eleMax = track.eleMax + pad;
-      const py = y0 + (1 - (pt.ele - eleMin) / (eleMax - eleMin)) * h;
-      ctx.fillStyle = dotColor;
-      ctx.beginPath();
-      ctx.arc(px, py, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = hoverLineColor;
-      ctx.stroke();
-    }
-  }
-  // Intersection dot on the heart-rate curve — a solid series-colored point
-  // where the crosshair crosses the polyline: a touch wider than the 1.5 px
-  // curve, clearly smaller than the elevation hover dot above. Computed on
-  // the SAME column averages the curve is drawn from (linear between the two
-  // bracketing columns), so the dot sits exactly on the line the eye sees;
-  // columns without a reading get no dot. None when the hr curve is hidden.
-  if (hrHoverCurve) {
-    const { vals, colW, lo, hi } = hrHoverCurve;
-    const u = xv / colW - 0.5;
-    const i0 = Math.min(Math.max(Math.floor(u), 0), vals.length - 2);
-    const t = Math.min(Math.max(u - i0, 0), 1);
-    const a = vals[i0];
-    const b = vals[i0 + 1];
-    if (a != null && b != null) {
-      const bpm = a + (b - a) * t;
-      const py = overlayYOf(bpm, lo, hi);
-      ctx.fillStyle = cssToken('--series-hr');
-      ctx.beginPath();
-      ctx.arc(px, py, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  if (probe) {
-    // The probe readout: same tooltip pipeline (data, formatters, locale) as
-    // the desktop hover; `{ probe: true }` routes it into the fixed band
-    // between the profile header and the chart (or the floating fallback where the band does not
-    // exist — see showTooltipAt / profile.css).
-    showTooltipAt(probe.dist, xv, null, { probe: true });
-    return;
-  }
-  if (hoverOrigin !== 'profile') {
-    // Crosshair drawn from a map hover; tooltip follows the same position.
-    showTooltipAt(hoverDist, null, state.waypointHover && state.waypointHover.dist === hoverDist ? state.waypointHover.name : null);
-  }
+  errorEl.textContent = t('profileChartError');
+  errorEl.hidden = false;
 }
 
-/** Size the backing store for devicePixelRatio. */
-export function resizeCanvas() {
-  const { root, canvas: cv } = state.dom;
-  const rect = root.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = Math.max(1, Math.round(rect.width * dpr));
-  cv.height = Math.max(1, Math.round(rect.height * dpr));
-  cv.style.width = `${rect.width}px`;
-  cv.style.height = `${rect.height}px`;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  state.plot = {
-    x0: MARGIN.left,
-    y0: MARGIN.top,
-    w: Math.max(10, rect.width - MARGIN.left - MARGIN.right),
-    h: Math.max(10, rect.height - MARGIN.top - MARGIN.bottom),
-  };
+/** @private */
+function hideChartError() {
+  if (errorEl && !errorEl.hidden) errorEl.hidden = true;
 }
-
-// Tick spacing comes from the shared charts/ticks.js (one 1/2/5×10^k rule
-// for both canvas charts, with a conservative log floor).

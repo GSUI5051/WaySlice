@@ -16,6 +16,13 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-03',
+      ps: [
+        'The elevation profile is now rendered by the uPlot chart library, which is lazy-loaded on the first imported track — opening the app downloads nothing of it.',
+        'The profile chart draws the complete raw track series: the per-pixel-column downsampling was removed, so narrow spikes render at full amplitude and the overlay axis strip always reads the same values as the metrics list.',
+      ],
+    },
+    {
       h: '2026-10-02',
       ps: [
         'The elevation profile header keeps its loaded height before a track is imported, so the icon and title no longer shift when one loads.',

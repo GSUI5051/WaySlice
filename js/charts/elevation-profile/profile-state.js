@@ -29,6 +29,7 @@ export const state = {
     root: null,
     canvas: null,
     ctx: null,
+    chart: null,       // #profile-chart — the uPlot host (beneath the canvas)
     tooltip: null,
     readout: null,     // the touch probe's fixed telemetry band (outside root)
     handles: { start: null, end: null },

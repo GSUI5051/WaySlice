@@ -3,8 +3,12 @@
  *
  * Everything here takes its inputs as parameters and returns new values; no
  * DOM, no canvas, no shared chart state (profile-state.js is not imported).
- * That makes the whole module unit-testable and keeps the sampling math the
+ * That makes the whole module unit-testable and keeps the scale math the
  * renderer and the interaction layer both rely on in exactly one place.
+ *
+ * The chart renderer (uPlot) receives the FULL-RESOLUTION series — there is
+ * no per-pixel-column downsampling anywhere in the draw path. Zooming and
+ * the sector view change the chart's x scale range, never the data.
  *
  * Contents:
  *   OVERLAY_METRICS / SPEED_FAMILY — the overlay definitions and the
@@ -12,8 +16,9 @@
  *   buildCaches       — per-point x + speed caches for a track + axis mode
  *     (the speed series passes the shared cleanRecordedSpeeds from sectorMetrics)
  *   overlayAvailability / overlayValueAt — what can be drawn and how to read it
- *   sampleOverlay / sampleElevation — per-column downsampling for the canvas
  *   seriesExtremes    — full-resolution min/max of a series (no averaging)
+ *   overlayExtremes / overlayYRange / eleYRange — the chart y scales, derived
+ *     from full-resolution data (never from sampled or pixel-width values)
  *   distToX / xToDist / clientXtoX — the coordinate conversions every cursor
  *     path and every drawn element must agree on
  *   sectorFitWindow   — the x window the fit-to-sector command shows
@@ -150,39 +155,9 @@ export function overlayValueAt(id, track, caches) {
 }
 
 /**
- * Per-column average of an overlay metric over [xStart, xEnd]. Points are
- * bucketed by their own x, so overlays stay pinned to track points in both
- * axis modes. @param {Float64Array} xs  per-point x coordinates
- */
-export function sampleOverlay(xStart, xEnd, cols, valueAt, xs) {
-  const colsSafe = Math.max(1, cols);
-  const colW = (xEnd - xStart) / colsSafe;
-  const sums = new Float64Array(colsSafe);
-  const counts = new Uint32Array(colsSafe);
-  for (let i = 0; i < xs.length; i++) {
-    const xv = xs[i];
-    if (xv < xStart || xv > xEnd) continue;
-    const v = valueAt(i);
-    if (v == null || !Number.isFinite(v)) continue;
-    let c = Math.floor((xv - xStart) / colW);
-    if (c >= colsSafe) c = colsSafe - 1;
-    sums[c] += v;
-    counts[c]++;
-  }
-  const vals = new Array(colsSafe).fill(null);
-  for (let c = 0; c < colsSafe; c++) {
-    if (counts[c]) vals[c] = sums[c] / counts[c];
-  }
-  return vals;
-}
-
-/**
- * Full-resolution min and max of an overlay series: every track point read
- * through `valueAt`, with no column averaging. `sampleOverlay` means each
- * pixel column, so a narrow peak is diluted by its column neighbors — good
- * enough for drawing the curve, but the speed family's axis top must read
- * the same per-point maximum the metrics list's Maximum Speed reports, or
- * the strip can round a display step below the list (width-dependently).
+ * Full-resolution min and max of a series: every point read through
+ * `valueAt`, no averaging and no windowing — the single definition of a
+ * series' true extremes that the chart scales and the metrics list share.
  * @param {Function} valueAt  per-point reader (point index → value)
  * @param {number} n  track point count
  * @returns {{lo: number, hi: number}|null} null when no point carries a
@@ -198,6 +173,57 @@ export function seriesExtremes(valueAt, n) {
     if (v > hi) hi = v;
   }
   return Number.isFinite(lo) && Number.isFinite(hi) ? { lo, hi } : null;
+}
+
+/**
+ * Full-resolution extremes of one overlay series: every track point read
+ * through `valueAt`, with no column averaging. These are the numbers the
+ * chart y scale is built from AND the same per-point maximum the metrics
+ * list's Maximum Speed reports — the two can never disagree, because both
+ * read the same raw series.
+ * @param {string} id  overlay id ('hr' | 'speed' | … | 'power')
+ * @param {object} track  the loaded track
+ * @param {object} caches  {speeds, gapSpeeds} from buildCaches
+ * @returns {{lo: number, hi: number}|null} null when no point carries a
+ *   finite value
+ */
+export function overlayExtremes(id, track, caches) {
+  const valueAt = overlayValueAt(id, track, caches);
+  return valueAt ? seriesExtremes(valueAt, track.pointCount) : null;
+}
+
+/**
+ * Chart y range for one overlay, derived from its FULL-RESOLUTION extremes.
+ * The rules (inherited unchanged from the canvas renderer's scale pass):
+ * a near-constant series (fresh legs on a flat loop!) has a range of ~0 —
+ * padding on the range alone would stretch GPS rounding noise into a
+ * full-height zigzag, so pad at least 4% of the series mean; bpm/rpm/speed
+ * are physically non-negative — keep the scale above zero. The speed
+ * family's axis strip is read as "this curve tops out at X" — and after the
+ * spike clean that top IS a real value worth comparing against the metrics
+ * list — so its top stays at the series maximum. Every other overlay keeps
+ * the padded top: bpm/watt spikes are dropped, not interpolated, and their
+ * scales have never promised to end at the data maximum.
+ * @param {string} id  overlay id
+ * @param {{lo: number, hi: number}} ext  full-resolution extremes
+ * @returns {[number, number]}
+ */
+export function overlayYRange(id, ext) {
+  const pad = Math.max((ext.hi - ext.lo) * 0.08, Math.abs((ext.lo + ext.hi) / 2) * 0.04) || 1;
+  return [Math.max(0, ext.lo - pad), SPEED_FAMILY.includes(id) ? ext.hi : ext.hi + pad];
+}
+
+/**
+ * Elevation y range: ~8% headroom above and below the data (at least 4 m,
+ * so a dead-flat track still gets a usable band). The chart's grid rows
+ * anchor to the DATA extremes and the midpoint — the top row IS the track's
+ * highest point — so the curve can never rise past its axis label.
+ * @returns {[number, number]|null} null when the track has no elevation
+ */
+export function eleYRange(track) {
+  if (!track.hasElevation || track.eleMin == null || track.eleMax == null) return null;
+  const pad = Math.max((track.eleMax - track.eleMin) * 0.08, 4);
+  return [track.eleMin - pad, track.eleMax + pad];
 }
 
 /** @private x coordinate of a sector boundary in the current mode. */
@@ -285,44 +311,6 @@ export function sectorFitWindow(sectorStart, sectorEnd, total, minSpan) {
   if (!(width < total)) return null;
   const start = Math.min(Math.max((lo + hi) / 2 - width / 2, 0), total - width);
   return { start, end: start + width };
-}
-
-/**
- * Min–max downsampling of the elevation band over [xStart, xEnd]. Points are
- * bucketed by their own x (distance or time), so a mode switch can never
- * shift data between columns. Empty columns fall back to interpolation.
- */
-export function sampleElevation(track, xs, xStart, xEnd, cols) {
-  const colsSafe = Math.max(1, cols);
-  const colW = (xEnd - xStart) / colsSafe;
-  const mins = new Float64Array(colsSafe).fill(Infinity);
-  const maxs = new Float64Array(colsSafe).fill(-Infinity);
-  const filled = new Uint8Array(colsSafe);
-
-  if (track.hasElevation) {
-    for (let i = 0; i < xs.length; i++) {
-      const xv = xs[i];
-      if (xv < xStart || xv > xEnd) continue;
-      const ele = track.points[i].ele;
-      if (ele == null) continue;
-      let c = Math.floor((xv - xStart) / colW);
-      if (c >= colsSafe) c = colsSafe - 1;
-      if (ele < mins[c]) mins[c] = ele;
-      if (ele > maxs[c]) maxs[c] = ele;
-      filled[c] = 1;
-    }
-    for (let c = 0; c < colsSafe; c++) {
-      if (filled[c]) continue;
-      const pt = pointAtDistance(track, xToDist(xStart + (c + 0.5) * colW, track, xs));
-      const ele = pt && pt.ele != null ? pt.ele : 0;
-      mins[c] = ele;
-      maxs[c] = ele;
-    }
-  } else {
-    mins.fill(0);
-    maxs.fill(0);
-  }
-  return { mins, maxs, count: colsSafe, colW };
 }
 
 /** Overlay readout formatting, shared by the axis labels and the hover

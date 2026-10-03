@@ -26,6 +26,7 @@ const lang_en = {
 
   // Loading / errors
   parsingTrack: 'Parsing track…',
+  profileChartError: 'The chart library could not be loaded. Reload the page to try again.',
   errorTitle: 'Unable to read this file',
   errorInvalidFile: 'The file appears to be invalid or incomplete.',
   errorUnsupportedType: 'Unsupported file type. Please use a GPX, FIT, TCX, KML or KMZ file.',

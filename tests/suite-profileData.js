@@ -1,9 +1,13 @@
 /** Elevation-profile data tests: speed-series smoothing + cache rules +
- *  the fit-to-sector window math. */
+ *  the fit-to-sector window math + the full-resolution chart scale ranges
+ *  (the uPlot renderer's inputs) + the lazy uPlot loader's caching rule. */
 import { suite, test, assert } from './runner.js';
+import * as profileData from '../js/charts/elevation-profile/profile-data.js';
 import {
-  buildCaches, sampleOverlay, seriesExtremes, sectorFitWindow, FIT_SECTOR_FRACTION,
+  buildCaches, seriesExtremes, overlayExtremes, overlayYRange, eleYRange,
+  sectorFitWindow, FIT_SECTOR_FRACTION,
 } from '../js/charts/elevation-profile/profile-data.js';
+import { loadUPlot } from '../js/charts/elevation-profile/uplot-loader.js';
 import {
   cleanSpeedSeries, cleanComputedSpeeds, minettiFactor,
 } from '../js/metrics/sectorMetrics.js';
@@ -207,22 +211,16 @@ suite('profile / buildCaches speed source rules', () => {
 });
 
 suite('profile / seriesExtremes (full-resolution overlay extremes)', () => {
-  test('a one-point peak dilutes in the column means but not in the extremes', () => {
-    // The regression behind the speed-axis strip: sampleOverlay averages
-    // each pixel column, so a lone spike read 15.545 km/h while the metrics
-    // list reported the per-point 15.552 — the strip rounded a display step
-    // below the list. seriesExtremes must return the full-resolution value.
+  test('a one-point peak survives at full resolution', () => {
+    // The regression behind the speed-axis strip: the retired per-pixel
+    // column averaging diluted a lone peak (it read 15.545 km/h where the
+    // metrics list reported the per-point 15.552, width-dependently). The
+    // chart now draws and scales from the raw series, so its extremes are
+    // the same per-point values the list reports.
     const n = 40;
-    const xs = Float64Array.from({ length: n }, (_, i) => i * 10); // 10 m steps
     const speeds = new Float64Array(n).fill(3);
     speeds[20] = 15.552 / 3.6;
-    const valueAt = (i) => speeds[i];
-    const cols = 8; // wide columns → several points per column
-    const vals = sampleOverlay(0, xs[n - 1], cols, valueAt, xs);
-    let sampledMax = -Infinity;
-    for (const v of vals) if (v != null && v > sampledMax) sampledMax = v;
-    assert.truthy(sampledMax < speeds[20], 'column mean must dilute the lone peak');
-    const ext = seriesExtremes(valueAt, n);
+    const ext = seriesExtremes((i) => speeds[i], n);
     assert.closeTo(ext.hi, speeds[20], 1e-9);
     assert.closeTo(ext.lo, 3, 1e-9);
   });
@@ -238,6 +236,93 @@ suite('profile / seriesExtremes (full-resolution overlay extremes)', () => {
     assert.equal(seriesExtremes(() => null, 5), null);
     assert.equal(seriesExtremes(() => NaN, 5), null);
     assert.equal(seriesExtremes(() => 3, 0), null);
+  });
+});
+
+suite('profile / the sampling draw path is gone', () => {
+  test('sampleElevation / sampleOverlay are no longer module exports', () => {
+    // The renderer receives the full-resolution series; a reintroduced
+    // per-pixel-column sampler would be a spec regression, not a refactor.
+    assert.equal(profileData.sampleElevation, undefined);
+    assert.equal(profileData.sampleOverlay, undefined);
+  });
+});
+
+suite('profile / chart scale ranges (full-resolution, uPlot inputs)', () => {
+  const hrTrack = {
+    pointCount: 3,
+    points: [{ hr: 120 }, { hr: 150 }, { hr: 180 }],
+    hasElevation: true,
+    eleMin: 200,
+    eleMax: 1000,
+  };
+
+  test('overlayExtremes reads the raw series through the overlay reader', () => {
+    const ext = overlayExtremes('hr', hrTrack, {});
+    assert.closeTo(ext.lo, 120, 1e-9);
+    assert.closeTo(ext.hi, 180, 1e-9);
+  });
+
+  test('overlayExtremes returns null when the series has no readings', () => {
+    const none = { pointCount: 2, points: [{ hr: null }, { hr: NaN }] };
+    assert.equal(overlayExtremes('hr', none, {}), null);
+  });
+
+  test('overlayYRange pads non-speed overlays on both ends', () => {
+    // pad = max(range·8%, mean·4%) — here max(60·0.08, 150·0.04) = 6.0.
+    const [lo, hi] = overlayYRange('hr', { lo: 120, hi: 180 });
+    assert.closeTo(lo, 114, 1e-9);
+    assert.closeTo(hi, 186, 1e-9);
+  });
+
+  test('the speed family keeps its top at the raw series maximum', () => {
+    // The axis strip reads "this curve tops out at X" — the same per-point
+    // maximum the metrics list reports, never a padded step above it.
+    const [lo, hi] = overlayYRange('speed', { lo: 2, hi: 5 });
+    assert.closeTo(lo, 2 - 0.24, 1e-9); // pad = max(3·8%, 3.5·4%) = 0.24
+    assert.closeTo(hi, 5, 1e-9);
+    // pace and gap are views of the same series — same scale rule.
+    const pace = overlayYRange('pace', { lo: 2, hi: 5 });
+    assert.closeTo(pace[1], 5, 1e-9);
+  });
+
+  test('physically non-negative series never scale below zero', () => {
+    const [lo] = overlayYRange('hr', { lo: 1, hi: 3 });
+    assert.truthy(lo >= 0);
+  });
+
+  test('a near-constant series pads by at least 4% of the series mean', () => {
+    // Fresh legs on a flat loop: range ~0 would stretch GPS rounding noise
+    // into a full-height zigzag without the mean-relative floor.
+    const [lo, hi] = overlayYRange('hr', { lo: 100, hi: 100 });
+    assert.closeTo(hi - lo, 8, 1e-9); // 100 · 4% = 4 on each side
+  });
+
+  test('eleYRange pads the data extremes by 8% (at least 4 m)', () => {
+    const [lo, hi] = eleYRange(hrTrack);
+    assert.closeTo(lo, 200 - 64, 1e-9);
+    assert.closeTo(hi, 1000 + 64, 1e-9);
+    const flat = { pointCount: 1, points: [{}], hasElevation: true, eleMin: 300, eleMax: 300 };
+    const [fLo, fHi] = eleYRange(flat);
+    assert.closeTo(fLo, 296, 1e-9);
+    assert.closeTo(fHi, 304, 1e-9);
+  });
+
+  test('eleYRange returns null without elevation data', () => {
+    assert.equal(eleYRange({ hasElevation: false, eleMin: 0, eleMax: 1 }), null);
+  });
+});
+
+suite('profile / uPlot lazy loader', () => {
+  test('concurrent calls share one load promise (no double import)', () => {
+    const p1 = loadUPlot();
+    const p2 = loadUPlot();
+    assert.equal(p1, p2, 'the cached promise, not a fresh import, must be returned');
+  });
+
+  test('the promise resolves to the uPlot constructor', async () => {
+    const uPlot = await loadUPlot();
+    assert.truthy(typeof uPlot === 'function');
   });
 });
 

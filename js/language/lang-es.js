@@ -30,6 +30,7 @@ const lang_es = {
 
   // Loading / errors
   parsingTrack: 'Analizando la traza…',
+  profileChartError: 'No se pudo cargar la biblioteca del gráfico. Recarga la página para intentarlo de nuevo.',
   errorTitle: 'No se puede leer este archivo',
   errorInvalidFile: 'El archivo parece no válido o incompleto.',
   errorUnsupportedType: 'Tipo de archivo no compatible. Usa un archivo GPX, FIT, TCX, KML o KMZ.',

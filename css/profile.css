@@ -19,6 +19,35 @@
   touch-action: none;
 }
 
+/* The uPlot chart host sits beneath the annotation canvas (#profile-canvas,
+   which stays the pointer surface and carries WaySlice's own layers: axis
+   strip, sector highlight, waypoint pins, crosshair). uPlot manages its own
+   root/canvas sizes inside; no pointer events can reach it because the
+   annotation canvas paints (and receives hits) above it. */
+#profile-chart {
+  position: absolute;
+  inset: 0;
+}
+
+/* Restrained lazy-load failure state — the chart library could not be
+   fetched; the note sits over the empty chart area, everything else
+   (upload, map, metrics) keeps working. */
+.profile-chart-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--foreground-muted);
+  pointer-events: none;
+  z-index: var(--z-profile-tooltip);
+}
+
+.profile-chart-error[hidden] { display: none; }
+
 /* 空态（未加载轨迹）的画布没有任何手势可接管——probe/pinch/pan 全部随
    setProfileTrack 才挂上——touch-action: none 在这里只会吞掉页面滚动：
    手机上这个 304px 高的模块是屏幕中段最大的一块「滑不动的死区」。放行

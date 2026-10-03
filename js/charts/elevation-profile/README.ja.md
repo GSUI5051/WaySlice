@@ -10,9 +10,14 @@
 
 ## このディレクトリについて
 
-標高プロファイルは地図の下にある Canvas チャートです：標高バンド、メトリックオーバーレイ
-曲線（心拍、速度 / ペース / GAP、ケイデンス、温度、パワー）、心拍ゾーンバンド、セクター選択、
-ホバー十字線、そして地図と連動する一連の操作。かつては約 1500 行の単一ファイルでしたが、
+標高プロファイルは地図の下にあるチャートで、**uPlot**（`vendor/uplot/` にベンダーした
+ES モジュール。最初のトラック読み込み時に遅延ロード——`uplot-loader.js` 参照）が描画します：
+標高エリア、メトリックオーバーレイ曲線（心拍、速度 / ペース / GAP、ケイデンス、温度、パワー）、
+心拍ゾーンバンド、グリッド、軸。uPlot は常に**完全な生系列**を描きます——ズームやセクター表示は
+チャートの x スケール範囲への操作であり、データへの操作ではありません。描画経路のどこにも
+ピクセル列単位のダウンサンプリングは存在しません。セクター選択、ホバー十字線、ウェイポイント
+ピン、オーバーレイごとの軸ストリップ（チャート上の独自アノテーション canvas に描画）そして
+地図と連動する一連の操作は WaySlice 側の責務です。かつては約 1500 行の単一ファイルでしたが、
 現在は責務別のモジュール群です。
 
 **公開 API は 2 つの関数のみ**：
@@ -23,8 +28,9 @@ initProfile(document.getElementById('profile-body'));  // main.js、起動時
 setProfileTrack(track);                                // main.js、トラック読み込み時
 ```
 
-DOM 契約：`#profile-body` の中に `#profile-canvas`、`#profile-tooltip`、`#handle-start`、
-`#handle-end`。外に `#profile-readout`（タッチプローブの固定テレメトリバンド。`.profile-head` と
+DOM 契約：`#profile-body` の中に `#profile-chart`（uPlot のホスト。下層）、
+`#profile-canvas`（WaySlice のアノテーション canvas 兼ポインター受付面。上層）、
+`#profile-tooltip`、`#handle-start`、`#handle-end`。外に `#profile-readout`（タッチプローブの固定テレメトリバンド。`.profile-head` と
 `#profile-body` の間）、`#btn-x-distance`、`#btn-x-time`、
 `#btn-waypoint-snap`、`#btn-overlays`、`#btn-profile-fit-sector`、`#btn-more-controls`（`#profile-overflow-panel` 付き）。これらの id は絶対に変更しないこと。
 `#profile-tooltip` ノードは `#profile-body` 内 (absolute) にあり、ワークスペースのスクロールに
@@ -39,8 +45,9 @@ DOM 契約：`#profile-body` の中に `#profile-canvas`、`#profile-tooltip`、
 |---|---|---|
 | `index.js` | オーケストレーション：DOM 組み立て、外部イベント、トラックのライフサイクル、リサイズ処理 | `initProfile`、`setProfileTrack` |
 | `profile-state.js` | チャートインスタンス 1 個分の共有ミュータブル状態（`state`）+ `isWideLayout` | `state`、`isWideLayout` |
-| `profile-data.js` | 純粋計算：ポイント別キャッシュ、ダウンサンプリング、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`sampleOverlay`、`sampleElevation`、`seriesExtremes`、`distToX`、`xToDist`、`clientXtoX`、`xvToPx`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle`、`sectorFitWindow`、`FIT_SECTOR_FRACTION` |
-| `profile-render.js` | Canvas 描画のすべて：`sync()` の描画パスと各レイヤー、`scheduleSync`、ハンドル / マスク配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`refreshHandleLabels` |
+| `profile-data.js` | 純粋計算：ポイント別キャッシュ、フルレゾリューションのスケール範囲、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`seriesExtremes`、`overlayExtremes`、`overlayYRange`、`eleYRange`、`distToX`、`xToDist`、`clientXtoX`、`xvToPx`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle`、`sectorFitWindow`、`FIT_SECTOR_FRACTION` |
+| `profile-render.js` | uPlot チャートのライフサイクル（遅延生成、setData / setScale / setSize による更新）+ アノテーション canvas の描画パス（軸ストリップ、セクターハイライト、ウェイポイントピン、十字線）、`scheduleSync`、ハンドル / マスク配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`refreshHandleLabels`、`invalidateChartStyle` |
+| `uplot-loader.js` | ベンダーした uPlot ES モジュールの遅延ローダー：ダウンロード Promise を 1 つだけキャッシュ（失敗時はリセットして再試行可）、ベンダー CSS のリンクも注入 | `loadUPlot` |
 | `profile-interaction.js` | 3 つの入力経路（ヘッダーコントロール、キャンバスポインター——ホバー / ドラッグ選択 / ズームとタッチプローブのジェスチャ、セクターハンドル）+ toast + ウェイポイントスナップ。タッチのピンチ/パン/ダブルタップの状態機械はここにはありません（双変数チャートも動かす共有モジュール `js/charts/viewport-gestures.js` です）。描画はしない | `wireControls`、`wirePointer`、`wireHandles`、`refreshControls`、`refreshControlsFit`、`refreshSnapToggle`、`unpinWaypoint` |
 | `profile-tooltip.js` | ホバー tooltip とタッチプローブ読み取りの DOM と内容 | `showTooltipAt`、`hideTooltip`、`resetProbeReadout` |
 
@@ -49,8 +56,9 @@ DOM 契約：`#profile-body` の中に `#profile-canvas`、`#profile-tooltip`、
 ```text
 index       → state、data、render、interaction、tooltip
 interaction → state、data、render（scheduleSync のみ）、tooltip、../viewport-gestures（タッチのピンチ / パン / ダブルタップ復帰）
-render      → state、data、tooltip（drawHover が showTooltipAt を呼ぶ）
+render      → state、data、tooltip（十字線パスが showTooltipAt を呼ぶ）、./uplot-loader
 tooltip     → state、data
+loader      → このディレクトリ内には依存なし（vendor/uplot のベンダーモジュールを import）
 data        → このディレクトリ内には依存なし（外の geo / metrics / utils のみ）
 state       → 依存なし（このディレクトリ内では。../utils/layout から isWideLayout を再エクスポート）
 ```
@@ -67,7 +75,7 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 
 `state.dom`（初期化中に一度だけ組み立てる：`index.js` が取得したノードを代入し、`initRender` が
 マスクを作成して canvas/ctx をバインド、`wireControls` が `snapBtn` を代入）：`root`、`canvas`、
-`ctx`、`tooltip`、`readout`（プローブのバンド。root の外）、`handles.{start,end}`、`masks.{left,right}`、
+`ctx`、`chart`（uPlot ホスト）、`tooltip`、`readout`（プローブのバンド。root の外）、`handles.{start,end}`、`masks.{left,right}`、
 `xButtons.{distance,time}`、`snapBtn`。
 
 チャートデータ：`track`、`xs`（現在の軸モードでのポイント別 x）、`speeds`、`gapSpeeds`、
@@ -76,7 +84,7 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 計算速度は 3σ 清洗のみを適用します（`cleanComputedSpeeds`：超えた値を近傍の正常値の補間で埋める）。
 休息中に記録された 0 も数値の一部として平均に参加します。
 チャートビュー：`xMode`（`'distance' | 'time'`）、`view`（`{start,end}`、`null` = 全トラック）、
-`plot`（CSS ピクセル `{x0,y0,w,h}`）。
+`plot`（CSS ピクセル `{x0,y0,w,h}`。チャート同期 / リサイズのたびに uPlot のプロット bbox からミラー）。
 オーバーレイ：`selectedOverlays`（選択順）。
 ホバー：`hoverDist`、`hoverX`、`hoverOrigin`（`'profile' | 'map' | 'waypoint'`）、
 `waypointHover`、`pinnedWaypoint`。
@@ -87,8 +95,9 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 無視、`hideTooltip` は `force` 指定でのみ隠れます）。
 その他：`waypointsShown`（地図のウェイポイント表示トグルのミラー）。
 
-モジュールプライベート（`state` に**移さない**こと）：render は `syncPending`、`hrHoverCurve`、
-`MARGIN`、バインド済み DOM エイリアスを所有。interaction は `lastSpeedVariant`、
+モジュールプライベート（`state` に**移さない**こと）：render は `syncPending`、uPlot
+インスタンス、トラック別の系列 / スケールキャッシュ、スタイルトークンのスナップショット、
+バインド済み DOM エイリアスを所有。interaction は `lastSpeedVariant`、
 `overlaysMenu`、`waypointSnap`、`lastSnapDist`、toast タイマー、パン提示フラグと
 タッチグラブのフラグ（仮想ハンドル、プローブドラッグ、チャート外 tap の記録）を所有。tap 判定・ピンチの基準・パンのウィンドウは共有ジェスチャマシン（`js/charts/viewport-gestures.js`）にあり、interaction はイベントを渡すだけです。
 
@@ -98,39 +107,54 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
   共有状態を見える化する仕組みです。
 - 初期化後に変わらないオブジェクト参照（ctx、canvas、handles…）は、所有モジュールの init
   （`initRender`）で一度だけモジュールレベルの `let` にデストラクチャします。
-- レンダラーは `state.plot`（`resizeCanvas` 経由）と `hrHoverCurve` の唯一の書き込み者です。
+- レンダラーは `state.plot`（uPlot の bbox からミラー）の唯一の書き込み者です。
 
-## 描画パス（`sync()`）
+## 描画パス
 
-実際の呼び出し順序——新しいレイヤーは正しいスロットに挿入し、安易に順序を変えないこと：
+描画は非同期です（最初のパスだけ uPlot のダウンロードを待ち、以降はマイクロタスク速度）。
+単一飛行（single-flight）：scheduleSync は rAF でバッチし、実行中の描画がある間に来た同期要求は
+終了後に一度だけ再実行されます。各パスは二つの半分からなります：
 
-1. x 軸目盛り（`xMode` に応じて距離または経過時間）
-2. クリップされたブロック：**心拍ゾーンバンド**、次にオーバーレイ曲線（2 パス：第 1 パスで
-   表示中の全オーバーレイをサンプリングしてスケールを決定、第 2 パスで線を描く——そのため
-   バンドは曲線の**下**に来る）
-3. `placeMasks()`——セクターベールの DOM 要素をここで配置（標高ブランチの前）
-4. 標高ブランチ：標高のないトラックは平らな破線の参照線を描く。それ以外はグリッド + y ラベル、
-   オーバーレイ軸ストリップ、標高バンド（全トラック）、セクターハイライト、ウェイポイントピン
-5. `positionHandles()`——ハンドル DOM 要素をここで配置（両ブランチ）
-6. ホバー十字線（+ 標高曲線上のサーフェス色塗り・アクセント縁の点、+ 十字線と描画済み心拍
-   曲線の交点の塗りつぶし点）。タッチプローブがアクティブな間はプローブがこれに取って代わり
-   ——同じ線と点を、プローブのデータ位置にアンカーして描きます。読み取りはヘッダーとチャートの間にある
-   固定テレメトリバンド `#profile-readout`——2 行 × 4 列の固定スロットグリッド（位置 / 標高 /
-   速度族 / 心拍 + ケイデンス / 温度 / パワー / 空）：位置と標高は常に表示される。センサーの
-   スロットは、オーバーレイが有効なら値を、トラックにデータがあるがオーバーレイが無効なら薄色の
-   「未選択」を表示し、トラックがそのセンサーを持たなければ空白のまま。有効だが読み取りのない
-   スロットはダッシュ。心拍スロットは二段構え（値の下にゾーン）で、全スロットが内容を中央揃え
-   するため、単一行のスロットは高くなった行の中で垂直中央に保たれる（粗いポインターの端末。正確な
-   ポインターの端末は従来の浮遊ボックスのままで、幅は画面の半分まで、オーバーレイが多いときは
-   読み取りの間で折り返し、1 つの読み取りが分割されることはない）
+**チャート半分（`syncChart`、`chart.batch()` 内——uPlot の 1 回の同期描画）：**
+スケールキャッシュはトラック / x 軸モード / 速度族バリアントが変わったときだけ再計算
+（`ensureScales`）。データタプルはキャッシュが変わったとき**参照ごと**差し替えます
+（`setData`——uPlot にコピーを渡すことはない）。系列の表示フラグを適用し（`show`）、
+すべての y スケールを `setScale` で明示設定します（uPlot は明示的な setScale を再加工しない
+——WaySlice のフルレゾリューション範囲がそのままチャートの範囲になる）。x スケールを
+ビューウィンドウ（`state.view`、または全ドメイン）に設定。その後 uPlot が描画します：
+グリッド、軸、x 目盛り（共有の `niceStep` 規則）、心拍ゾーンバンド（`drawAxes` フック。
+全系列の**下**）、オーバーレイ曲線と標高エリア（フルレゾリューション、`spanGaps`）、
+標高のないトラック用の平らな破線参照線（`draw` フック。系列の**上**）。uPlot の cursor と
+legend は無効化してあり、ポインターイベントのリスナーは 1 つもバインドされません。
+
+**アノテーション半分（`#profile-canvas` の描画パス。チャートの後）：** オーバーレイ軸
+ストリップ → セクターハイライト（フルレゾリューションの標高パスをアクセント色で描き直し、
+セクター ∩ ウィンドウでクリップ。Path2D キャッシュはセクター / ビュー / プロット / トラック変更時
+だけ再構築）→ ウェイポイントピン → ホバー / プローブ十字線（細線、標高曲線上のサーフェス色
+塗り・アクセント縁の点、十字線と描画済み心拍曲線の交点の塗りつぶし点——交点は描画線がまたぐ
+区間に沿って補間される）。タッチプローブがアクティブな間はプローブがこれに取って代わり
+——同じ線と点を、プローブのデータ位置にアンカーして描きます。読み取りはヘッダーとチャートの間にある
+固定テレメトリバンド `#profile-readout`——2 行 × 4 列の固定スロットグリッド（位置 / 標高 /
+速度族 / 心拍 + ケイデンス / 温度 / パワー / 空）：位置と標高は常に表示される。センサーの
+スロットは、オーバーレイが有効なら値を、トラックにデータがあるがオーバーレイが無効なら薄色の
+「未選択」を表示し、トラックがそのセンサーを持たなければ空白のまま。有効だが読み取りのない
+スロットはダッシュ。心拍スロットは二段構え（値の下にゾーン）で、全スロットが内容を中央揃え
+するため、単一行のスロットは高くなった行の中で垂直中央に保たれる（粗いポインターの端末。正確な
+ポインターの端末は従来の浮遊ボックスのままで、幅は画面の半分まで、オーバーレイが多いときは
+読み取りの間で折り返し、1 つの読み取りが分割されることはない）。
+`placeMasks()` と `positionHandles()` がパスを閉じます（セクターベールとハンドルの DOM は
+同じプロット矩形から配置される）。
 
 このパスに組み込まれたルール：
 
 - オーバーレイは**全トラック**でスケーリング（グローバル y 軸）。ズームは x 軸のみを伸縮する。
-- 速度ファミリーの軸ストリップの上端は、速度系列の**ポイントごとの最大値**（`seriesExtremes`）。上端ラベルは常に、メトリクスリストの最大速度と同じ値を示します。曲線自体は `sampleOverlay` の列平均で描かれます。それ以外のオーバーレイはパディング付きのサンプル上端を保ちます。
+- 速度ファミリーの軸ストリップの上端は、速度系列の**ポイントごとの最大値**
+  （`overlayYRange` が生の `hi` をそのまま使う）。上端ラベルは常に、メトリクスリストの
+  最大速度と同じ値を示します。それ以外のオーバーレイはパディング付きの上端
+  （`hi + pad`）。bpm / rpm / 速度のスケールが 0 を下回ることはない。
 - ゾーンバンドとホバー点は、bpm → y の変換を**心拍オーバーレイ自身の lo/hi スケール**に完全に
-  合わせ、そのスケールでクリップする。描画されるのはそのスケールが存在するとき（心拍曲線が
-  表示され、データがあるとき）だけ。ゾーンのために軸を広げない。第 2 のマッピングを作らない。
+  合わせ、そのスケールでクリップする。描画されるのは心拍系列がデータ付きで表示されているとき
+  だけ。ゾーンのために軸を広げない。第 2 のマッピングを作らない。
   バンドはさらに設定ドロワーの表示トグル（`showZones`、`js/metrics/heartRateDisplay.js`）
   にも従う。十字線の心拍交差点はトグルの対象外——交差点はバンドではなく十字線に属する。
 - ホバー中、またはタッチプローブがアクティブなときは、現在の心拍の読み取り値が属するバンドを
@@ -140,12 +164,19 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
   ないときは強調しません。設定ドロワーのハイライトトグルがオフのときも強調しません
   （`js/metrics/heartRateDisplay.js`）：ハイライトは表示トグルがオンであることを前提とし、
   バンド非表示中もそのチェック状態は保持されます。
-- 描画順序は壊せない：ゾーンバンド → オーバーレイ曲線 → 標高バンド → セクターハイライト → ホバー。
-- パス1のサンプリングはキャッシュ済み：オーバーレイごとの列平均とスピード系の 1 点ごとの最大値は、トラック・x 軸モード・プロット幅・オーバーレイ選択が変わったときだけ再計算します。ホバー・タッププローブ・ハンドル操作のフレームは、保存済みサンプルからそのまま再描画します（`profile-render.js` の `sampleVisibleOverlays`/`overlaySamples`）。
-- `sync()` はチャート状態を読むだけで変更しない。render が所有する書き込みは `hrHoverCurve`
-  のみ。出力は `state`、`sectorStore`、現在のテーマトークン（`getComputedStyle`）で決まり、
-  書き込み先は canvas と render 所有の DOM（マスク、ハンドル）、および `showTooltipAt` 経由の
-  tooltip に限られる。フレームごとに決定論的だが、**純粋関数ではない**——描画する。
+- 描画順序は壊せない：ゾーンバンド → オーバーレイ曲線 → 標高エリア → セクターハイライト → ホバー。
+- チャート更新の粒度：ビュー変更 → `setScale('x')` のみ。オーバーレイ切替 → `show` フラグ。
+  トラック / x 軸モード → キャッシュを差し替えて `setData`。テーマ → 描画ごとの色関数
+  （再描画のみ）。リサイズ → `setSize`（破棄 / 再生成はしない）。ホバーフレームは
+  アノテーション canvas だけに触れ、uPlot には再描画を求めない。
+- uPlot のダウンロードに失敗したら、`#profile-body` 内に控えめな注意文
+  （`t('profileChartError')`）とコンソールエラーを出します。ローダーはキャッシュした Promise を
+  リセットするので、次の明示的な描画トリガーで再試行されます——ループで再試行することはなく、
+  アプリの他の部分への影響もありません。
+- アノテーションパスはチャート状態を読むだけで変更しない。出力は `state`、`sectorStore`、
+  現在のテーマトークン（`getComputedStyle`）で決まり、書き込み先はアノテーション canvas と
+  render 所有の DOM（マスク、ハンドル）、および `showTooltipAt` 経由の tooltip に限られる。
+  フレームごとに決定論的だが、**純粋関数ではない**——描画する。
 
 ## 座標変換
 
@@ -161,17 +192,23 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 
 1. `OVERLAY_METRICS` に定義を追加（`id`、`colorToken`、`labelKey`、`axis`）。
 2. パーサーでトラックに `hasX` フラグを付け、`overlayAvailability` に接続。
-3. `overlayValueAt` にポイント別リーダーを追加。
-4. **5 つすべて**の言語パックに `labelKey` を追加（`js/language/`——key の一致はテストで強制）。
+3. `overlayValueAt` にポイント別リーダーを追加——スケール（`overlayExtremes` 経由）も
+   uPlot の系列データもここから導出されるので、他に必要なものはない。
+4. **すべて**の言語パックに `labelKey` を追加（`js/language/`——key の一致はテストで強制）。
 5. スロット上限：必要なら `profile-interaction.js` の `maxOverlays()` を拡張。
 
 ### 描画レイヤーの追加
 
-- サンプリングは `profile-data.js` 経由（`sampleOverlay` / `sampleElevation`）。既存のホバー
-  経路を除き、レンダラーが `track.points[]` を直接読むことはしない。
-- 色は CSS デザイントークン（`--series-*`、`--hr-zone-*`）から。テーマ切替に対応して毎フレーム
-  再取得。
-- `sync()` の正しい z 順序スロットに挿入し、この README のレイヤー一覧も更新する。
+- uPlot が描く系列レイヤー：`buildSeriesConfigs` に系列設定を追加（配列順 = 描画順）、
+  データ配列は `currentRefs` / `buildData` に。新しいスケールは `scales` 設定と
+  `syncChart` の明示 `setScale` ループの両方に追加する。
+- WaySlice のビジネスレイヤー：アノテーション canvas（`drawAnnotation`）に描き、位置は
+  `xvToPx` / `pyOf` 経由——チャート canvas からピクセル位置を読まないこと。
+- 色は CSS デザイントークン（`--series-*`、`--hr-zone-*`）から。描画パスごとに
+  スナップショットを取る。
+- 正しい z 順序スロットに挿入し（チャートフック：ゾーンバンドは下 / 参照線は上。
+  アノテーションパス：ストリップ → ハイライト → ピン → 十字線）、この README の
+  レイヤー一覧も更新する。
 
 ### インタラクティブなコントロールの追加
 
@@ -180,7 +217,7 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 - `state` を変更してから `scheduleSync()` を呼ぶ。interaction コードは**描画しない**、`ctx` にも
   触れない。
 - **ヘッダー**のコントロールはレスポンシブ優先度も宣言すること：`movableControls()` と、それを
-  行に残す各 `LEVEL_ROW` エントリに登録する（ルール 8）。ビジネス上の状態はどのレベル変化でも
+  行に残す各 `LEVEL_ROW` エントリに登録する（ルール 9）。ビジネス上の状態はどのレベル変化でも
   保たれること。
 
 ### 心拍ゾーンデータを扱う
@@ -215,20 +252,27 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
    `state` に適用し、`lastSpeedVariant` を管理する。
 4. import の深さ：モジュールは旧フラットファイルより 1 階層深い——`menus.js` は
    `../../ui/menus.js`、stores は `../../core/…`。`../…` では**ない**。
-5. 新しいライブラリ・グローバル変数を導入しない：プロジェクトの他部分と同様 ES module のみ。
-6. Canvas キャッシュ：開発中はブラウザーが古いモジュールを返すことがある——プロジェクトに
+5. ライブラリはベンダーディレクトリ経由のみ：uPlot は唯一のベンダー済みチャートライブラリ
+   （`vendor/uplot/`、VENDOR-NOTE にバージョン固定を記録）で、`uplot-loader.js` のキャッシュ
+   された Promise 経由でのみロードする——静的 import、CDN からの fetch、別のチャートライブラリの
+   突然の追加はしない。グローバル変数なし：ES module のみ。
+6. フルレゾリューションを維持：チャートレンダラーは完全な生系列を受け取る——「uPlot アダプター」
+   としてピクセル列単位のサンプラー（canvas 幅によるバケット化、列ごとの min / max / 平均）を
+   再導入してはならない。スイートは `sampleElevation` / `sampleOverlay` が `undefined` であること
+   を固定しており、ピクセル幅依存の新しいデータ経路は最適化ではなくリグレッション。
+7. Canvas キャッシュ：開発中はブラウザーが古いモジュールを返すことがある——プロジェクトに
    ビルド工程がなく、開発サーバーは明示的なキャッシュディレクティブを送らないため、ブラウザーが
    ヒューリスティックキャッシュを適用しうる。変更が反映されないと疑う前に CDP の
    `Page.reload {ignoreCache: true}` で強制リロード。
 
-7. ビューポートのジェスチャは共有し、分岐させないこと。ピンチ / パン / タップ /
+8. ビューポートのジェスチャは共有し、分岐させないこと。ピンチ / パン / タップ /
    ダブルタップの状態機械は `js/charts/viewport-gestures.js` にあり、双変数チャートも同じものを
    動かします。プロファイルが渡すのは 1 つの x 軸アダプター（ドメイン、ズーム下限、プロットの
    ジオメトリ、`state.view` のアクセサ）だけです。ホイールズームが `zoomStep` を通るのもそのためで、
    ウィンドウの計算（`zoomWindow` / `panWindow`）やクランプをローカルで再実装しないでください
    —— 2 つの実装は端で必ず食い違います。
 
-8. ヘッダーツールバーは**実測**で段階を下げます。ブレークポイントも言語判定も使いません：
+9. ヘッダーツールバーは**実測**で段階を下げます。ブレークポイントも言語判定も使いません：
    `refreshControlsFit` が full → is-compact → is-overflow → is-emergency → is-minimum を順に試し、
    その行がペインの実際の幅に収まる最初のレベルを採用します。`LEVEL_CLASSES` がレベルの一覧
    （クラスは累積なので CSS は重ねて書けます）、`LEVEL_ROW` がレベルごとに行へ残すコントロールを
@@ -243,8 +287,9 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 ## テスト
 
 **自動** — `tests/index.html`（リポジトリルートを serve、例：`python -m http.server`）。
-スイートはこのモジュールの純粋データ層（`profile-data.js`——キャッシュ、サンプリング、座標変換）を
-`tests/suite-profileData.js` で直接 import します。Canvas/DOM の部分はスイートの外です。共有数学
+スイートはこのモジュールの純粋データ層（`profile-data.js`——キャッシュ、スケール範囲、座標変換、
+加えてサンプリング撤去の固定テストと uPlot ローダーの Promise キャッシュ規則）を
+`tests/suite-profileData.js` で直接 import します。チャート / アノテーションの部分はスイートの外です。共有数学
 （`metrics/`、`geo/`）と `tests/suite-viewport.js`（共有のズーム/パンのウィンドウ計算とダブルタップの規則）の回帰ネットとしても機能する。期待値：全緑。
 
 **手動** — 標高・タイムスタンプ・心拍・ケイデンスを備えた実トラックの GPX を読み込み、少なくとも

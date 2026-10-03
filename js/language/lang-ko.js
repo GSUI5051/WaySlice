@@ -23,6 +23,7 @@ const lang_ko = {
 
   // Loading / errors
   parsingTrack: '트랙을 해석하는 중…',
+  profileChartError: '차트 라이브러리를 불러오지 못했습니다. 페이지를 새로고침하여 다시 시도하세요.',
   errorTitle: '파일을 읽을 수 없습니다',
   errorInvalidFile: '파일이 손상되었거나 불완전한 것 같습니다.',
   errorUnsupportedType: '지원하지 않는 형식입니다. GPX, FIT, TCX, KML 또는 KMZ 파일을 사용하세요.',

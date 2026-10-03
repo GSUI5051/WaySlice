@@ -28,6 +28,7 @@ const lang_it = {
 
   // Loading / errors
   parsingTrack: 'Elaborazione della traccia…',
+  profileChartError: 'Impossibile caricare la libreria del grafico. Ricarica la pagina per riprovare.',
   errorTitle: 'Impossibile leggere questo file',
   errorInvalidFile: 'Il file sembra non valido o incompleto.',
   errorUnsupportedType: 'Tipo di file non supportato. Usa un file GPX, FIT, TCX, KML o KMZ.',
