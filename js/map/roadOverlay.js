@@ -8,10 +8,12 @@
  *
  * The tiles come from OpenFreeMap's planet endpoint, the same provider and
  * host the OpenFreeMap basemap styles already use (keyless, CORS-enabled,
- * OpenMapTiles schema, attribution via the TileJSON). Labels render Latin
- * names (`name:latin` → `name_en` → `name`) so the single Noto Sans Regular
- * glyph set covers every string; GLYPHS below is the matching style-level
- * font endpoint, which the raster basemaps' minimal style carries.
+ * OpenMapTiles schema, attribution via the TileJSON). Labels are bilingual:
+ * primary name follows the UI language (roadOverlayTextField: name:xx →
+ * name:en → name_int → name:latin → name) and the local name joins as a
+ * smaller second line when it differs — all in the single Noto Sans Regular
+ * glyph set. GLYPHS below is the matching style-level font endpoint, which
+ * the raster basemaps' minimal style carries.
  */
 
 /** Style-level glyphs endpoint for the overlay's text layers. Only fetched
@@ -28,7 +30,6 @@ export const ROAD_OVERLAY_SOURCE = {
   url: 'https://tiles.openfreemap.org/planet',
 };
 
-const TEXT_FIELD = ['coalesce', ['get', 'name:latin'], ['get', 'name_en'], ['get', 'name']];
 const LABEL_FONT = ['Noto Sans Regular'];
 const LABEL_PAINT = {
   'text-color': '#ffffff',
@@ -36,6 +37,71 @@ const LABEL_PAINT = {
   'text-halo-width': 1.2,
   'text-halo-blur': 0.3,
 };
+
+/**
+ * Bilingual label text, as a `format` expression.
+ *
+ * Primary name — first non-empty of the UI language's localized name
+ * (`name:xx`, xx = the code), English, international, Latin transliteration,
+ * raw local name. Colon-form `name:xx` keys only — the old localized `name_`
+ * underscore keys (name_en and siblings) are deprecated in the tile schema
+ * and must not be used; `name_int` is the one current-schema underscore
+ * field and stays.
+ *
+ * Secondary name — the raw local `name` field, rendered ONLY when it exists
+ * and is not the primary again, so a localized name that already IS the
+ * local name never repeats. The dedup comparison is case-insensitive;
+ * MapLibre expressions have no whitespace-stripping, so space-only
+ * differences still show (vanishingly rare in practice). `name_int`/
+ * `name:latin` feed the primary fallback exclusively — the secondary is
+ * always the local name itself.
+ *
+ * Layout variant by layer: place names stack on two lines (`\n`), road
+ * names share one line (space separator). Both sections carry identical
+ * styling — the secondary matches the primary's zoom-adaptive size exactly.
+ *
+ * The static layer defs ship the English default; mapView re-writes the
+ * mounted text layers' `text-field` with the live UI language at mount
+ * time and on every language switch.
+ *
+ * @param {string} layerId  the overlay label layer the field is built for
+ * @param {string} code  UI language code (en/de/es/fr/it/ja/ko)
+ */
+export function roadOverlayTextField(layerId, code) {
+  // The trailing '' keeps every branch a string even for nameless features
+  // (an empty label renders nothing, like the old null did).
+  const primary = [
+    'coalesce',
+    ['get', `name:${code}`],
+    ['get', 'name:en'],
+    ['get', 'name_int'],
+    ['get', 'name:latin'],
+    ['get', 'name'],
+    '',
+  ];
+  const secondary = ['coalesce', ['get', 'name'], ''];
+  const isDifferentName = [
+    'all',
+    ['!=', secondary, ''],
+    ['!=', ['downcase', secondary], ['downcase', primary]],
+  ];
+  const section = { 'text-font': ['literal', LABEL_FONT] };
+  return [
+    'case',
+    isDifferentName,
+    [
+      'format',
+      primary, section,
+      layerId === 'road-overlay-label-place' ? '\n' : ' ', {},
+      secondary, section,
+    ],
+    ['format', primary, section],
+  ];
+}
+
+/** English defaults for the exported layer definitions. */
+const TEXT_FIELD_ROAD = roadOverlayTextField('road-overlay-label-road', 'en');
+const TEXT_FIELD_PLACE = roadOverlayTextField('road-overlay-label-place', 'en');
 
 /** Road layers draw white lines (the classic hybrid look over imagery);
  * tunnels are skipped — buried roads are invisible in reality. */
@@ -116,7 +182,7 @@ export const ROAD_OVERLAY_LAYERS = [
     filter: ['match', ['get', 'class'], ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor'], true, false],
     layout: {
       'symbol-placement': 'line',
-      'text-field': TEXT_FIELD,
+      'text-field': TEXT_FIELD_ROAD,
       'text-font': LABEL_FONT,
       'text-size': ['interpolate', ['linear'], ['zoom'], 13, 10.5, 17, 13],
       visibility: 'visible',
@@ -134,7 +200,7 @@ export const ROAD_OVERLAY_LAYERS = [
     minzoom: 2,
     filter: ['match', ['get', 'class'], ['city', 'town', 'village'], true, false],
     layout: {
-      'text-field': TEXT_FIELD,
+      'text-field': TEXT_FIELD_PLACE,
       'text-font': LABEL_FONT,
       'text-max-width': 8,
       'text-size': [

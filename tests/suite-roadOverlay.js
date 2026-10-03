@@ -10,6 +10,7 @@ import { suite, test, assert } from './runner.js';
 import { MAP_SOURCES } from '../js/map/sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
+  roadOverlayTextField,
 } from '../js/map/roadOverlay.js';
 import * as language from '../js/language/language.js';
 import '../js/language/langs.js';
@@ -85,13 +86,57 @@ suite('road overlay / layer stack', () => {
     }
   });
 
-  test('labels use the shared glyphs set and Latin-first name fields', () => {
+  test('labels use the shared glyphs set and the language-first name fallback', () => {
     for (const layer of ROAD_OVERLAY_LAYERS.filter((l) => l.type === 'symbol')) {
       assert.deepEqual(layer.layout['text-font'], ['Noto Sans Regular'], `font of ${layer.id}`);
-      assert.equal(layer.layout['text-field'][0], 'coalesce', `text field of ${layer.id}`);
-      const fields = layer.layout['text-field'].slice(1).map((expr) => expr[1]);
-      assert.deepEqual(fields, ['name:latin', 'name_en', 'name'], `name fields of ${layer.id}`);
+      // Static defs ship the English default; mapView rebuilds text-field
+      // from roadOverlayTextField(layer.id, getCurrentLanguage()) at mount
+      // time and on every language switch.
+      assert.deepEqual(layer.layout['text-field'], roadOverlayTextField(layer.id, 'en'), `default text field of ${layer.id}`);
     }
+    // Layout variants: place names stack, road names share one line.
+    assert.equal(ROAD_OVERLAY_LAYERS.find((l) => l.id === 'road-overlay-label-place').layout['text-field'][2][3], '\n', 'place labels two-line');
+    assert.equal(ROAD_OVERLAY_LAYERS.find((l) => l.id === 'road-overlay-label-road').layout['text-field'][2][3], ' ', 'road labels one-line');
+  });
+
+  test('labels are bilingual with identically-sized text; per-layer line layout', () => {
+    for (const { code } of language.getLanguages()) {
+      for (const layerId of ['road-overlay-label-road', 'road-overlay-label-place']) {
+        const multiline = layerId === 'road-overlay-label-place';
+        const field = roadOverlayTextField(layerId, code);
+        assert.equal(field[0], 'case', `bilingual case for ${code}/${layerId}`);
+        const both = field[2]; // ['format', primary, opts, separator, {}, secondary, opts]
+        const single = field[3]; // ['format', primary, opts]
+        assert.equal(both[0], 'format', `format type for ${code}/${layerId}`);
+        assert.equal(both[3], multiline ? '\n' : ' ', `separator for ${code}/${layerId}`);
+        // Primary: the documented fallback chain (trailing '' keeps every
+        // branch a string even for nameless features).
+        const primaryKeys = both[1].slice(1).map((e) => (Array.isArray(e) ? e[1] : e));
+        assert.deepEqual(primaryKeys, [`name:${code}`, 'name:en', 'name_int', 'name:latin', 'name', ''], `primary chain for ${code}/${layerId}`);
+        // Secondary: ONLY the raw local name — never name_int/name:latin.
+        assert.deepEqual(both[5], ['coalesce', ['get', 'name'], ''], `secondary source for ${code}/${layerId}`);
+        // Both sections styled identically — same font, same size (no
+        // font-scale), so the secondary is exactly as large as the primary.
+        assert.deepEqual(both[2], both[6], `identical section styling for ${code}/${layerId}`);
+        assert.deepEqual(both[6], { 'text-font': ['literal', ['Noto Sans Regular']] }, `no font-scale for ${code}/${layerId}`);
+        // Hidden whenever the primary already is the local name
+        // (case-insensitive) or the feature has no local name at all.
+        assert.deepEqual(field[1], [
+          'all',
+          ['!=', both[5], ''],
+          ['!=', ['downcase', both[5]], ['downcase', both[1]]],
+        ], `dedup condition for ${code}/${layerId}`);
+        assert.deepEqual(single, ['format', both[1], both[2]], `single-name branch for ${code}/${layerId}`);
+      }
+    }
+  });
+
+  test('label expressions never touch the deprecated name_ keys (name_int excepted)', () => {
+    const blob = JSON.stringify(ROAD_OVERLAY_LAYERS)
+      + language.getLanguages().map(({ code }) => JSON.stringify(roadOverlayTextField('road-overlay-label-place', code))).join();
+    // The legacy localized underscore keys (name_en, name_de, …) are
+    // deprecated; name_int is a current-schema field and explicitly wanted.
+    assert.truthy(!/name_(?!int\b)[a-z]/.test(blob), 'no deprecated name_ keys other than name_int');
   });
 
   test('layers mount visible — the toggle rides native visibility, not re-creation', () => {

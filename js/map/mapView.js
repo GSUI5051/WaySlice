@@ -25,12 +25,13 @@ import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
 import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
+  roadOverlayTextField,
 } from './roadOverlay.js';
 import { cssToken } from '../utils/cssToken.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
 import { formatDistanceShort } from '../utils/format.js';
 import { getUnitSystem } from '../units/units.js';
-import { t } from '../language/language.js';
+import { t, getCurrentLanguage } from '../language/language.js';
 import { emit, on } from '../core/events.js';
 
 let map = null;
@@ -159,6 +160,7 @@ export function initMap(node) {
   sectorStore.subscribe(scheduleSectorSync);
   on('units:changed', refreshScaleControl);
   on('theme:changed', applyMapTheme);
+  on('language:changed', refreshRoadOverlayLanguage);
 }
 
 /** Starts the MapLibre library download at most once and returns its
@@ -413,7 +415,9 @@ function setRoadOverlayVisibility(visible) {
 /** @private Idempotently mounts the overlay on the ACTIVE style and shows it —
  * after the first enable or any setStyle wipe. Each layer goes before the
  * track vectors (above the satellite raster), and a layer that already exists
- * is only flipped back to visible, so reloads never duplicate source/layers. */
+ * is only flipped back to visible, so reloads never duplicate source/layers.
+ * Label layers get their text-field built for the CURRENT UI language (the
+ * static defs carry the English default). */
 function ensureRoadOverlayLayers() {
   if (!map.getSource(ROAD_OVERLAY_SOURCE_ID)) map.addSource(ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE);
   const beforeId = map.getLayer('track-casing') ? 'track-casing' : undefined;
@@ -422,7 +426,25 @@ function ensureRoadOverlayLayers() {
       map.setLayoutProperty(layer.id, 'visibility', 'visible');
       continue;
     }
+    if (layer.type === 'symbol') {
+      map.addLayer({
+        ...layer,
+        layout: { ...layer.layout, 'text-field': roadOverlayTextField(layer.id, getCurrentLanguage()) },
+      }, beforeId);
+      continue;
+    }
     map.addLayer(layer, beforeId);
+  }
+}
+
+/** @private Re-labels the mounted overlay text layers after a language
+ * switch — the label fallback leads with `name:<UI language>`. */
+function refreshRoadOverlayLanguage() {
+  if (!map) return;
+  for (const layer of ROAD_OVERLAY_LAYERS) {
+    if (layer.type === 'symbol' && map.getLayer(layer.id)) {
+      map.setLayoutProperty(layer.id, 'text-field', roadOverlayTextField(layer.id, getCurrentLanguage()));
+    }
   }
 }
 
