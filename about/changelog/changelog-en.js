@@ -18,6 +18,7 @@ export const CHANGELOG_EN = {
     {
       h: '2026-10-03',
       ps: [
+        'The road-network toggle now reads simply "Roads" in every language.',
         'The road-network toggle is now remembered: its state lives in localStorage like the basemap choice, surviving reloads and basemap switches — a non-satellite basemap only suspends it until a satellite one returns.',
         'The road-network toggle\'s pressed state now paints the accent tint over its opaque elevated panel — the imagery no longer shows through — and hover and active deepen the tint and lift the shadow instead of falling back to the neutral button style.',
         'The road overlay now draws tunnels too: a dimmed dashed line beneath the surface roads from the street-detail zooms, so a route through a mountain shows where it goes underground.',

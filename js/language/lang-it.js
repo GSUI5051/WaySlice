@@ -37,7 +37,7 @@ const lang_it = {
 
   // Header controls
   mapSource: 'Mappa',
-  roadOverlay: 'Sovrapposizione della rete stradale',
+  roadOverlay: 'Strade',
   appearance: 'Tema',
   language: 'Lingua',
   units: 'Unità',

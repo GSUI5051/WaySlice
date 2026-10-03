@@ -34,7 +34,7 @@ const lang_fr = {
 
   // Header controls
   mapSource: 'Carte',
-  roadOverlay: 'Superposition du réseau routier',
+  roadOverlay: 'Routes',
   appearance: 'Thème',
   language: 'Langue',
   units: 'Unités',
