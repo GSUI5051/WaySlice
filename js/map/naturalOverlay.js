@@ -78,12 +78,19 @@ const OVERPASS_TIMEOUT_MS = 15000;
  * and truncating beats letting them all into the render. */
 export const OVERPASS_ELEMENT_CAP = 4000;
 
-/** Canonical endpoint first; kumi.systems is the classic worldwide mirror.
- * Overpass instances differ in reachability per network — every failure
- * (HTTP, timeout, CORS) just falls through to the next host. */
+/** Endpoint chain in fallback order: private.coffee and the VK mail.ru
+ * mirror are the CDN-friendly entry points, z/lz4 are the Overpass
+ * project's own named instances, rambler is the classic worldwide mirror.
+ * The canonical overpass-api.de interpreter is deliberately absent — its
+ * per-client rate limits (429) make it the worst first hop. Overpass
+ * instances differ in reachability per network — every failure (HTTP,
+ * timeout, CORS) just falls through to the next host. */
 const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
+  'https://overpass.osm.rambler.ru/cgi/interpreter',
 ];
 
 /* ---- tags → model ------------------------------------------------------ */
@@ -559,12 +566,19 @@ let liftedModels = [];
  * tile dedup. Boosted collision priority keeps them placed while the user
  * zooms deeper; cleared on teardown so a remount starts unbiased. */
 const latchedKeys = new Set();
+/** Signature of the FeatureCollection currently in the display source.
+ * Rebuild skips setData when nothing changed: an identical re-set still
+ * re-tiles the source and re-renders the map, whose idle then schedules
+ * another rebuild — a self-sustaining ~300 ms loop that also aborted (and
+ * so starved) any in-flight Overpass fetch. */
+let lastSetSignature = null;
+/** The padded bbox of the viewport fetch currently in flight, if any. */
+let inFlightBbox = null;
 
 /** @private True while the toggle shows the natural layers on the map. */
 function naturalMounted(map) {
   return !!map.getSource(NATURAL_SOURCE_ID) && layersVisible;
 }
-
 /** @private Debounced rebuild: latch what's on screen, tile peaks (merged
  * above the tile maxzoom) + cached Overpass features → setData. Runs on
  * moveend (camera settled) and idle (tiles finished loading — the fresh
@@ -615,7 +629,12 @@ function rebuild(map) {
   const peaks = map.getZoom() > NATURAL_TILE_MAX_ZOOM ? mergeModels(liftedModels, lifted) : lifted;
   liftedModels = peaks;
   const pois = overpassCache ? overpassCache.features : [];
-  source.setData(buildNaturalFeatureCollection(peaks, pois, latchedKeys));
+  const collection = buildNaturalFeatureCollection(peaks, pois, latchedKeys);
+  const signature = JSON.stringify(collection);
+  if (signature !== lastSetSignature) {
+    lastSetSignature = signature;
+    source.setData(collection);
+  }
   fetchOverpassViewport(map);
 }
 
@@ -636,10 +655,17 @@ async function fetchOverpassViewport(map) {
   };
   const cached = overpassCache;
   if (cached && bbox.s >= cached.s && bbox.w >= cached.w && bbox.n <= cached.n && bbox.e <= cached.e) return;
+  // A viewport fetch already running for THIS box just needs to finish —
+  // restarting it on every rebuild would abort the in-flight attempt a
+  // few hundred ms in, long before even a fast endpoint answers, and the
+  // chain would never reach its later mirrors.
+  if (fetchController && inFlightBbox && inFlightBbox.s === bbox.s && inFlightBbox.w === bbox.w
+    && inFlightBbox.n === bbox.n && inFlightBbox.e === bbox.e) return;
   // A newer viewport supersedes any in-flight fetch for an older one.
   if (fetchController) fetchController.abort();
   const outer = new AbortController();
   fetchController = outer;
+  inFlightBbox = bbox;
   for (const endpoint of OVERPASS_ENDPOINTS) {
     if (outer.signal.aborted) return;
     // The per-attempt controller stops on the timeout OR the outer abort
@@ -659,6 +685,7 @@ async function fetchOverpassViewport(map) {
       const features = parseOverpassElements(await res.json());
       if (outer.signal.aborted) return;
       overpassCache = { ...bbox, features };
+      if (fetchController === outer) { fetchController = null; inFlightBbox = null; }
       rebuild(map);
       return;
     } catch {
@@ -669,6 +696,9 @@ async function fetchOverpassViewport(map) {
       outer.signal.removeEventListener('abort', onOuterAbort);
     }
   }
+  // The whole chain failed (or the overlay closed) — hand the state back
+  // so a later camera pass can try again; leave the old cache alone.
+  if (fetchController === outer) { fetchController = null; inFlightBbox = null; }
 }
 
 /**
