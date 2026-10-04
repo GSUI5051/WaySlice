@@ -12,8 +12,9 @@ import { suite, test, assert } from './runner.js';
 import {
   NATURAL_TYPES, NATURAL_POI_TYPES, TILE_NATURAL_CLASSES, NATURAL_SOURCE_ID, NATURAL_LAYERS,
   NATURAL_GATES, NATURAL_ICON_SIZES, NATURAL_TEXT_SIZES,
+  NATURAL_TILE_MAX_ZOOM, LATCH_BOOST, OVERPASS_ELEMENT_CAP,
   parseElevationTag, parseFeetTag, canonicalElevationMeters, localizedName, buildNaturalLabel,
-  gateClassFor, overpassQuery, parseOverpassElements, peaksFromTileFeatures,
+  gateClassFor, overpassQuery, parseOverpassElements, peaksFromTileFeatures, mergeModels,
   buildNaturalFeatureCollection,
 } from '../js/map/naturalOverlay.js';
 import { ROAD_OVERLAY_LABEL_FONT, overlayNameKeys, ROAD_OVERLAY_SOURCE_ID } from '../js/map/roadOverlay.js';
@@ -61,12 +62,92 @@ suite('natural overlay / the seven types', () => {
       assert.truthy(q.includes(`node["natural"="${t}"]`), `query clause for ${t}`);
     }
     assert.truthy(q.includes('[bbox:47,12.5,48,13.5]'), 'south,west,north,east order');
+    assert.truthy(q.includes(`out body ${OVERPASS_ELEMENT_CAP} qt;`), 'the server truncates before the network');
     assert.truthy(!q.includes('peak'), 'peaks never ride Overpass — the tiles already carry them');
+  });
+
+  test('the element cap is 4000, enforced again at parse time', () => {
+    assert.equal(OVERPASS_ELEMENT_CAP, 4000);
+    const elements = [];
+    for (let i = 0; i < 5000; i++) {
+      elements.push({ type: 'node', lat: 50 + (i % 1000) / 10000, lon: 14 + i / 10000, tags: { natural: 'stone' } });
+    }
+    const out = parseOverpassElements({ elements });
+    assert.truthy(out.length <= OVERPASS_ELEMENT_CAP, `a 5000-element response parses to ≤ 4000, got ${out.length}`);
+    assert.equal(out.length, 4000);
   });
 
   test('overlapping tiles dedup to one feature per summit', () => {
     const mk = (lon) => ({ properties: { class: 'peak', rank: 2 }, geometry: { type: 'Point', coordinates: [lon, 22.5] } });
     assert.equal(peaksFromTileFeatures([mk(114.000001), mk(114.0000009), mk(114.001)]).length, 2);
+  });
+});
+
+suite('natural overlay / deep-zoom hold', () => {
+  const mk = (type, lon, lat, extra = {}) => ({ type, lon, lat, tags: { natural: type }, rank: 5, ...extra });
+
+  test('the tile maxzoom is pinned to the road source TileJSON value', () => {
+    assert.equal(NATURAL_TILE_MAX_ZOOM, 14);
+  });
+
+  test('an empty lift returns the held set untouched', () => {
+    const kept = [mk('peak', 114, 22.5)];
+    assert.equal(mergeModels(kept, []), kept, 'same array, no rewrap');
+    assert.deepEqual(mergeModels([], []), []);
+  });
+
+  test('only new keys are appended — kept entries keep their rank and name', () => {
+    const kept = [mk('peak', 114, 22.5, { rank: 1, tags: { natural: 'peak', name: 'Tai Mo Shan', ele: '957' } })];
+    const merged = mergeModels(kept, [
+      mk('peak', 114, 22.5), // same summit returning from an overzoomed query — the kept state wins
+      mk('volcano', 138.5, 35.4),
+    ]);
+    assert.equal(merged.length, 2);
+    assert.equal(merged[0].rank, 1, 'kept rank survives');
+    assert.equal(merged[0].tags.name, 'Tai Mo Shan', 'kept name survives');
+    assert.equal(merged[1].type, 'volcano', 'the new key is appended');
+  });
+
+  test('same class at different coordinates stays two summits', () => {
+    const merged = mergeModels([mk('peak', 114, 22.5)], [mk('peak', 114.1, 22.5)]);
+    assert.equal(merged.length, 2, 'the key carries the coordinates, not just the class');
+  });
+});
+
+suite('natural overlay / see-become-latched', () => {
+  const key = (type, lon, lat) => `${type}@${lon.toFixed(5)},${lat.toFixed(5)}`;
+  const rankOf = (model, latched) => buildNaturalFeatureCollection([model], [], latched).features[0].properties.sortRank;
+
+  test('unlatched features carry the base collision rank', () => {
+    assert.equal(rankOf({ type: 'peak', lon: 114, lat: 22.5, tags: {}, rank: 5 }, new Set()), 2);
+  });
+
+  test('a latched summit drops base minus the boost — a negative sortRank', () => {
+    assert.equal(LATCH_BOOST, 20);
+    const model = { type: 'peak', lon: 114, lat: 22.5, tags: {}, rank: 5 };
+    const rank = rankOf(model, new Set([key('peak', 114, 22.5)]));
+    assert.equal(rank, 2 - 20);
+    assert.truthy(rank < 0, 'negative ranks win symbol-sort-key placement');
+  });
+
+  test('only the tile trio latches — small classes keep their base rank', () => {
+    const bases = { cave_entrance: 6, spring: 7, rock: 8, stone: 9 };
+    for (const [type, base] of Object.entries(bases)) {
+      const model = { type, lon: 14.1, lat: 50.9, tags: {}, rank: 5 };
+      assert.equal(rankOf(model, new Set([key(type, 14.1, 50.9)])), base, `${type} is never boosted`);
+    }
+  });
+
+  test('the latch key carries coordinates — a latched summit never boosts a same-class neighbor', () => {
+    const model = { type: 'peak', lon: 114.1, lat: 22.5, tags: {}, rank: 5 };
+    assert.equal(rankOf(model, new Set([key('peak', 114, 22.5)])), 2, 'different summit, no boost');
+  });
+
+  test('omitting the latch set renders every feature unlatched', () => {
+    const fc = buildNaturalFeatureCollection(
+      [{ type: 'peak', lon: 114, lat: 22.5, tags: {}, rank: 5 }], [],
+    );
+    assert.equal(fc.features[0].properties.sortRank, 2);
   });
 });
 
@@ -88,10 +169,38 @@ suite('natural overlay / name and elevation are independent', () => {
 
   test('label text: name+ele stacks, each alone renders, neither renders the tag', () => {
     setUnitSystem('metric');
-    assert.equal(buildNaturalLabel('Mount Example', 842), 'Mount Example\n842 m');
-    assert.equal(buildNaturalLabel('Mount Example', null), 'Mount Example');
-    assert.truthy(buildNaturalLabel('', 842).includes('842'), 'elevation alone labels the feature');
-    assert.equal(buildNaturalLabel('', null), '', 'bare icon — never the internal natural=peak tag');
+    assert.equal(buildNaturalLabel('Mount Example', '', 842), 'Mount Example\n842 m');
+    assert.equal(buildNaturalLabel('Mount Example', '', null), 'Mount Example');
+    assert.truthy(buildNaturalLabel('', '', 842).includes('842'), 'elevation alone labels the feature');
+    assert.equal(buildNaturalLabel('', '', null), '', 'bare icon — never the internal natural=peak tag');
+  });
+
+  test('the local sub-name stacks between the main name and the elevation', () => {
+    setUnitSystem('metric');
+    assert.equal(buildNaturalLabel('Mount Example', '本地名', 842), 'Mount Example\n本地名\n842 m');
+  });
+
+  test('a sub-name identical to the main name never repeats — case-insensitively', () => {
+    assert.equal(buildNaturalLabel('Tai Mo Shan', 'Tai Mo Shan', null), 'Tai Mo Shan');
+    assert.equal(buildNaturalLabel('Tai Mo Shan', 'tai mo shan', 842), 'Tai Mo Shan\n842 m');
+  });
+
+  test('a sub-name without a main name still labels; all three missing is empty', () => {
+    assert.equal(buildNaturalLabel('', 'Quelle', null), 'Quelle');
+    assert.equal(buildNaturalLabel('', 'Quelle', 520), 'Quelle\n520 m');
+    assert.equal(buildNaturalLabel('', '', null), '');
+  });
+
+  test('the built feature label is main name over the raw local name over the elevation', async () => {
+    await setLanguage('de');
+    setUnitSystem('metric');
+    const fc = buildNaturalFeatureCollection([
+      { type: 'peak', lon: -123.2, lat: 49.4, tags: { natural: 'peak', name: 'Mount Example', 'name:de': 'Beispielberg', ele: '1000' }, rank: 1 },
+    ], []);
+    // de UI picks name:de as the main name and formats the height the
+    // German way — the label is composed from the live language + units.
+    assert.equal(fc.features[0].properties.label, 'Beispielberg\nMount Example\n1.000 m');
+    await setLanguage('en');
   });
 
   test('the name follows the same fallback chain as the road/place labels', () => {
@@ -135,12 +244,12 @@ suite('natural overlay / name and elevation are independent', () => {
     // A feet-only source (ele:ft=4042) must read METERS in metric mode.
     const metersOnly = canonicalElevationMeters({ 'ele:ft': '4042' });
     setUnitSystem('metric');
-    const metric = buildNaturalLabel('', metersOnly);
+    const metric = buildNaturalLabel('', '', metersOnly);
     assert.equal(unitOf(metric), 'm', 'metric mode shows meters');
     assert.equal(Number(digits(metric)), 1232, 'converted from the feet source');
     // And a meters-only source must read FEET in imperial mode.
     setUnitSystem('imperial');
-    const imperial = buildNaturalLabel('', canonicalElevationMeters({ ele: '842' }));
+    const imperial = buildNaturalLabel('', '', canonicalElevationMeters({ ele: '842' }));
     assert.equal(unitOf(imperial), 'ft', 'imperial mode shows feet');
     assert.equal(Number(digits(imperial)), 2762, '842 m → 2762 ft, integer display');
     setUnitSystem('metric');
@@ -212,12 +321,13 @@ suite('natural overlay / render path', () => {
     assert.equal(layer.minzoom, 8, 'nothing renders before the first gate');
   });
 
-  test('the label is a plain property — this layer must never get the bilingual text-field rewrite', () => {
+  test('the label is a plain property — the local sub-name is composed JS-side, never by a bilingual text-field', () => {
     const layer = NATURAL_LAYERS[0];
-    assert.deepEqual(layer.layout['text-field'], ['get', 'label'], 'text comes from the built label property');
+    assert.deepEqual(layer.layout['text-field'], ['get', 'label'], 'text comes from the built label property, sub-name included');
     assert.deepEqual(layer.layout['text-font'], ROAD_OVERLAY_LABEL_FONT, 'shared glyph set');
     // mapView rewrites text-field only for the tile-source label layers; the
-    // natural layer's source binding is what keeps it out of that pass.
+    // natural layer's source binding is what keeps it out of that pass — the
+    // sub-name must keep arriving through the JS-composed `label` property.
     assert.truthy(layer.source !== ROAD_OVERLAY_SOURCE_ID, 'not bound to the tile source');
   });
 

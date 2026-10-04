@@ -24,6 +24,13 @@
  * icon. A feature is never dropped for missing fields, and elevation
  * parsing accepts meters, feet and explicitly-unitied values without ever
  * feeding an unparseable string into math.
+ *
+ * Display-state memory, per mount: past the tile source's maxzoom the
+ * overzoomed tile query can come back empty or partial, so the lifted peak
+ * set only ever GROWS there (deep-zoom hold); and summits already drawn on
+ * screen are latched into a collision-priority boost, so zooming in never
+ * squeezes a seen landmark out (see-become-latched). Both clear on
+ * teardown; the Overpass cache deliberately survives it.
  */
 import { METERS_PER_FOOT } from '../units/units.js';
 import { formatElevation } from '../utils/format.js';
@@ -46,6 +53,12 @@ export const NATURAL_POI_TYPES = ['cave_entrance', 'spring', 'rock', 'stone'];
  * must never reach these point layers. */
 export const TILE_NATURAL_CLASSES = ['peak', 'saddle', 'volcano'];
 
+/** The road tile source's TileJSON maxzoom: past it the map overzooms the
+ * z14 tiles and `querySourceFeatures` can return an empty or partial set
+ * (steady state, or only some ancestor tiles during a transition), so
+ * rebuilds above this zoom must never shrink the lifted peak set. */
+export const NATURAL_TILE_MAX_ZOOM = 14;
+
 /** Viewport Overpass queries start at this zoom — below it every natural
  * gate is still closed, so the request would buy nothing. */
 export const NATURAL_FETCH_MIN_ZOOM = 12;
@@ -57,6 +70,13 @@ const OVERPASS_PAD = 0.35;
 /** Per-attempt ceiling: a hung or throttled endpoint hands off to the next
  * one instead of stalling the rebuild chain. */
 const OVERPASS_TIMEOUT_MS = 15000;
+
+/** Hard ceiling on one viewport response, enforced on BOTH ends of the
+ * pipe: the query asks the server to truncate, and the parser clamps the
+ * element list again before anything reaches a layer. rock/stone cluster
+ * in real OSM — a busy viewport can return tens of thousands of nodes —
+ * and truncating beats letting them all into the render. */
+export const OVERPASS_ELEMENT_CAP = 4000;
 
 /** Canonical endpoint first; kumi.systems is the classic worldwide mirror.
  * Overpass instances differ in reachability per network — every failure
@@ -139,18 +159,25 @@ export function localizedName(tags, code) {
 }
 
 /**
- * Label text: name stacked over the elevation (the place-label two-line
- * convention); either alone when the other is missing; '' (icon only)
- * when both are. Elevation always renders through the shared unit
- * formatter — user unit setting, integer display — never the raw tag.
- * @param {string} name
+ * Label text: main name over the local name over the elevation — the
+ * overlay's bilingual convention (main name in the UI language, the raw
+ * local `name` tag as the second line, then the height), synthesized HERE
+ * so the style keeps reading one plain property. The local-name line only
+ * appears when it exists and says something the main name doesn't (the
+ * case-insensitive compare mirrors the road/place text-field rule); any
+ * missing line drops — elevation only, name only, or '' (bare icon; the
+ * internal natural=* tag never renders as a name). Elevation always goes
+ * through the shared unit formatter — user unit setting, integer display.
+ * @param {string} mainName
+ * @param {string} localName  the raw OSM `name` tag
  * @param {number|null} meters
  */
-export function buildNaturalLabel(name, meters) {
-  if (name && meters != null) return `${name}\n${formatElevation(meters)}`;
-  if (name) return name;
-  if (meters != null) return formatElevation(meters);
-  return '';
+export function buildNaturalLabel(mainName, localName, meters) {
+  const lines = [];
+  if (mainName) lines.push(mainName);
+  if (localName && localName.toLowerCase() !== (mainName || '').toLowerCase()) lines.push(localName);
+  if (meters != null) lines.push(formatElevation(meters));
+  return lines.join('\n');
 }
 
 /** The importance tier from the tiles' rank (1 notable … 5 minor): the
@@ -222,6 +249,10 @@ export const NATURAL_TEXT_SIZES = classCurve(GATE_CLASSES, [
 /** Collision priority: majors win, stones lose. */
 const SORT_RANK = Object.fromEntries(GATE_CLASSES.map((cls, i) => [cls, i + 1]));
 
+/** How far a latched (already-seen) landmark drops its collision priority:
+ * enough to outrank every base rank while staying one plain number. */
+export const LATCH_BOOST = 20;
+
 /* ---- layer defs ---------------------------------------------------------- */
 
 /**
@@ -265,53 +296,81 @@ export const NATURAL_LAYERS = [
 /* ---- icons ---------------------------------------------------------------- */
 
 /**
- * 24-unit Lucide-style stroke drawings, rasterized once per style into
+ * 24-unit Lucide-style drawings, rasterized once per style into
  * `natural-<type>` images (pixelRatio 2). Real Lucide paths where Lucide
- * has the landform (peak = mountain, spring = droplet); the rest are drawn
- * in the same idiom — no second icon library. Each icon strokes twice: a
- * dark under-stroke reads as the halo the place labels get, so the white
- * drawing holds on any imagery.
+ * has the landform (peak = triangle, spring = droplet); the rest are drawn
+ * in the same idiom — no second icon library. Each drawing splits into
+ * `solid` outlines (filled white) and `line` details (2-unit white
+ * strokes). peak and volcano are one FILLED triangle family told apart by
+ * shape alone — plain summit vs flat-topped crater with eruption
+ * scratches — never by color, so the pair stays legible dechromatized and
+ * in grayscale; rock's facets vs stone's roundness is a deliberate
+ * contrast the drawings keep. Every path first strokes in a wide dark
+ * under-stroke — the halo the place labels get — so the white drawing
+ * holds on any imagery.
  */
 const ICON_PATHS = {
-  // Lucide "mountain".
-  peak: ['m8 3 4 8 5-5 5 15H2L8 3z'],
+  // Lucide "triangle", filled — the plain solid summit marker.
+  peak: {
+    solid: ['m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 20h16a2 2 0 0 0 1.73-2Z'],
+    lines: [],
+  },
   // Two summits with the col between them.
-  saddle: ['M4 18 9 9l3 4.5L15 9l5 9z'],
-  // Flat-topped cone with the eruption above the crater.
-  volcano: ['M8.5 5 3 20h18L15.5 5z', 'M8.5 5h7', 'M12 2.2v.01', 'M8.6 3.2l-1-1', 'M15.4 3.2l1-1'],
+  saddle: { solid: [], lines: ['M4 18 9 9l3 4.5L15 9l5 9z'] },
+  // The triangle family's truncated variant: a solid flat-topped cone
+  // whose flat top IS the crater, three eruption scratches above it.
+  volcano: {
+    solid: ['M8.5 5 3 20h18L15.5 5z'],
+    lines: ['M12 2.2v2', 'M8.3 3.2l-1.4-1.4', 'M15.7 3.2l1.4-1.4'],
+  },
   // The arch of a cave mouth over the ground line.
-  cave_entrance: ['M6 20a6 6 0 0 1 12 0', 'M2.5 20h19'],
+  cave_entrance: {
+    solid: [],
+    lines: ['M6 20a6 6 0 0 1 12 0', 'M2.5 20h19'],
+  },
   // Lucide "droplet", lifted, over a rising-water wave.
-  spring: [
-    'M12 13a4 4 0 0 0 4-4c0-1.13-.56-2.2-1.7-3.1-1.1-.92-2-2.3-2.3-3.9-.3 1.6-1.2 2.98-2.3 3.9-1.14.9-1.7 1.97-1.7 3.1a4 4 0 0 0 4 4z',
-    'M2.5 20c1.6-1.4 3.2-1.4 4.75 0s3.15 1.4 4.75 0 3.15-1.4 4.75 0 3.15 1.4 4.75 0',
-  ],
+  spring: {
+    solid: [],
+    lines: [
+      'M12 13a4 4 0 0 0 4-4c0-1.13-.56-2.2-1.7-3.1-1.1-.92-2-2.3-2.3-3.9-.3 1.6-1.2 2.98-2.3 3.9-1.14.9-1.7 1.97-1.7 3.1a4 4 0 0 0 4 4z',
+      'M2.5 20c1.6-1.4 3.2-1.4 4.75 0s3.15 1.4 4.75 0 3.15-1.4 4.75 0 3.15 1.4 4.75 0',
+    ],
+  },
   // A faceted boulder with its facet line.
-  rock: ['M7.5 4.5 15 3l5 7.5-2.5 9-9.5 1L3 12z', 'M7.5 4.5 10 12l7.5 7'],
+  rock: { solid: [], lines: ['M7.5 4.5 15 3l5 7.5-2.5 9-9.5 1L3 12z', 'M7.5 4.5 10 12l7.5 7'] },
   // A rounded pebble, visibly smaller and softer than the faceted rock.
-  stone: ['M9 8a3.5 3.5 0 0 1 6 0l1.7 4.6A4.8 4.8 0 0 1 12 18a4.8 4.8 0 0 1-4.7-6.8z', 'M9.3 13.5a2.8 2.8 0 0 0 1.8 3.9'],
+  stone: {
+    solid: [],
+    lines: ['M9 8a3.5 3.5 0 0 1 6 0l1.7 4.6A4.8 4.8 0 0 1 12 18a4.8 4.8 0 0 1-4.7-6.8z', 'M9.3 13.5a2.8 2.8 0 0 0 1.8 3.9'],
+  },
 };
 
-/** @private Rasterizes one icon drawing into ImageData at pixelRatio 2. */
-function rasterizeIcon(paths, px = 48) {
+/** @private Rasterizes one icon drawing into ImageData at pixelRatio 2.
+ * Pass order: every path under-stroked wide in dark (the halo), then the
+ * white drawing — fill for the solid body, 2-unit strokes for the line
+ * details. The fill covers the inner half of the body's halo, leaving the
+ * same outward dark rim the line drawings keep. */
+function rasterizeIcon({ solid = [], lines = [] }, px = 48) {
   const canvas = document.createElement('canvas');
   canvas.width = px;
   canvas.height = px;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  const shapes = paths.map((d) => new Path2D(d));
+  const solidShapes = solid.map((d) => new Path2D(d));
+  const lineShapes = lines.map((d) => new Path2D(d));
   // The drawings live in a 24-unit space; the canvas is px square.
   const scale = px / 24;
   ctx.scale(scale, scale);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  // Halo pass first (wide dark), then the white drawing — the label
-  // paint's white-on-dark recipe, baked into the sprite.
-  for (const [width, color] of [[2 * 1.45, 'rgba(40, 40, 40, 0.9)'], [2, '#ffffff']]) {
-    ctx.lineWidth = width;
-    ctx.strokeStyle = color;
-    for (const shape of shapes) ctx.stroke(shape);
-  }
+  ctx.lineWidth = 2 * 1.45;
+  ctx.strokeStyle = 'rgba(40, 40, 40, 0.9)';
+  for (const shape of [...solidShapes, ...lineShapes]) ctx.stroke(shape);
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#ffffff';
+  for (const shape of solidShapes) ctx.fill(shape);
+  ctx.lineWidth = 2;
+  for (const shape of lineShapes) ctx.stroke(shape);
   return ctx.getImageData(0, 0, px, px);
 }
 
@@ -341,23 +400,28 @@ function ensureNaturalImages(map) {
 
 /**
  * The Overpass query for the four tile-absent types over a bounding box
- * (south, west, north, east). Nodes only — the spec's point landforms.
+ * (south, west, north, east). Nodes only — the spec's point landforms. The
+ * `out` clause carries the element cap so a busy viewport is truncated
+ * server-side, before it ever crosses the network.
  * @param {{s: number, w: number, n: number, e: number}} bbox
  */
 export function overpassQuery(bbox) {
   const box = `[bbox:${bbox.s},${bbox.w},${bbox.n},${bbox.e}]`;
   const body = NATURAL_POI_TYPES.map((t) => `node["natural"="${t}"];`).join('');
-  return `[out:json][timeout:20]${box};(${body});out body qt;`;
+  return `[out:json][timeout:20]${box};(${body});out body ${OVERPASS_ELEMENT_CAP} qt;`;
 }
 
 /**
  * Pure Overpass response → feature models. Only nodes carrying one of the
  * four target natural values survive — every other tag value (and every
  * non-target natural=*) is dropped here, before anything reaches a layer.
+ * The element list is clamped to the cap before filtering (bounding the
+ * parse of one response) and the result is clamped again after — the cap
+ * is a hard bound on the model set either way.
  * @param {{ elements?: Array<{ type?: string, lat?: number, lon?: number, tags?: Record<string, string> }>} | null} json
  */
 export function parseOverpassElements(json) {
-  const elements = json && Array.isArray(json.elements) ? json.elements : [];
+  const elements = json && Array.isArray(json.elements) ? json.elements.slice(0, OVERPASS_ELEMENT_CAP) : [];
   const out = [];
   for (const el of elements) {
     if (el.type !== 'node' || !Number.isFinite(el.lat) || !Number.isFinite(el.lon)) continue;
@@ -365,7 +429,19 @@ export function parseOverpassElements(json) {
     if (!NATURAL_POI_TYPES.includes(natural)) continue;
     out.push({ type: natural, lon: el.lon, lat: el.lat, tags: { ...el.tags } });
   }
-  return out;
+  return out.length > OVERPASS_ELEMENT_CAP ? out.slice(0, OVERPASS_ELEMENT_CAP) : out;
+}
+
+/**
+ * The shared identity key — class plus coordinates rounded to 5 decimals —
+ * used by the tile dedup, the deep-zoom merge and the latch alike, so a
+ * summit can never be confused with a same-class neighbor somewhere else.
+ * @param {string} type
+ * @param {number} lon
+ * @param {number} lat
+ */
+function naturalKey(type, lon, lat) {
+  return `${type}@${lon.toFixed(5)},${lat.toFixed(5)}`;
 }
 
 /**
@@ -384,34 +460,69 @@ export function peaksFromTileFeatures(features) {
     if (!f.geometry || f.geometry.type !== 'Point') continue;
     const [lon, lat] = f.geometry.coordinates;
     if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
-    const key = `${cls}@${lon.toFixed(5)},${lat.toFixed(5)}`;
+    const key = naturalKey(cls, lon, lat);
     if (out.has(key)) continue;
     out.set(key, { type: cls, lon, lat, tags: { ...f.properties }, rank: Number(f.properties.rank) || 5 });
   }
   return [...out.values()];
 }
 
+/**
+ * Deep-zoom hold: merges freshly lifted tile models into the held set. An
+ * empty lift returns `kept` untouched; otherwise existing keys win (their
+ * rank/name/ele state survives) and only NEW keys are appended. Above the
+ * tile maxzoom the display set therefore only grows — and at or below it
+ * the tiles replace authoritatively, which also bounds any accumulation
+ * to one deep-zoom round trip.
+ * @param {Array} kept  the previous lift's models
+ * @param {Array} lifted  the current querySourceFeatures lift
+ */
+export function mergeModels(kept, lifted) {
+  if (!lifted.length) return kept;
+  const out = kept.slice();
+  const seen = new Set(out.map((m) => naturalKey(m.type, m.lon, m.lat)));
+  for (const model of lifted) {
+    const key = naturalKey(model.type, model.lon, model.lat);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(model);
+  }
+  return out;
+}
+
 /** Model → render feature: the label is built HERE, with the current UI
- * language and unit system, so the style reads one plain property. */
-function toFeature(model) {
+ * language and unit system, so the style reads one plain property. A
+ * latched terrain landmark (see `latchedKeys`) drops its collision
+ * priority by LATCH_BOOST — the latch only reorders collisions, it never
+ * touches the visibility gates. */
+function toFeature(model, latchedKeys) {
   const gate = gateClassFor(model.type, model.rank);
+  const base = SORT_RANK[gate];
+  const latched = TILE_NATURAL_CLASSES.includes(model.type)
+    && latchedKeys.has(naturalKey(model.type, model.lon, model.lat));
   return {
     type: 'Feature',
     geometry: { type: 'Point', coordinates: [model.lon, model.lat] },
     properties: {
       naturalClass: model.type,
       gateClass: gate,
-      sortRank: SORT_RANK[gate],
-      label: buildNaturalLabel(localizedName(model.tags, getCurrentLanguage()), canonicalElevationMeters(model.tags)),
+      sortRank: latched ? base - LATCH_BOOST : base,
+      label: buildNaturalLabel(
+        localizedName(model.tags, getCurrentLanguage()),
+        typeof model.tags.name === 'string' ? model.tags.name : '',
+        canonicalElevationMeters(model.tags),
+      ),
     },
   };
 }
 
-/** All current models → the display FeatureCollection. Exported for the
- * model tests: the four name/ele combinations, the label composition and
- * the click-identification properties are pinned here. */
-export function buildNaturalFeatureCollection(peaks, pois) {
-  return { type: 'FeatureCollection', features: [...peaks, ...pois].map(toFeature) };
+/** All current models → the display FeatureCollection. The third parameter
+ * is the latch set (keyed like the tile dedup); omitting it renders every
+ * feature unlatched. Exported for the model tests: the four name/ele
+ * combinations, the label composition and the click-identification
+ * properties are pinned here. */
+export function buildNaturalFeatureCollection(peaks, pois, latchedKeys = new Set()) {
+  return { type: 'FeatureCollection', features: [...peaks, ...pois].map((m) => toFeature(m, latchedKeys)) };
 }
 
 /* ---- lifecycle -------------------------------------------------------------- */
@@ -423,15 +534,24 @@ let rebuildTimer = null;
 let fetchController = null;
 /** The Overpass cache: the padded bbox the current features cover. */
 let overpassCache = null;
+/** Deep-zoom hold: the last lift's trio models, merged back in above the
+ * tile maxzoom (where the overzoomed query can no longer be trusted to
+ * return the full set). Fresh `[]` on every mount. */
+let liftedModels = [];
+/** See-become-latched: the summits already drawn on screen, keyed like the
+ * tile dedup. Boosted collision priority keeps them placed while the user
+ * zooms deeper; cleared on teardown so a remount starts unbiased. */
+const latchedKeys = new Set();
 
 /** @private True while the toggle shows the natural layers on the map. */
 function naturalMounted(map) {
   return !!map.getSource(NATURAL_SOURCE_ID) && layersVisible;
 }
 
-/** @private Debounced rebuild: tile peaks + cached Overpass features →
- * setData. Runs on moveend (camera settled) and idle (tiles finished
- * loading — the fresh tiles may carry summits the first pass missed). */
+/** @private Debounced rebuild: latch what's on screen, tile peaks (merged
+ * above the tile maxzoom) + cached Overpass features → setData. Runs on
+ * moveend (camera settled) and idle (tiles finished loading — the fresh
+ * tiles may carry summits the first pass missed). */
 function scheduleRebuild(map) {
   if (rebuildTimer) return;
   rebuildTimer = setTimeout(() => {
@@ -440,16 +560,45 @@ function scheduleRebuild(map) {
   }, 300);
 }
 
+/** @private Latches the terrain landmarks currently on screen, ahead of a
+ * rebuild's setData: a summit the user has SEEN keeps its collision slot
+ * through the zoom-ins that follow instead of being squeezed out by
+ * better-ranked neighbors. Only the tile trio latches — a boosted stone
+ * would out-rank peaks, the exact burying this prevents — and only once
+ * its icon gate is fully open at the current zoom: MapLibre keeps
+ * zero-size symbols queryable, so the gate is what separates "seen" from
+ * "merely loaded". Latching never touches visibility — zooming back out
+ * hides by the size curves as always. */
+function collectLatched(map) {
+  if (!map.getLayer('road-overlay-symbol-natural')) return;
+  const zoom = map.getZoom();
+  for (const f of map.queryRenderedFeatures({ layers: ['road-overlay-symbol-natural'] })) {
+    const cls = f.properties?.naturalClass;
+    if (!TILE_NATURAL_CLASSES.includes(cls)) continue;
+    const gate = NATURAL_GATES[f.properties?.gateClass];
+    if (!gate || zoom < gate.icon) continue;
+    const [lon, lat] = f.geometry.coordinates;
+    latchedKeys.add(naturalKey(cls, lon, lat));
+  }
+}
+
 /** @private */
 function rebuild(map) {
   if (!enabled || !naturalMounted(map)) return;
   const source = map.getSource(NATURAL_SOURCE_ID);
   if (!source) return;
-  const peaks = map.getSource(ROAD_OVERLAY_SOURCE_ID)
+  collectLatched(map);
+  const lifted = map.getSource(ROAD_OVERLAY_SOURCE_ID)
     ? peaksFromTileFeatures(map.querySourceFeatures(ROAD_OVERLAY_SOURCE_ID, { sourceLayer: 'mountain_peak' }))
     : [];
+  // Past the tile maxzoom the overzoomed query may return nothing (or only
+  // part of the ancestor tiles) — merge into the held set so the summit
+  // the user zoomed into survives. At or below it the tiles are
+  // authoritative: replace outright.
+  const peaks = map.getZoom() > NATURAL_TILE_MAX_ZOOM ? mergeModels(liftedModels, lifted) : lifted;
+  liftedModels = peaks;
   const pois = overpassCache ? overpassCache.features : [];
-  source.setData(buildNaturalFeatureCollection(peaks, pois));
+  source.setData(buildNaturalFeatureCollection(peaks, pois, latchedKeys));
   fetchOverpassViewport(map);
 }
 
@@ -520,7 +669,18 @@ export function ensureNaturalOverlay(map, beforeId) {
     map.addSource(NATURAL_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   }
   for (const layer of NATURAL_LAYERS) {
-    if (!map.getLayer(layer.id)) map.addLayer(layer, beforeId);
+    if (!map.getLayer(layer.id)) {
+      map.addLayer(layer, beforeId);
+    } else {
+      // The road layers' ensure pass restacks each of them to the track
+      // anchor, which leaves the whole road block between this layer and
+      // the anchor — and the imagery move then buries the natural layer
+      // under the opaque raster. Ride the same restack back to the anchor,
+      // and bring back a layer hidden by a previous toggle-off (the same
+      // visibility flip the road layers get).
+      map.moveLayer(layer.id, beforeId);
+      map.setLayoutProperty(layer.id, 'visibility', 'visible');
+    }
   }
   if (!wired) {
     wired = true;
@@ -546,11 +706,15 @@ export function setNaturalVisibility(map, visible) {
 }
 
 /** Drops the natural stack entirely (satellite exit) — idempotent, and it
- * cancels any in-flight viewport fetch. */
+ * cancels any in-flight viewport fetch. The display-state memory (lift
+ * models, latch) clears with it — a fresh mount starts fresh; the
+ * Overpass cache deliberately survives. */
 export function removeNaturalOverlay(map) {
   enabled = false;
   if (rebuildTimer) { clearTimeout(rebuildTimer); rebuildTimer = null; }
   if (fetchController) { fetchController.abort(); fetchController = null; }
+  liftedModels = [];
+  latchedKeys.clear();
   for (const layer of NATURAL_LAYERS) {
     if (map.getLayer(layer.id)) map.removeLayer(layer.id);
   }
