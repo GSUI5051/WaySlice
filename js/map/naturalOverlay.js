@@ -86,11 +86,11 @@ export const OVERPASS_ELEMENT_CAP = 4000;
  * instances differ in reachability per network — every failure (HTTP,
  * timeout, CORS) just falls through to the next host. */
 const OVERPASS_ENDPOINTS = [
-  'https://overpass.private.coffee/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   'https://z.overpass-api.de/api/interpreter',
   'https://lz4.overpass-api.de/api/interpreter',
   'https://overpass.osm.rambler.ru/cgi/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ];
 
 /* ---- tags → model ------------------------------------------------------ */
