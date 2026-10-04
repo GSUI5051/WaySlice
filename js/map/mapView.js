@@ -27,6 +27,9 @@ import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
   roadOverlayTextField, savedRoadOverlayOn, saveRoadOverlayOn,
 } from './roadOverlay.js';
+import {
+  ensureNaturalOverlay, removeNaturalOverlay, setNaturalVisibility, refreshNaturalOverlay,
+} from './naturalOverlay.js';
 import { cssToken } from '../utils/cssToken.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
 import { formatDistanceShort } from '../utils/format.js';
@@ -160,6 +163,7 @@ export function initMap(node) {
   sectorStore.subscribe(scheduleSectorSync);
   on('theme:changed', applyMapTheme);
   on('language:changed', refreshRoadOverlayLanguage);
+  on('units:changed', refreshRoadOverlayUnits);
 }
 
 /** Starts the MapLibre library download at most once and returns its
@@ -393,13 +397,15 @@ function emitRoadOverlayState() {
   emit('roadOverlay:changed', { available: satelliteBasemapActive(), enabled: roadOverlayOn });
 }
 
-/** @private Shows or hides the mounted overlay layers (no-op before a mount). */
+/** @private Shows or hides the mounted overlay layers (no-op before a mount).
+ * The natural landmarks ride the same toggle, so they flip here too. */
 function setRoadOverlayVisibility(visible) {
   for (const layer of ROAD_OVERLAY_LAYERS) {
     if (map.getLayer(layer.id)) {
       map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
     }
   }
+  setNaturalVisibility(map, visible);
 }
 
 /** @private Idempotently mounts the overlay on the ACTIVE style and shows it —
@@ -439,10 +445,15 @@ function ensureRoadOverlayLayers() {
   if (map.getLayer('basemap-layer') && firstOverlay) {
     map.moveLayer('basemap-layer', firstOverlay.id);
   }
+  // The natural landmarks mount last with the same anchor — topmost inside
+  // the overlay block, still beneath the track vectors.
+  ensureNaturalOverlay(map, beforeId);
 }
 
 /** @private Re-labels the mounted overlay text layers after a language
- * switch — the label fallback leads with `name:<UI language>`. */
+ * switch — the label fallback leads with `name:<UI language>`. The natural
+ * landmarks' labels are plain strings built with the same fallback chain,
+ * so their rebuild rides the same event. */
 function refreshRoadOverlayLanguage() {
   if (!map) return;
   for (const layer of ROAD_OVERLAY_LAYERS) {
@@ -450,6 +461,14 @@ function refreshRoadOverlayLanguage() {
       map.setLayoutProperty(layer.id, 'text-field', roadOverlayTextField(layer.id, getCurrentLanguage()));
     }
   }
+  refreshNaturalOverlay(map);
+}
+
+/** @private Elevation in the natural landmarks' labels follows the unit
+ * system — rebuild the label strings when it flips. */
+function refreshRoadOverlayUnits() {
+  if (!map) return;
+  refreshNaturalOverlay(map);
 }
 
 /** @private Drops the overlay source and layers entirely (idempotent). */
@@ -458,6 +477,7 @@ function removeRoadOverlay() {
     if (map.getLayer(layer.id)) map.removeLayer(layer.id);
   }
   if (map.getSource(ROAD_OVERLAY_SOURCE_ID)) map.removeSource(ROAD_OVERLAY_SOURCE_ID);
+  removeNaturalOverlay(map);
 }
 
 /** @private Aligns the overlay with the current basemap. Every setSource

@@ -18,6 +18,8 @@ export const CHANGELOG_EN = {
     {
       h: '2026-10-04',
       ps: [
+        'The satellite road overlay now draws natural landmarks: peaks, saddles, volcanoes, cave entrances, springs, rocks and stones join the same Roads toggle — no new switch, always beneath your track. Icons appear first at each zoom, names and elevations follow, and elevations always render in your units.',
+        'The landmark data follows the real OSM terrain: summits come straight from the overlay\'s existing vector tiles with their importance ranking, while the smaller landmarks (cave entrances, springs, rocks, stones) load once per viewport area and are cached — names and elevations are optional in OSM, so a landmark renders with whatever it has, never filtered away for missing fields.',
         'Map labels on the satellite road overlay draw 1.25× larger at every zoom — road names and settlement names alike — so they read comfortably against the imagery.',
         'The satellite road overlay gained a full road symbol system: every major road now draws with a dark casing beneath the white line, so roads keep their edge on bright imagery, with graduated widths per road class from the continent zooms (z5) down to z19.',
         'The overlay now distinguishes the small roads: minor roads draw as hairlines from z9, service roads (park and scenic-area loops, parking aisles) as thin faint lines from z13, and tracks (forest and farm roads) as a long dash that clearly reads coarser than the short-dashed walking paths.',

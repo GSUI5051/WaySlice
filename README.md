@@ -83,9 +83,10 @@ capital letter, it means exactly this:
   changing the zoom level. The pins work from the keyboard too: Tab moves between them, Enter or
   Space centers the map, and focusing a pin shows its name tooltip the same way hovering does.
 - **Hybrid satellite map.** The map button at the top-left of the map area toggles a road-network
-  overlay for satellite basemaps: vector roads, road names and place labels draw over the imagery —
-  always beneath your track. The toggle is enabled only while a satellite basemap is active, and
-  switching basemaps turns the overlay off.
+  overlay for satellite basemaps: vector roads, road names, place labels and natural landmarks —
+  peaks, saddles, volcanoes, cave entrances, springs, rocks and stones, with elevations shown in
+  your units — draw over the imagery, always beneath your track. The toggle is enabled only while
+  a satellite basemap is active, and switching basemaps turns the overlay off.
 - **Profile wheel zoom (desktop), pinch zoom (touch).** Hover the elevation profile and scroll to zoom its
   distance/time axis around the cursor; Shift-drag to pan; on touch, one finger pans and a two-finger
   pinch zooms the same way.

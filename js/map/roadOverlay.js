@@ -58,7 +58,9 @@ export const ROAD_OVERLAY_SOURCE = {
   url: 'https://tiles.openfreemap.org/planet',
 };
 
-const LABEL_FONT = ['Noto Sans Regular'];
+/** The label font stack, shared with the natural-landmark symbol layer. */
+export const ROAD_OVERLAY_LABEL_FONT = ['Noto Sans Regular'];
+const LABEL_FONT = ROAD_OVERLAY_LABEL_FONT;
 
 /** Road names ride ON the white road lines, so they invert: dark text in a
  * white halo keeps them legible over the casing/core and the imagery
@@ -70,13 +72,29 @@ const LABEL_PAINT_ROAD = {
   'text-halo-blur': 0.3,
 };
 
-/** Place names sit straight on the imagery: white text in a dark halo. */
-const LABEL_PAINT_PLACE = {
+/** Place names sit straight on the imagery: white text in a dark halo.
+ * The natural-landmark icons and labels share the recipe. */
+export const ROAD_OVERLAY_LABEL_PAINT_PLACE = {
   'text-color': '#ffffff',
   'text-halo-color': 'rgba(40, 40, 40, 0.9)',
   'text-halo-width': 1.2,
   'text-halo-blur': 0.3,
 };
+const LABEL_PAINT_PLACE = ROAD_OVERLAY_LABEL_PAINT_PLACE;
+
+/**
+ * The localized-name fallback chain, shared by the expression builder below
+ * and the natural landmarks' JS-side name selection — one list, so a label
+ * mechanism change lands in both at once. The road builder appends `ref`
+ * after it (a road-specific number fallback); natural points never carry
+ * refs, so they consume the chain as-is.
+ *
+ * @param {string} code  UI language code (en/de/es/fr/it/ja/ko)
+ * @returns {string[]} tile fields in fallback order
+ */
+export function overlayNameKeys(code) {
+  return [`name:${code}`, 'name:en', 'name_int', 'name:latin', 'name'];
+}
 
 /**
  * Bilingual label text, as a `format` expression.
@@ -115,11 +133,7 @@ export function roadOverlayTextField(layerId, code) {
   // (an empty label renders nothing, like the old null did).
   const primary = [
     'coalesce',
-    ['get', `name:${code}`],
-    ['get', 'name:en'],
-    ['get', 'name_int'],
-    ['get', 'name:latin'],
-    ['get', 'name'],
+    ...overlayNameKeys(code).map((key) => ['get', key]),
     ['get', 'ref'],
     '',
   ];
@@ -158,13 +172,15 @@ const TEXT_FIELD_PLACE = roadOverlayTextField('road-overlay-label-place', 'en');
  * @param {Array<string | string[]>} classes  match keys, in column order —
  *   an entry may be an array to share one value across a class family
  * @param {Array<number[]>} stops  rows of [zoom, ...valuePerClass]
+ * @param {string} [key]  feature property the classes live on — the tile
+ *   layers' `class` by default; the natural landmarks pass their own
  */
-function classCurve(classes, stops) {
+export function classCurve(classes, stops, key = 'class') {
   return [
     'interpolate', ['linear'], ['zoom'],
     ...stops.flatMap(([zoom, ...values]) => [
       zoom,
-      ['match', ['get', 'class'],
+      ['match', ['get', key],
         ...classes.flatMap((cls, i) => [cls, values[i]]),
         0],
     ]),
