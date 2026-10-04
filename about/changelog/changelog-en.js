@@ -16,6 +16,13 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-05',
+      ps: [
+        'The satellite overlay\'s spring landmark now draws as a single water droplet filling its icon box — the ripple line beneath is gone — so the shape still reads unmistakably as water at the smallest sizes.',
+        'The cave-entrance landmark\'s arch now rises higher (radius 6 → 7.5), keeping the low mouth-over-ground-line shape clearly legible at the smallest zooms.',
+      ],
+    },
+    {
       h: '2026-10-04',
       ps: [
         'The satellite road overlay now draws natural landmarks: peaks, saddles, volcanoes, cave entrances, springs, rocks and stones join the same Roads toggle — no new switch, always beneath your track. Icons appear first at each zoom, names and elevations follow, and elevations always render in your units.',

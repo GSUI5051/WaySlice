@@ -334,19 +334,15 @@ const ICON_PATHS = {
     lines: ['M12 2.2v2', 'M8.3 3.2l-1.4-1.4', 'M15.7 3.2l1.4-1.4'],
     fill: 'var(--series-hr)',
   },
-  // The arch of a cave mouth over the ground line.
+  // A ground-hugging low half-arch cave mouth + ground line (radius 7.5:
+  // the arch stays legible at the smallest size).
   cave_entrance: {
     solid: [],
-    lines: ['M6 20a6 6 0 0 1 12 0', 'M2.5 20h19'],
+    lines: ['M4.5 20a7.5 7.5 0 0 1 15 0', 'M2.5 20h19'],
   },
-  // Lucide "droplet", lifted, over a rising-water wave.
-  spring: {
-    solid: [],
-    lines: [
-      'M12 13a4 4 0 0 0 4-4c0-1.13-.56-2.2-1.7-3.1-1.1-.92-2-2.3-2.3-3.9-.3 1.6-1.2 2.98-2.3 3.9-1.14.9-1.7 1.97-1.7 3.1a4 4 0 0 0 4 4z',
-      'M2.5 20c1.6-1.4 3.2-1.4 4.75 0s3.15 1.4 4.75 0 3.15-1.4 4.75 0 3.15 1.4 4.75 0',
-    ],
-  },
+  // A box-filling single water droplet — the one water-source metaphor,
+  // unblurred even at the smallest size.
+  spring: { solid: [], lines: ['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z'] },
   // A faceted boulder with its facet line.
   rock: { solid: [], lines: ['M7.5 4.5 15 3l5 7.5-2.5 9-9.5 1L3 12z', 'M7.5 4.5 10 12l7.5 7'] },
   // A rounded pebble, visibly smaller and softer than the faceted rock.
