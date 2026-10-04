@@ -378,9 +378,9 @@ suite('natural overlay / sprite fills', () => {
     closeToColor(peak, [255, 255, 255, 255], 'peak fill stays white');
   });
 
-  test('the eruption scratches stay white over the red body change', () => {
+  test('the eruption scratches ride the 5%-translucent white stroke', () => {
     const scratch = pixel(rasterizeNaturalIcon('volcano', 48), 24, 6);
-    closeToColor(scratch, [255, 255, 255, 255], 'volcano line details stay white');
+    closeToColor(scratch, [244, 244, 244, 254], 'volcano line details stay white at 0.95 alpha');
   });
 
   test('the fill is theme-independent — no re-rasterization difference', () => {

@@ -384,10 +384,10 @@ function rasterizeIcon({ solid = [], lines = [], fill }, px = 48) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.lineWidth = 2 * 1.45;
-  ctx.strokeStyle = 'rgba(40, 40, 40, 0.9)';
+  ctx.strokeStyle = 'rgba(24, 26, 28, 0.9)';
   for (const shape of [...solidShapes, ...lineShapes]) ctx.stroke(shape);
   ctx.fillStyle = resolveFill(fill);
-  ctx.strokeStyle = '#ffffff';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
   for (const shape of solidShapes) ctx.fill(shape);
   ctx.lineWidth = 2;
   for (const shape of lineShapes) ctx.stroke(shape);

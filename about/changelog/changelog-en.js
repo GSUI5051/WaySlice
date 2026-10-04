@@ -20,6 +20,7 @@ export const CHANGELOG_EN = {
       ps: [
         'The satellite overlay\'s spring landmark now draws as a single water droplet filling its icon box — the ripple line beneath is gone — so the shape still reads unmistakably as water at the smallest sizes.',
         'The cave-entrance landmark\'s arch now rises higher (radius 6 → 7.5), keeping the low mouth-over-ground-line shape clearly legible at the smallest zooms.',
+        'The natural landmark icons\' ink recipe now draws a cooler near-black halo and a white stroke that keeps 5% transparency — a subtly finer look with shapes and sizes unchanged.',
       ],
     },
     {
