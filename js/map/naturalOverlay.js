@@ -300,14 +300,15 @@ export const NATURAL_LAYERS = [
  * `natural-<type>` images (pixelRatio 2). Real Lucide paths where Lucide
  * has the landform (peak = triangle, spring = droplet); the rest are drawn
  * in the same idiom — no second icon library. Each drawing splits into
- * `solid` outlines (filled white) and `line` details (2-unit white
- * strokes). peak and volcano are one FILLED triangle family told apart by
- * shape alone — plain summit vs flat-topped crater with eruption
- * scratches — never by color, so the pair stays legible dechromatized and
- * in grayscale; rock's facets vs stone's roundness is a deliberate
- * contrast the drawings keep. Every path first strokes in a wide dark
- * under-stroke — the halo the place labels get — so the white drawing
- * holds on any imagery.
+ * `solid` outlines (filled, white unless the entry carries a `fill`) and
+ * `line` details (2-unit white strokes). peak and volcano are one FILLED
+ * triangle family told apart by shape — plain summit vs flat-topped crater
+ * with eruption scratches — a distinction that must survive desaturated
+ * viewing on its own; the volcano's red (`--series-hr`, fixed and
+ * theme-independent) is only a secondary cue. rock's facets vs stone's
+ * roundness is a deliberate contrast the drawings keep. Every path first
+ * strokes in a wide dark under-stroke — the halo the place labels get —
+ * so the drawing holds on any imagery.
  */
 const ICON_PATHS = {
   // Lucide "triangle", filled — the plain solid summit marker.
@@ -318,10 +319,13 @@ const ICON_PATHS = {
   // Two summits with the col between them.
   saddle: { solid: [], lines: ['M4 18 9 9l3 4.5L15 9l5 9z'] },
   // The triangle family's truncated variant: a solid flat-topped cone
-  // whose flat top IS the crater, three eruption scratches above it.
+  // whose flat top IS the crater, three eruption scratches above it. The
+  // red fill is the fixed chart heart-rate token — identical in both
+  // themes, so the once-per-style raster bake never re-runs.
   volcano: {
     solid: ['M8.5 5 3 20h18L15.5 5z'],
     lines: ['M12 2.2v2', 'M8.3 3.2l-1.4-1.4', 'M15.7 3.2l1.4-1.4'],
+    fill: 'var(--series-hr)',
   },
   // The arch of a cave mouth over the ground line.
   cave_entrance: {
@@ -345,12 +349,25 @@ const ICON_PATHS = {
   },
 };
 
+/** @private Resolves a drawing's fill to a paintable color: a `var(--token)`
+ * is read off the document element at raster time (the sprite is baked
+ * pixels), with the token's own literal as the empty-value fallback;
+ * anything else paints as-is; no fill means white. Only theme-independent
+ * tokens are used here, so the once-per-style bake needs no theme
+ * re-rasterization path. */
+function resolveFill(fill) {
+  if (!fill) return '#ffffff';
+  const token = /^var\((--[\w-]+)\)$/.exec(fill);
+  if (!token) return fill;
+  return getComputedStyle(document.documentElement).getPropertyValue(token[1]).trim() || '#ef4444';
+}
+
 /** @private Rasterizes one icon drawing into ImageData at pixelRatio 2.
  * Pass order: every path under-stroked wide in dark (the halo), then the
  * white drawing — fill for the solid body, 2-unit strokes for the line
  * details. The fill covers the inner half of the body's halo, leaving the
  * same outward dark rim the line drawings keep. */
-function rasterizeIcon({ solid = [], lines = [] }, px = 48) {
+function rasterizeIcon({ solid = [], lines = [], fill }, px = 48) {
   const canvas = document.createElement('canvas');
   canvas.width = px;
   canvas.height = px;
@@ -366,7 +383,7 @@ function rasterizeIcon({ solid = [], lines = [] }, px = 48) {
   ctx.lineWidth = 2 * 1.45;
   ctx.strokeStyle = 'rgba(40, 40, 40, 0.9)';
   for (const shape of [...solidShapes, ...lineShapes]) ctx.stroke(shape);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = resolveFill(fill);
   ctx.strokeStyle = '#ffffff';
   for (const shape of solidShapes) ctx.fill(shape);
   ctx.lineWidth = 2;

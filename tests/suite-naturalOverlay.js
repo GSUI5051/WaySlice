@@ -15,7 +15,7 @@ import {
   NATURAL_TILE_MAX_ZOOM, LATCH_BOOST, OVERPASS_ELEMENT_CAP,
   parseElevationTag, parseFeetTag, canonicalElevationMeters, localizedName, buildNaturalLabel,
   gateClassFor, overpassQuery, parseOverpassElements, peaksFromTileFeatures, mergeModels,
-  buildNaturalFeatureCollection,
+  buildNaturalFeatureCollection, rasterizeNaturalIcon,
 } from '../js/map/naturalOverlay.js';
 import { ROAD_OVERLAY_LABEL_FONT, overlayNameKeys, ROAD_OVERLAY_SOURCE_ID } from '../js/map/roadOverlay.js';
 import { setUnitSystem } from '../js/units/units.js';
@@ -354,5 +354,43 @@ suite('natural overlay / render path', () => {
     assert.deepEqual(parseOverpassElements(null), []);
     assert.deepEqual(parseOverpassElements({}), []);
     assert.deepEqual(parseOverpassElements({ elements: 'nope' }), []);
+  });
+});
+
+suite('natural overlay / sprite fills', () => {
+  /** RGBA of one pixel of a rasterized sprite (center samples sit far from
+   * halo edges, so the value is the plain fill/stroke color). */
+  const pixel = (image, x, y) => {
+    const i = (y * image.width + x) * 4;
+    return [image.data[i], image.data[i + 1], image.data[i + 2], image.data[i + 3]];
+  };
+  const closeToColor = (actual, expected, message) => {
+    for (let i = 0; i < 4; i++) {
+      assert.truthy(Math.abs(actual[i] - expected[i]) <= 2, `${message}: channel ${i} — expected ~${expected}, got ${actual}`);
+    }
+  };
+
+  test('the volcano body fills with the fixed hr red, the peak stays white', () => {
+    // Body interiors, ≥2 units clear of every edge in the 24-unit space.
+    const volcano = pixel(rasterizeNaturalIcon('volcano', 48), 24, 26);
+    closeToColor(volcano, [239, 68, 68, 255], 'volcano fill = --series-hr #ef4444');
+    const peak = pixel(rasterizeNaturalIcon('peak', 48), 24, 28);
+    closeToColor(peak, [255, 255, 255, 255], 'peak fill stays white');
+  });
+
+  test('the eruption scratches stay white over the red body change', () => {
+    const scratch = pixel(rasterizeNaturalIcon('volcano', 48), 24, 6);
+    closeToColor(scratch, [255, 255, 255, 255], 'volcano line details stay white');
+  });
+
+  test('the fill is theme-independent — no re-rasterization difference', () => {
+    const root = document.documentElement;
+    const before = pixel(rasterizeNaturalIcon('volcano', 48), 24, 26);
+    const prev = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', prev === 'dark' ? 'light' : 'dark');
+    const after = pixel(rasterizeNaturalIcon('volcano', 48), 24, 26);
+    if (prev == null) root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', prev);
+    closeToColor(after, before, 'volcano fill identical across themes');
   });
 });
