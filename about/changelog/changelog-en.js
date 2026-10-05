@@ -23,6 +23,7 @@ export const CHANGELOG_EN = {
         'The natural landmark icons\' ink recipe now draws a cooler near-black halo and a white stroke that keeps 5% transparency — a subtly finer look with shapes and sizes unchanged.',
         'Small landmark queries on the satellite overlay now remember the mirror that answered last and try it first, and a mirror that stays silent for three seconds is raced in parallel by the next one — each mirror carries its own timeout, so on unstable or restricted networks the landmarks appear faster instead of waiting behind one dead mirror.',
         'With the whole track selected the map no longer paints the orange highlight on top of the blue track line — the track shows in its own color by default, and the orange highlight appears only once an actual sub-range is selected. Skipping that redundant full-length duplicate also makes every track load lighter.',
+        'The range highlight is now carved from the same simplified line the map draws for the track, so it hugs the track exactly at every zoom instead of wandering off it where the two lines used to diverge, and a range change builds a fraction of the geometry it did before.',
       ],
     },
     {

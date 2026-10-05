@@ -21,7 +21,7 @@
 import { sectorStore, moveBoundary, getTrackTotal, boundaryKeyAction, isEntireTrack } from '../sector/sectorStore.js';
 import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
-import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
+import { simplifyForDisplay } from '../geo/simplify.js';
 import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
@@ -601,6 +601,8 @@ function updateTrackGeometry() {
   const trackSource = map.getSource('track');
   if (!trackSource) return;
   const display = simplifyForDisplay(track.points);
+  displayPoints = display;
+  displayIndexOf = buildDisplayIndexOf(track.points, display);
   const coordinates = display.map((p) => [p.lon, p.lat]);
   trackSource.setData(
     coordinates.length
@@ -1023,19 +1025,66 @@ function scheduleSectorSync() {
  *  store change. */
 let sectorCleared = false;
 
+/** The display-thinned polyline updateTrackGeometry feeds the map, cached
+ *  so the sector highlight slices the SAME vertices the track line draws:
+ *  the highlight then overlays the track exactly at every zoom, where two
+ *  different thinnings of the raw points (stride vs Douglas-Peucker)
+ *  visibly diverged from each other at high zoom. displayIndexOf maps
+ *  original point index → cached polyline index (-1 where the thinning
+ *  dropped the point). Both reset on every track load / style re-hang. */
+let displayPoints = null;
+let displayIndexOf = null;
+
+/** @private Sector highlight geometry from the cached display polyline:
+ *  every kept point between the boundaries (the nearest kept neighbor
+ *  stands in where a boundary lands on a dropped point), with the
+ *  interpolated boundary points as first/last entries so the highlight
+ *  always reaches the handles. Null before the first track geometry hangs —
+ *  unreachable through the store subscription, which only fires after
+ *  hangTrackGeometry. */
+function displaySlice(s, e) {
+  if (!displayPoints || !displayIndexOf) return null;
+  const pts = track.points;
+  let di0 = -1;
+  for (let i = s.i; i < pts.length; i++) {
+    if (displayIndexOf[i] >= 0) { di0 = displayIndexOf[i]; break; }
+  }
+  let di1 = -1;
+  for (let i = e.i; i >= 0; i--) {
+    if (displayIndexOf[i] >= 0) { di1 = displayIndexOf[i]; break; }
+  }
+  const slice = di0 >= 0 ? displayPoints.slice(di0, di1 + 1) : [];
+  if (slice.length) slice[0] = s;
+  else slice.push(s);
+  if (e.i > s.i || e.dist > s.dist) slice.push(e);
+  return slice;
+}
+
+/** Original-index → display-index lookup for the cached display polyline.
+ *  The thinning returns an ordered subset of the same point objects, so one
+ *  identity merge pins every kept original point to its display slot. */
+function buildDisplayIndexOf(points, display) {
+  const idx = new Int32Array(points.length).fill(-1);
+  let di = 0;
+  for (let i = 0; i < points.length && di < display.length; i++) {
+    if (display[di] === points[i]) idx[i] = di++;
+  }
+  return idx;
+}
+
 /** @private Redraws the sector highlight + handle positions + ARIA state. */
 function syncSector() {
   const sectorSource = track && map ? map.getSource('sector') : null;
   if (!sectorSource) return;
   const { start, end } = sectorStore.get();
 
-  // Sector highlight: original points inside the range, stride-thinned for
-  // display; interpolated boundary points replace the first/last entries.
-  // The full-range default skips the highlight entirely: with the boundaries
-  // at the track ends the highlight would sit exactly on the track line, so
-  // the source is emptied once instead of uploading a redundant duplicate of
-  // the whole track on every load.
-  const pts = track.points;
+  // Sector highlight: the display-thinned polyline sliced between the
+  // boundaries — the same vertices the track line draws — with the
+  // interpolated boundary points replacing the first/last entries. The
+  // full-range default skips the highlight entirely: with the boundaries at
+  // the track ends the highlight would sit exactly on the track line, so
+  // the source is emptied once instead of uploading a redundant duplicate
+  // of the whole track on every load.
   const s = pointAtDistance(track, start);
   const e = pointAtDistance(track, end);
   if (s && e) {
@@ -1046,11 +1095,11 @@ function syncSector() {
       }
     } else {
       sectorCleared = false;
-      const slice = [s];
-      for (let k = s.i + 1; k <= e.i; k++) slice.push(pts[k]);
-      if (e.i > s.i || e.dist > s.dist) slice.push(e);
-      const coordinates = thinStride(slice).map((p) => [p.lon, p.lat]);
-      sectorSource.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
+      const slice = displaySlice(s, e);
+      if (slice) {
+        const coordinates = slice.map((p) => [p.lon, p.lat]);
+        sectorSource.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
+      }
     }
   }
 
