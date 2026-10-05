@@ -300,8 +300,14 @@ suite('natural overlay / zoom gates', () => {
     assert.equal(textAt('peak', 12.5), 0, 'peak label hidden at z12.5');
     assert.equal(textAt('peak', 13), 11.25, 'peak label from z13');
     assert.equal(textAt('stone', 15.5), 0, 'stone label hidden at z15.5');
-    assert.equal(textAt('stone', 16.5), 11.25, 'stone label from z16.5');
-    assert.equal(textAt('cave_entrance', 14.5), 11.25, 'cave label from z14.5');
+    assert.equal(textAt('stone', 16.5), 11.5, 'stone label from z16.5');
+    assert.equal(textAt('cave_entrance', 14.5), 11.5, 'cave label from z14.5');
+    // Small-class alignment anchors (specs/ ZCode Prompt - Natural
+    // small-class size alignment.md): the four Overpass classes converge on
+    // the trio's 13.75 by z19 and ride the shared icon growth model.
+    assert.equal(iconAt('spring', 15.5), 0.6, 'spring icon rides the cave ramp through z15.5');
+    assert.equal(textAt('stone', 19), 13.75, 'stone label reaches the trio terminal at z19');
+    assert.equal(textAt('rock', 16), 12.5, 'rock label mid-ramp at z16');
   });
 
   test('every gate is one single zoom curve (MapLibre silently rejects nested ones)', () => {
