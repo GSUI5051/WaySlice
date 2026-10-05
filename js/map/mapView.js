@@ -22,6 +22,11 @@ import { sectorStore, moveBoundary, getTrackTotal, boundaryKeyAction, isEntireTr
 import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
 import { thinStride } from '../geo/simplify.js';
+
+/** Point cap for the sector highlight while a handle drags: one lighter
+ *  upload per frame beats exactness mid-drag, and the store change after
+ *  pointerup re-renders the exact slice. */
+const DRAG_SECTOR_CAP = 3000;
 import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
@@ -953,6 +958,10 @@ function createHandle(which) {
     const pt = sectorPoint(which);
     if (pt) marker.setLngLat([pt.lon, pt.lat]);
     bridgeWaypoint(marker);
+    // The last store change of the drag may have rendered the capped
+    // mid-drag highlight — redraw once with dragging off so the resting
+    // selection is the exact slice.
+    scheduleSectorSync();
   });
 
   layers[`${which}Handle`] = marker;
@@ -1100,7 +1109,10 @@ function syncSector() {
       sectorCleared = false;
       const slice = displaySlice(s, e);
       if (slice) {
-        const coordinates = slice.map((p) => [p.lon, p.lat]);
+        // Mid-drag the highlight thins harder (DRAG_SECTOR_CAP); dragend
+        // schedules one exact re-render over the resting selection.
+        const drawn = dragging.start || dragging.end ? thinStride(slice, DRAG_SECTOR_CAP) : slice;
+        const coordinates = drawn.map((p) => [p.lon, p.lat]);
         sectorSource.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
       }
     }
