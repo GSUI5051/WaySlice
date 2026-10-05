@@ -21,7 +21,7 @@
 import { sectorStore, moveBoundary, getTrackTotal, boundaryKeyAction, isEntireTrack } from '../sector/sectorStore.js';
 import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
-import { simplifyForDisplay } from '../geo/simplify.js';
+import { thinStride } from '../geo/simplify.js';
 import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
@@ -600,7 +600,7 @@ function hangTrackGeometry() {
 function updateTrackGeometry() {
   const trackSource = map.getSource('track');
   if (!trackSource) return;
-  const display = simplifyForDisplay(track.points);
+  const display = thinStride(track.points);
   displayPoints = display;
   displayIndexOf = buildDisplayIndexOf(track.points, display);
   const coordinates = display.map((p) => [p.lon, p.lat]);
@@ -1028,9 +1028,12 @@ let sectorCleared = false;
 /** The display-thinned polyline updateTrackGeometry feeds the map, cached
  *  so the sector highlight slices the SAME vertices the track line draws:
  *  the highlight then overlays the track exactly at every zoom, where two
- *  different thinnings of the raw points (stride vs Douglas-Peucker)
- *  visibly diverged from each other at high zoom. displayIndexOf maps
- *  original point index → cached polyline index (-1 where the thinning
+ *  different thinnings of the raw points (a stride against the old
+ *  Douglas-Peucker line) visibly diverged from each other at high zoom.
+ *  The shared thinning is the even stride — one linear pass, no shape
+ *  fitting, and a uniform sample of the raw recording — which keeps real
+ *  trail-run tracks closest to what was actually recorded. displayIndexOf
+ *  maps original point index → cached polyline index (-1 where the stride
  *  dropped the point). Both reset on every track load / style re-hang. */
 let displayPoints = null;
 let displayIndexOf = null;
