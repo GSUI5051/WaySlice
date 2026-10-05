@@ -406,7 +406,11 @@ function createChart(uPlot) {
       {
         side: 2, // bottom — distance or elapsed time per current mode
         stroke: () => tokens.text,
-        grid: { stroke: () => tokens.grid },
+        // uPlot's native x grid spans the full plot height, crossing the
+        // headroom above the top elevation row (the rows anchor to the DATA
+        // extremes while the scale pads ~8%); drawXGrid takes over and
+        // starts the lines on the top row instead.
+        grid: { show: false },
         ticks: { show: false },
         font: monoFont(),
         gap: 5,
@@ -436,8 +440,10 @@ function createChart(uPlot) {
     hooks: {
       // Zone bands go through uPlot's own draw cycle so they sit beneath
       // every series, over the grid — exactly where the old renderer put
-      // them. Hooks draw in uPlot's device-pixel canvas space.
-      drawAxes: [drawZoneBands],
+      // them. Hooks draw in uPlot's device-pixel canvas space. drawXGrid
+      // replaces the native x grid (disabled above) at the same cycle
+      // stage, so the lines stay beneath every series too.
+      drawAxes: [drawZoneBands, drawXGrid],
       draw: [drawFlatReference],
       setSize: [() => updateStatePlot()],
     },
@@ -1030,6 +1036,36 @@ function drawFlatReference(u) {
   c.lineTo(left + width, top + height / 2);
   c.stroke();
   c.setLineDash([]);
+}
+
+/**
+ * The x grid lines, drawn by hand instead of uPlot's native full-height
+ * grid (disabled in the axis config): with elevation the lines start on the
+ * TOP elevation row — the scale pads ~8% above it, and a gridline crossing
+ * that headless stretch reads as a stray segment sticking out of the grid —
+ * and run down to the plot bottom as before. Without elevation there are no
+ * rows to anchor to, so the lines keep spanning the full plot height.
+ * Same cycle stage as the zone bands (device-pixel canvas space, beneath
+ * every series).
+ */
+function drawXGrid(u) {
+  const c = u.ctx;
+  const { left, top, width, height } = u.bbox; // device px
+  const hasRows = state.track?.hasElevation && !!scalesCache?.ele;
+  const y0 = hasRows ? u.valToPos(state.track.eleMax, 'ele', true) : top; // device px, absolute
+  c.strokeStyle = tokens.grid;
+  // Same width the native grid draws (uPlot's default 2, scaled the same
+  // way) — the hand-drawn verticals must be indistinguishable from the
+  // horizontal rows uPlot still draws itself.
+  c.lineWidth = u.axes[0].grid.width * u.pxRatio;
+  c.beginPath();
+  for (const v of xTickValues(u.scales.x.min, u.scales.x.max)) {
+    const x = u.valToPos(v, 'x', true); // device px, absolute
+    if (x < left || x > left + width) continue;
+    c.moveTo(x, y0);
+    c.lineTo(x, top + height);
+  }
+  c.stroke();
 }
 
 // ---------------------------------------------------------------------------

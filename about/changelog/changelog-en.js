@@ -26,6 +26,7 @@ export const CHANGELOG_EN = {
         'The range highlight is now carved from the same simplified line the map draws for the track, so it hugs the track exactly at every zoom instead of wandering off it where the two lines used to diverge, and a range change builds a fraction of the geometry it did before.',
         'The track line and its range highlight are now thinned by the same even stride — one linear pass that keeps a uniform sample of the raw recording — so long runs and hikes render closer to what was actually recorded, and range changes build less geometry still.',
         'While a range boundary is being dragged the map now renders a lighter preview of the highlight and settles to the exact line the moment the drag ends — the handle keeps up with fast drags on very long tracks instead of falling behind them.',
+        'The elevation profile\'s vertical grid lines no longer poke out above the top elevation row — they start exactly at the row grid and run to the chart floor as before.',
       ],
     },
     {
