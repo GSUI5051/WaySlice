@@ -18,7 +18,7 @@
  * (zoom-to-track / zoom-to-sector buttons) still fly.
  */
 /* global maplibregl */
-import { sectorStore, moveBoundary, getTrackTotal, boundaryKeyAction } from '../sector/sectorStore.js';
+import { sectorStore, moveBoundary, getTrackTotal, boundaryKeyAction, isEntireTrack } from '../sector/sectorStore.js';
 import { nearestOnTrack } from '../geo/interpolate.js';
 import { pointAtDistance } from '../geo/interpolate.js';
 import { simplifyForDisplay, thinStride } from '../geo/simplify.js';
@@ -563,6 +563,9 @@ function hangTrackGeometry() {
     const lineLayout = { 'line-cap': 'round', 'line-join': 'round' };
     map.addSource('track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addSource('sector', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    // The fresh source starts empty; syncSector keeps it that way while the
+    // default full-range selection skips the highlight.
+    sectorCleared = true;
     // Casing under line under sector, matching the Leaflet pane order. The 4px
     // track line is far below MapLibre's touch tolerance, so an invisible
     // widened twin carries the pointer events (Leaflet's path hit tolerance).
@@ -1014,6 +1017,12 @@ function scheduleSectorSync() {
   });
 }
 
+/** True while the sector source intentionally holds no line: the full-range
+ *  selection skips the highlight (it would exactly cover the track line),
+ *  and the flag keeps that skip from re-uploading an empty set on every
+ *  store change. */
+let sectorCleared = false;
+
 /** @private Redraws the sector highlight + handle positions + ARIA state. */
 function syncSector() {
   const sectorSource = track && map ? map.getSource('sector') : null;
@@ -1022,15 +1031,27 @@ function syncSector() {
 
   // Sector highlight: original points inside the range, stride-thinned for
   // display; interpolated boundary points replace the first/last entries.
+  // The full-range default skips the highlight entirely: with the boundaries
+  // at the track ends the highlight would sit exactly on the track line, so
+  // the source is emptied once instead of uploading a redundant duplicate of
+  // the whole track on every load.
   const pts = track.points;
   const s = pointAtDistance(track, start);
   const e = pointAtDistance(track, end);
   if (s && e) {
-    const slice = [s];
-    for (let k = s.i + 1; k <= e.i; k++) slice.push(pts[k]);
-    if (e.i > s.i || e.dist > s.dist) slice.push(e);
-    const coordinates = thinStride(slice).map((p) => [p.lon, p.lat]);
-    sectorSource.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
+    if (isEntireTrack()) {
+      if (!sectorCleared) {
+        sectorSource.setData({ type: 'FeatureCollection', features: [] });
+        sectorCleared = true;
+      }
+    } else {
+      sectorCleared = false;
+      const slice = [s];
+      for (let k = s.i + 1; k <= e.i; k++) slice.push(pts[k]);
+      if (e.i > s.i || e.dist > s.dist) slice.push(e);
+      const coordinates = thinStride(slice).map((p) => [p.lon, p.lat]);
+      sectorSource.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
+    }
   }
 
   for (const which of ['start', 'end']) {

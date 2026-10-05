@@ -22,6 +22,7 @@ export const CHANGELOG_EN = {
         'The cave-entrance landmark\'s arch now rises higher (radius 6 → 7.5), keeping the low mouth-over-ground-line shape clearly legible at the smallest zooms.',
         'The natural landmark icons\' ink recipe now draws a cooler near-black halo and a white stroke that keeps 5% transparency — a subtly finer look with shapes and sizes unchanged.',
         'Small landmark queries on the satellite overlay now remember the mirror that answered last and try it first, and a mirror that stays silent for three seconds is raced in parallel by the next one — each mirror carries its own timeout, so on unstable or restricted networks the landmarks appear faster instead of waiting behind one dead mirror.',
+        'With the whole track selected the map no longer paints the orange highlight on top of the blue track line — the track shows in its own color by default, and the orange highlight appears only once an actual sub-range is selected. Skipping that redundant full-length duplicate also makes every track load lighter.',
       ],
     },
     {
