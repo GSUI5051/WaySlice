@@ -298,7 +298,12 @@ export const NATURAL_LAYERS = [
       'text-font': ROAD_OVERLAY_LABEL_FONT,
       'text-size': NATURAL_TEXT_SIZES,
       'text-anchor': 'top',
-      'text-offset': [0, 0.6],
+      // 小类标签用对方的 1.05em 远距（2026-10-05 裁决），trio 保持 0.6 ——
+      // 单层载七类，按 naturalClass 分支；两个输出都必须 literal 包裹，
+      // 裸数组会被当成表达式、addLayer 静默拒绝。
+      'text-offset': ['match', ['get', 'naturalClass'],
+        ['cave_entrance', 'spring', 'rock', 'stone'], ['literal', [0, 1.05]],
+        ['literal', [0, 0.6]]],
       'text-max-width': 9,
       'text-optional': true,
       'text-allow-overlap': false,

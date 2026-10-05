@@ -337,6 +337,14 @@ suite('natural overlay / render path', () => {
     assert.truthy(layer.source !== ROAD_OVERLAY_SOURCE_ID, 'not bound to the tile source');
   });
 
+  test('small classes carry the 1.05em label offset, the trio keeps 0.6 — per-class match', () => {
+    const offset = NATURAL_LAYERS[0].layout['text-offset'];
+    assert.deepEqual(offset.slice(0, 2), ['match', ['get', 'naturalClass']]);
+    assert.deepEqual(offset[2], ['cave_entrance', 'spring', 'rock', 'stone']);
+    assert.deepEqual(offset[3], ['literal', [0, 1.05]], 'the small-class offset');
+    assert.deepEqual(offset[4], ['literal', [0, 0.6]], 'the trio offset is untouched');
+  });
+
   test('feature properties carry the identification the click model promises', () => {
     const fc = buildNaturalFeatureCollection([
       { type: 'volcano', lon: 138.5, lat: 35.4, tags: { natural: 'volcano', name: 'Fuji', ele: '3776' }, rank: 1 },
