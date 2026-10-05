@@ -67,8 +67,12 @@ export const NATURAL_FETCH_MIN_ZOOM = 12;
  * its size, per axis) — pans inside the padded box never refetch. */
 const OVERPASS_PAD = 0.35;
 
-/** Per-attempt ceiling: a hung or throttled endpoint hands off to the next
- * one instead of stalling the rebuild chain. */
+/** Per-attempt ceiling for the hedged mirror chain: every attempt carries
+ * its own timer while the mirrors race in parallel — the next mirror joins
+ * the race on a 3 s stagger (immediately when an attempt fails outright) —
+ * so a hung or throttled endpoint no longer collects the full ceiling
+ * before the chain moves on, and the mirror that answered is remembered
+ * for the session and leads the next chain. */
 const OVERPASS_TIMEOUT_MS = 15000;
 
 /** Hard ceiling on one viewport response, enforced on BOTH ends of the
@@ -92,6 +96,129 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.private.coffee/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ];
+
+/**
+ * The endpoint-chain fetcher as an injectable factory: hedged race over the
+ * mirror list (stagger 3 s, per-attempt 15 s timeout, sticky winner).
+ * run(query, outerSignal) resolves with the winning mirror's parsed JSON.
+ *
+ * Rotation: chain position i dials `endpoints[(stickyStart + i) %
+ * endpoints.length]`, stickyStart = the last winner's list index (a
+ * session-level memory in the factory closure; an all-fail chain leaves it
+ * untouched). Route 0 fires immediately; route i starts when EITHER
+ * `i × hedgeMs` has elapsed with no winner OR a started attempt has already
+ * rejected (failure cascade — a fast-failing chain never waits for the
+ * beat). A settled chain or an aborted outer signal starts nothing
+ * further. Every attempt keeps the per-endpoint discipline: own
+ * AbortController, own attempt timer, POST form-encoded query, `!res.ok`
+ * throws. The first success aborts the other in-flight attempts, voids the
+ * untriggered stagger timers and resolves; when every mirror has rejected
+ * — or the outer signal aborted — the chain rejects.
+ * @param {{
+ *   fetchImpl?: (url: string, init: RequestInit) => Promise<Response>,
+ *   endpoints?: string[],
+ *   hedgeMs?: number,
+ *   attemptTimeoutMs?: number,
+ * }} [deps]
+ */
+export function createOverpassFetch({
+  fetchImpl = (url, init) => fetch(url, init),
+  endpoints = OVERPASS_ENDPOINTS,
+  hedgeMs = 3000,
+  attemptTimeoutMs = OVERPASS_TIMEOUT_MS,
+} = {}) {
+  let stickyStart = 0;
+
+  async function run(query, outerSignal) {
+    if (outerSignal.aborted) {
+      throw outerSignal.reason ?? new DOMException('The chain was aborted before it started.', 'AbortError');
+    }
+    const attempts = [];
+    const hedgeTimers = new Set();
+    const started = new Array(endpoints.length).fill(false);
+    let settled = false;
+    let failures = 0;
+    return new Promise((resolve, reject) => {
+      const clearHedges = () => {
+        for (const t of hedgeTimers) clearTimeout(t);
+        hedgeTimers.clear();
+      };
+      const winChain = (json, index, winner) => {
+        settled = true;
+        stickyStart = index;
+        clearHedges();
+        for (const attempt of attempts) {
+          if (attempt !== winner) attempt.abort();
+        }
+        outerSignal.removeEventListener('abort', onOuterAbort);
+        resolve(json);
+      };
+      const failChain = (err) => {
+        if (settled) return;
+        settled = true;
+        clearHedges();
+        outerSignal.removeEventListener('abort', onOuterAbort);
+        reject(err);
+      };
+      // Takeover: an outer abort kills every started route and rejects the
+      // chain — including routes whose fetch never surfaces the abort (a
+      // truly hung connection), which no per-route catch could report.
+      const onOuterAbort = () => {
+        for (const attempt of attempts) attempt.abort();
+        failChain(outerSignal.reason ?? new DOMException('The chain was aborted.', 'AbortError'));
+      };
+      outerSignal.addEventListener('abort', onOuterAbort, { once: true });
+      const startRoute = (i) => {
+        if (settled || outerSignal.aborted || started[i]) return;
+        started[i] = true;
+        const index = (stickyStart + i) % endpoints.length;
+        const attempt = new AbortController();
+        attempts.push(attempt);
+        const onAttemptOuterAbort = () => attempt.abort();
+        outerSignal.addEventListener('abort', onAttemptOuterAbort, { once: true });
+        const timer = setTimeout(() => attempt.abort(), attemptTimeoutMs);
+        (async () => {
+          try {
+            const res = await fetchImpl(endpoints[index], {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: `data=${encodeURIComponent(query)}`,
+              signal: attempt.signal,
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            if (!settled) winChain(json, index, attempt);
+          } catch (err) {
+            if (settled) return;
+            if (outerSignal.aborted) {
+              failChain(err);
+              return;
+            }
+            failures += 1;
+            if (failures >= endpoints.length) {
+              failChain(err);
+              return;
+            }
+            const next = started.indexOf(false);
+            if (next !== -1) startRoute(next);
+          } finally {
+            clearTimeout(timer);
+            outerSignal.removeEventListener('abort', onAttemptOuterAbort);
+          }
+        })();
+      };
+      for (let i = 1; i < endpoints.length; i++) {
+        hedgeTimers.add(setTimeout(() => startRoute(i), i * hedgeMs));
+      }
+      startRoute(0);
+    });
+  }
+
+  return { run };
+}
+
+/** The module's real-network chain instance. */
+const overpassFetch = createOverpassFetch();
 
 /* ---- tags → model ------------------------------------------------------ */
 
@@ -566,7 +693,10 @@ export function buildNaturalFeatureCollection(peaks, pois, latchedKeys = new Set
 
 let enabled = false;
 let layersVisible = false;
-let wired = false;
+/** Maps whose data wiring (moveend/idle → rebuild) is already attached —
+ * keyed per map instance, so a rebuilt map re-wires itself instead of a
+ * stale module boolean silently skipping it. */
+const wiredMaps = new WeakSet();
 let rebuildTimer = null;
 let fetchController = null;
 /** The Overpass cache: the padded bbox the current features cover. */
@@ -652,9 +782,10 @@ function rebuild(map) {
 }
 
 /** @private Refetches the padded viewport when the camera left the cached
- * box. One request, abortable, endpoint fallback with a per-attempt
- * timeout, never throwing — an Overpass failure only means the four small
- * types wait for a later pass (the peaks and the track are unaffected). */
+ * box. One request, abortable, hedged across the mirror chain (3 s stagger,
+ * per-attempt timeout, session-sticky winner — see createOverpassFetch),
+ * never throwing — an Overpass failure only means the four small types wait
+ * for a later pass (the peaks and the track are unaffected). */
 async function fetchOverpassViewport(map) {
   if (map.getZoom() < NATURAL_FETCH_MIN_ZOOM) return;
   const b = map.getBounds();
@@ -679,39 +810,21 @@ async function fetchOverpassViewport(map) {
   const outer = new AbortController();
   fetchController = outer;
   inFlightBbox = bbox;
-  for (const endpoint of OVERPASS_ENDPOINTS) {
+  try {
+    const json = await overpassFetch.run(overpassQuery(bbox), outer.signal);
     if (outer.signal.aborted) return;
-    // The per-attempt controller stops on the timeout OR the outer abort
-    // (a newer viewport won / the overlay closed).
-    const attempt = new AbortController();
-    const onOuterAbort = () => attempt.abort();
-    outer.signal.addEventListener('abort', onOuterAbort, { once: true });
-    const timer = setTimeout(() => attempt.abort(), OVERPASS_TIMEOUT_MS);
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `data=${encodeURIComponent(overpassQuery(bbox))}`,
-        signal: attempt.signal,
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const features = parseOverpassElements(await res.json());
-      if (outer.signal.aborted) return;
-      overpassCache = { ...bbox, features };
-      if (fetchController === outer) { fetchController = null; inFlightBbox = null; }
-      rebuild(map);
-      return;
-    } catch {
-      if (outer.signal.aborted) return;
-      // try the next endpoint; falling out of the loop keeps the old cache
-    } finally {
-      clearTimeout(timer);
-      outer.signal.removeEventListener('abort', onOuterAbort);
-    }
+    const features = parseOverpassElements(json);
+    overpassCache = { ...bbox, features };
+    if (fetchController === outer) { fetchController = null; inFlightBbox = null; }
+    rebuild(map);
+    return;
+  } catch {
+    if (outer.signal.aborted) return;
+    // The whole chain failed — hand the state back so a later camera pass
+    // can try again; leave the old cache alone.
+  } finally {
+    if (fetchController === outer) { fetchController = null; inFlightBbox = null; }
   }
-  // The whole chain failed (or the overlay closed) — hand the state back
-  // so a later camera pass can try again; leave the old cache alone.
-  if (fetchController === outer) { fetchController = null; inFlightBbox = null; }
 }
 
 /**
@@ -742,8 +855,8 @@ export function ensureNaturalOverlay(map, beforeId) {
       map.setLayoutProperty(layer.id, 'visibility', 'visible');
     }
   }
-  if (!wired) {
-    wired = true;
+  if (!wiredMaps.has(map)) {
+    wiredMaps.add(map);
     const onCamera = () => {
       if (!enabled) return;
       scheduleRebuild(map);

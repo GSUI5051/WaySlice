@@ -15,7 +15,7 @@ import {
   NATURAL_TILE_MAX_ZOOM, LATCH_BOOST, OVERPASS_ELEMENT_CAP,
   parseElevationTag, parseFeetTag, canonicalElevationMeters, localizedName, buildNaturalLabel,
   gateClassFor, overpassQuery, parseOverpassElements, peaksFromTileFeatures, mergeModels,
-  buildNaturalFeatureCollection, rasterizeNaturalIcon,
+  buildNaturalFeatureCollection, rasterizeNaturalIcon, createOverpassFetch,
 } from '../js/map/naturalOverlay.js';
 import { ROAD_OVERLAY_LABEL_FONT, overlayNameKeys, ROAD_OVERLAY_SOURCE_ID } from '../js/map/roadOverlay.js';
 import { setUnitSystem } from '../js/units/units.js';
@@ -406,5 +406,151 @@ suite('natural overlay / sprite fills', () => {
     if (prev == null) root.removeAttribute('data-theme');
     else root.setAttribute('data-theme', prev);
     closeToColor(after, before, 'volcano fill identical across themes');
+  });
+});
+
+suite('natural overlay / overpass hedged chain', () => {
+  /** Five synthetic mirrors in the real list's shape — index-addressable,
+   * no network. Every factory below runs on tiny injected timings so the
+   * whole suite stays well under a second. */
+  const URLS = ['m0', 'm1', 'm2', 'm3', 'm4'];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /** Call-recording fetch stub: handlers are indexed by mirror position in
+   * URLS; each call records url, timestamp, signal and init before
+   * delegating. `use` swaps the per-mirror behavior between runs on the
+   * same factory (the sticky winner lives in the factory closure). */
+  const recorder = () => {
+    const calls = [];
+    let handlers = [];
+    const fetchImpl = (url, init) => {
+      const entry = { url, t: performance.now(), signal: init.signal, init };
+      calls.push(entry);
+      return handlers[URLS.indexOf(url)](entry);
+    };
+    return { calls, fetchImpl, use: (h) => { handlers = h; } };
+  };
+  /** 200 + parsed JSON, like a healthy interpreter. */
+  const ok = (json) => async () => new Response(JSON.stringify(json), { status: 200 });
+  /** An HTTP error the `!res.ok` branch must treat as a route failure. */
+  const httpError = (status) => async () => new Response('no', { status });
+  /** A dead mirror with real fetch's abort semantics: hangs until its
+   * signal aborts, then rejects (the per-attempt timeout surfaces here). */
+  const hangUntilAbort = (entry) => new Promise((_, rej) => {
+    entry.signal.addEventListener('abort', () => {
+      entry.abortAt = performance.now();
+      rej(new DOMException('The operation was aborted.', 'AbortError'));
+    });
+  });
+  /** A deader mirror: ignores its signal entirely and never settles —
+   * nothing rejects, so only the hedge beat can unlock the next mirror. */
+  const hangDeaf = () => new Promise(() => {});
+
+  test('first mirror answers 429, the next answers — run resolves the winner and keeps the POST discipline', async () => {
+    const payload = { elements: [] };
+    const rec = recorder();
+    rec.use([httpError(429), ok(payload)]);
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 5, attemptTimeoutMs: 15 });
+    const out = await chain.run('Q', new AbortController().signal);
+    assert.deepEqual(out, payload, 'the second mirror’s JSON wins');
+    assert.equal(rec.calls.length, 2, 'the chain stops at the first success');
+    const req = rec.calls[0].init;
+    assert.equal(req.method, 'POST', 'POST every attempt');
+    assert.equal(req.headers['Content-Type'], 'application/x-www-form-urlencoded', 'form-encoded content type');
+    assert.equal(req.body, `data=${encodeURIComponent('Q')}`, 'body is data=<encoded query>');
+    assert.equal(rec.calls[1].url, URLS[1], 'the fallback dialed mirror 1');
+  });
+
+  test('a hung mirror’s signal fires at the per-attempt ceiling; the chain falls through and resolves', async () => {
+    const payload = { elements: [] };
+    const rec = recorder();
+    rec.use([hangUntilAbort, ok(payload)]);
+    // A huge hedge proves the handoff came from the attempt timer, not the beat.
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 5000, attemptTimeoutMs: 10 });
+    const out = await chain.run('Q', new AbortController().signal);
+    assert.deepEqual(out, payload, 'the next mirror wins after the hang');
+    assert.truthy(rec.calls[0].signal.aborted, 'the hung attempt’s signal was aborted');
+    const ceiling = rec.calls[0].abortAt - rec.calls[0].t;
+    assert.truthy(ceiling >= 5 && ceiling <= 200, `the abort lands ≈10 ms after dialing, got ${ceiling.toFixed(1)} ms`);
+    const gap = rec.calls[1].t - rec.calls[0].t;
+    assert.truthy(gap < 200, `the timeout cascade unlocks mirror 1 immediately, got ${gap.toFixed(1)} ms`);
+  });
+
+  test('a fast failure cascades off the beat — the next mirror starts before the stagger elapses', async () => {
+    const payload = { elements: [] };
+    const rec = recorder();
+    rec.use([httpError(500), ok(payload)]);
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 200, attemptTimeoutMs: 15 });
+    const out = await chain.run('Q', new AbortController().signal);
+    assert.deepEqual(out, payload);
+    const gap = rec.calls[1].t - rec.calls[0].t;
+    assert.truthy(gap < 200, `a failed attempt must not wait for the 200 ms beat, got ${gap.toFixed(1)} ms`);
+  });
+
+  test('with nothing to cascade on, the hedge timer unlocks the next mirror at the beat', async () => {
+    const payload = { elements: [] };
+    const rec = recorder();
+    rec.use([hangDeaf, ok(payload)]);
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 30, attemptTimeoutMs: 15 });
+    const out = await chain.run('Q', new AbortController().signal);
+    assert.deepEqual(out, payload, 'mirror 1 wins once dialed');
+    assert.truthy(rec.calls[0].signal.aborted, 'the deaf hang still had its per-attempt timer armed');
+    const gap = rec.calls[1].t - rec.calls[0].t;
+    assert.truthy(gap >= 25 && gap <= 300, `mirror 1 dials at ≈30 ms, got ${gap.toFixed(1)} ms`);
+  });
+
+  test('the session sticks with the winning mirror — the next chain leads with it and keeps rotating', async () => {
+    const a = { elements: [1] };
+    const c = { elements: [3] };
+    const rec = recorder();
+    rec.use([httpError(429), httpError(503), ok(a), httpError(429), httpError(429)]);
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 5, attemptTimeoutMs: 15 });
+    const first = await chain.run('Q', new AbortController().signal);
+    assert.deepEqual(first, a, 'run 1 settles on list index 2');
+    const before = rec.calls.length;
+    rec.use([httpError(429), httpError(429), httpError(429), ok(c), httpError(429)]);
+    const second = await chain.run('Q2', new AbortController().signal);
+    assert.equal(rec.calls[before].url, URLS[2], 'the last winner dials first');
+    assert.equal(rec.calls[before + 1].url, URLS[3], 'the rotation continues from the winner');
+    assert.deepEqual(second, c, 'run 2 settles on list index 3');
+  });
+
+  test('an outer abort takes down every in-flight attempt, rejects the chain and voids the stagger', async () => {
+    const rec = recorder();
+    rec.use([hangDeaf, hangDeaf, hangDeaf, hangDeaf, hangDeaf]);
+    const outer = new AbortController();
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 30, attemptTimeoutMs: 15000 });
+    const outcome = chain.run('Q', outer.signal).then(() => 'resolved', (err) => `rejected:${err.name}`);
+    await sleep(35); // routes 0 and 1 are in flight (0 ms + 1×30 ms); route 2's beat is at 60 ms
+    assert.equal(rec.calls.length, 2, 'two mirrors in flight before the takeover');
+    outer.abort();
+    assert.equal(await outcome, 'rejected:AbortError', 'the chain rejects on takeover');
+    assert.truthy(rec.calls[0].signal.aborted && rec.calls[1].signal.aborted, 'both in-flight signals aborted');
+    await sleep(80); // route 2's 60 ms beat passes under the voided stagger
+    assert.equal(rec.calls.length, 2, 'the voided stagger never dials mirrors 3+');
+  });
+
+  test('every mirror rejecting rejects the chain — and the sticky lead survives an all-fail', async () => {
+    const rec = recorder();
+    rec.use([httpError(500), httpError(500), httpError(500), httpError(500), httpError(500)]);
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 5, attemptTimeoutMs: 15 });
+    const err = await assert.throwsAsync(() => chain.run('Q', new AbortController().signal), 'all-fail rejects');
+    assert.equal(err.name, 'Error', 'the last mirror’s failure is what the caller sees');
+    const payload = { elements: [] };
+    rec.use([ok(payload), httpError(500), httpError(500), httpError(500), httpError(500)]);
+    const before = rec.calls.length;
+    const out = await chain.run('Q2', new AbortController().signal);
+    assert.deepEqual(out, payload);
+    assert.equal(rec.calls[before].url, URLS[0], 'an all-fail chain leaves the sticky lead at 0');
+  });
+
+  test('an already-aborted outer signal rejects immediately, dialing no mirror', async () => {
+    const rec = recorder();
+    rec.use([ok({ elements: [] }), ok({ elements: [] }), ok({ elements: [] }), ok({ elements: [] }), ok({ elements: [] })]);
+    const chain = createOverpassFetch({ fetchImpl: rec.fetchImpl, endpoints: URLS, hedgeMs: 5, attemptTimeoutMs: 15 });
+    const outer = new AbortController();
+    outer.abort();
+    await assert.throwsAsync(() => chain.run('Q', outer.signal), 'the chain rejects without starting');
+    assert.equal(rec.calls.length, 0, 'no mirror was dialed');
   });
 });
