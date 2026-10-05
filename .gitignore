@@ -22,6 +22,7 @@
 # READMEs no longer mention them. Local dev tooling only (icon build, sample
 # track generation, syntax checks).
 /tools/
+.zcodeignore
 
 # -- 5. Screenshot source files --
 # Raw phone screenshots and per-image PNG versions, used only to generate the
