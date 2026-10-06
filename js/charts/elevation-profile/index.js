@@ -36,7 +36,7 @@
 import { sectorStore } from '../../sector/sectorStore.js';
 import { nearestOnTrack } from '../../geo/interpolate.js';
 import { trackStore } from '../../core/stores.js';
-import { on } from '../../core/events.js';
+import { emit, on } from '../../core/events.js';
 import { state, isWideLayout } from './profile-state.js';
 import { buildCaches, distToX, overlayAvailability } from './profile-data.js';
 import {
@@ -103,7 +103,7 @@ export function initProfile(rootEl) {
     state.hoverOrigin = 'waypoint';
     scheduleSync();
   });
-  on('waypoint:select', ({ dist, name }) => {
+  on('waypoint:select', ({ dist, name, index }) => {
     // Desktop-wide only: a waypoint click pans the profile's zoom window so
     // the waypoint lands at the window center — the zoom level (window
     // width) stays untouched — and pins the waypoint line + readout until
@@ -119,7 +119,11 @@ export function initProfile(rootEl) {
       if (end > total) { start -= end - total; end = total; }
       state.view = { start, end };
     }
-    state.pinnedWaypoint = { dist, name: name || null };
+    state.pinnedWaypoint = { dist, name: name || null, index };
+    // The map flags the pinned marker with the filled map-pin glyph — the
+    // profile owns the pin state, the map only mirrors it (`index` is the
+    // marker key; two waypoints may share coordinates).
+    emit('waypoint:pinned', { index });
     scheduleSync();
   });
   on('waypoint:deselect', unpinWaypoint);
@@ -178,6 +182,10 @@ export function setProfileTrack(newTrack) {
   if (!state.track.hasTime) state.xMode = 'distance';
   state.view = null; // a fresh track always starts fully zoomed out
   state.probe = null; // the old track's probe position means nothing here
+  // So does the old pin — its dist/name/index describe the previous track's
+  // waypoints, and the map's pinned-marker glyph mirrors through the same
+  // unpin (no-op when nothing was pinned).
+  unpinWaypoint();
   hideTooltip();
   resetProbeReadout(); // the band returns to its idle hint for the new track
   // Rebuild the per-point caches before filtering the selected overlays. This

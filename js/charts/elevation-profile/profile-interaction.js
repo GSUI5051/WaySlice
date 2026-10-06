@@ -397,6 +397,9 @@ function toggleOverlay(id) {
 export function unpinWaypoint() {
   if (!state.pinnedWaypoint) return;
   state.pinnedWaypoint = null;
+  // The map's pinned-marker glyph mirrors the profile's pin state — report
+  // the clear here; a pin switch reports through 'waypoint:select' instead.
+  emit('waypoint:pinned', null);
   hideTooltip();
   scheduleSync();
 }

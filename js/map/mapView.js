@@ -274,6 +274,12 @@ function createMapInstance() {
     }
     emit('waypoint:deselect');
   });
+  // The profile owns the waypoint pin (a waypoint click sets or switches
+  // it; a click anywhere else clears it) and reports every change here, so
+  // the map can flag the pinned marker with the filled map-pin glyph. A
+  // report can only ever arrive once this map exists — setting a pin
+  // requires clicking one of these markers.
+  on('waypoint:pinned', setPinnedMarker);
   map.on('mousemove', (e) => {
     if (fromMarker(e)) return;
     if (!track || !map.getLayer('track-hit')) return;
@@ -628,6 +634,51 @@ function createHoverDot() {
   layers.hoverDot.setOpacity(0);
 }
 
+/** @private The pinned waypoint's glyph: lucide's pin (https://lucide.dev,
+ *  ISC) with the needle ELONGATED (lucide's v5 → v10.8) so the body clears
+ *  the waypoint circle it stands on — the tip reaches the circle's center
+ *  while the body stays 3px above the circle's top edge — and the whole
+ *  glyph enlarged (scale 5/6, box 20×26px) for a chunkier body (11.67px
+ *  wide fill). The body is filled solid in the waypoint purple; its outline
+ *  and the needle are stroked in the waypoint border color at a stroke
+ *  width tuned to keep the rendered 2.67px weight of the previous round
+ *  (no ring or shadow added around the glyph itself). The overall width
+ *  grows past the circle's 12px diameter — the explicit cost of the bigger
+ *  body. css/map.css plants the needle's tip (viewBox (12,29.4) with its
+ *  round cap → 96.15% down the box) exactly on the circle's center. */
+function pinnedWaypointSvg() {
+  return (
+    '<svg viewBox="0 -0.6 24 31.2" width="20" height="26" aria-hidden="true" focusable="false">'
+    + '<path d="M12 17v10.8" fill="none" '
+    + 'style="stroke: var(--map-handle-border)" '
+    + 'stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16'
+    + 'a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9'
+    + 'A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4'
+    + ' 1 1 0 0 1 1 1z" '
+    + 'style="fill: var(--waypoint-color, var(--map-waypoint)); '
+    + 'stroke: var(--map-handle-border)" '
+    + 'stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  );
+}
+
+/** @private Mirrors the profile's waypoint pin onto the markers: the pinned
+ *  marker gains the filled map-pin glyph, overlaid on its (unchanged)
+ *  circle with the tip planted on the circle's center, and rises above
+ *  sibling pins; every other marker stays a plain circle. `pin` is null on
+ *  unpin. The profile owns the pin state (js/charts/elevation-profile)
+ *  and reports every change through 'waypoint:pinned' — including the
+ *  clear a profile-side click or probe placement causes. */
+function setPinnedMarker(pin) {
+  waypointPlates.forEach((plate, i) => {
+    const pinned = pin != null && i === pin.index;
+    if (plate.el.classList.contains('is-pinned') === pinned) return;
+    plate.el.classList.toggle('is-pinned', pinned);
+    plate.el.style.zIndex = pinned ? '301' : '300';
+    plate.el.querySelector('.map-waypoint').innerHTML = pinned ? pinnedWaypointSvg() : '';
+  });
+}
+
 /** @private Rebuilds the waypoint markers from `track.waypoints`. */
 function rebuildWaypoints() {
   if (layers.waypoints) {
@@ -639,7 +690,7 @@ function rebuildWaypoints() {
   const wpts = track?.waypoints || [];
   if (!wpts.length || !waypointsVisible) return;
   let hint = 0;
-  layers.waypoints = wpts.map((w) => {
+  layers.waypoints = wpts.map((w, i) => {
     // Resolve the waypoint onto the track once, so pin hovers can point the
     // elevation profile at the exact x position.
     const near = nearestOnTrack(track, w.lat, w.lon, hint);
@@ -673,10 +724,12 @@ function rebuildWaypoints() {
     // Clicking a waypoint centers the viewport on it; panTo keeps the
     // current zoom level untouched. The profile (wide screens only) pans
     // its zoom window to the same waypoint and pins its line/readout
-    // until the next click anywhere.
+    // until the next click anywhere. `index` rides along as the pin key:
+    // the pinned-marker glyph swaps on it, and two waypoints may share
+    // coordinates, so a lat/lon match could flag both.
     el.addEventListener('click', () => {
       map.panTo([w.lon, w.lat]);
-      emit('waypoint:select', { dist: near.dist, name: w.name || null });
+      emit('waypoint:select', { dist: near.dist, name: w.name || null, index: i });
     });
     el.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;

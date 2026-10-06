@@ -176,6 +176,28 @@
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* The pinned waypoint (js/map/mapView.js adds a lucide pin glyph when the
+   profile reports the pin): the glyph OVERLAYS the circle — the circle
+   keeps its full styling — with its purple fill and its outline + needle
+   in the waypoint border color, no extra ring or shadow of its own. The
+   needle is elongated so the body clears the circle's top edge by 3px, and
+   the whole glyph is enlarged for a chunkier body. It anchors at its
+   bottom tip: the needle's round-capped tip sits at (50%, 96.15%) of the
+   20×26 box, so the translate plants that point (not the box center)
+   exactly on the 50%/50% origin — the circle's center; symmetric borders
+   keep the 50% origin on the center at any width. */
+.map-waypoint-icon.is-pinned .map-waypoint {
+  position: relative;
+}
+
+.map-waypoint-icon.is-pinned .map-waypoint svg {
+  position: absolute;
+  display: block;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -96.1538%);
+}
+
 /* Enlarged invisible hit area for touch, so the name plate is reachable. */
 .map-waypoint::after {
   content: "";
