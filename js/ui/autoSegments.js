@@ -4,8 +4,9 @@
  * The sheet carries a mode toolbar — slope / 1 km / 5 km / custom length —
  * and an accordion list of consecutive segment ranges. Each collapsed row
  * shows its range, elapsed time, pace and heart rate; expanding a row reveals
- * the effort details (3D/effort distance, gain/loss, GAP, VAM, VDM) computed
- * by computeSectorMetrics plus the segment's time-in-zone distribution (the
+ * the effort details — distance through 3D/effort distance, gain/loss, grade,
+ * GAP, VAM, VDM, average/maximum heart rate — computed by computeSectorMetrics
+ * plus the segment's time-in-zone distribution (the
  * same Heart Rate Zones group the main metrics panel renders). Detail rows
  * reuse the metrics panel's row builder, so every entry carries the same
  * hover tooltip (methodology note) it has in the main panel, and selecting a
@@ -24,7 +25,7 @@ import { openSheet, setSheetTitle } from './sheets.js';
 import { row as metricRow, hrZonesGroupHtml, nearestHitTarget } from './metricsPanel.js';
 import {
   formatDistance, formatDistanceShort, formatElevation,
-  formatPace, formatVam, formatDuration, formatBpm,
+  formatPace, formatVam, formatDuration, formatBpm, formatGrade,
 } from '../utils/format.js';
 import { getUnitSystem, METERS_PER_MILE, distanceUnit } from '../units/units.js';
 
@@ -254,13 +255,17 @@ function buildItem(track, range, index, hasHr) {
   // Zones group is computed over THIS segment's range, not the main sector.
   details.innerHTML = `
     <div class="seg-details-title">${t('segmentDetails')}</div>
+    ${metricRow(t('distance'), formatDistance(m.horizontalDistance ?? NaN), false)}
     ${metricRow(t('threeDDistance'), formatDistance(m.distance3D ?? NaN), false, t('threeDDistanceHint'))}
     ${metricRow(t('effortDistance'), formatDistance(m.effortDistance ?? NaN), false, t('effortDistanceHint'))}
     ${metricRow(t('elevationGain'), formatElevation(m.gain ?? NaN), false, t('elevationGainHint'))}
     ${metricRow(t('elevationLoss'), m.loss == null ? '—' : formatElevation(m.loss), false, t('elevationLossHint'))}
+    ${metricRow(t('avgGrade'), formatGrade(m.avgGrade ?? NaN), false, t('gradeWindowNote'))}
     ${metricRow(t('avgGap'), formatPace(m.avgGap ?? NaN), false, t('gapNote'))}
     ${metricRow(t('vam'), formatVam(m.vam ?? NaN), false, t('pauseNote'))}
     ${metricRow(t('vdm'), formatVam(m.vdm ?? NaN), false, t('pauseNote'))}
+    ${metricRow(t('avgHr'), formatBpm(m.avgHr ?? NaN), false, t('fitnessPauseNote'))}
+    ${metricRow(t('maxHr'), formatBpm(m.maxHr ?? NaN), false, t('fitnessPauseNote'))}
     ${hrZonesGroupHtml(track, range.start, range.end)}
   `;
 

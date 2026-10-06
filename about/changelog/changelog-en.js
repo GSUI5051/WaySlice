@@ -20,6 +20,7 @@ export const CHANGELOG_EN = {
       ps: [
         'The pinned waypoint now stands out on the map: its marker wears a pushpin badge — filled in the waypoint purple, outlined in the same border color as every waypoint, needle planted on the marker\'s center — and the badge follows the pin when another waypoint is pinned and disappears when the pin clears, so the pinned spot reads at a glance.',
         'The elevation profile\'s pinned waypoint line no longer blocks the chart\'s hover: moving the mouse across the chart shows the cursor\'s own readings again, hovering another waypoint pin on the map borrows the violet line for that waypoint — whenever it lies inside the zoomed window — and the pinned line steps aside while you hover and returns the moment the pointer leaves. The pin itself still clears only on the next click anywhere.',
+        'The auto-split segment details now follow the metrics panel\'s full reading order: Distance first, then 3D and Effort Distance, Elevation Gain and Loss, Average Grade before Average GAP, VAM and VDM, and Average plus Maximum Heart Rate ahead of the heart-rate zones — three rows that were missing from the sheet entirely are now there too.',
       ],
     },
     {
