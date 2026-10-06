@@ -717,9 +717,9 @@ export function wirePointer() {
     }
     // Grab cursor over a zoomed axis with Shift held: the pan affordance.
     canvas.style.cursor = e.shiftKey && state.view ? 'grab' : '';
-    // While a waypoint is pinned, the chart hover is inert — the pin and
-    // its readout stay put until the next click anywhere.
-    if (state.pinnedWaypoint) return;
+    // The chart's own hover stays live while a waypoint is pinned — the
+    // hover crosshair + readout take over and the pinned line yields
+    // (drawHoverCrosshair restores the pin when the pointer leaves).
     const xv = xFromEvent(e);
     state.hoverX = xv;
     state.hoverDist = distFromEvent(e);

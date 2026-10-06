@@ -16,6 +16,12 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-06',
+      ps: [
+        'The elevation profile\'s pinned waypoint line no longer blocks the chart\'s hover: while a waypoint is pinned, hovering the profile shows the cursor\'s own readings, hovering another waypoint pin on the map shows that waypoint\'s line and readout instead (whenever it lies inside the zoomed window), clicking another waypoint switches the pin to it, and the pinned line returns as soon as the pointer moves off — it still clears only on the next click anywhere.',
+      ],
+    },
+    {
       h: '2026-10-05',
       ps: [
         'The satellite overlay\'s spring landmark now draws as a single water droplet filling its icon box — the ripple line beneath is gone — so the shape still reads unmistakably as water at the smallest sizes.',

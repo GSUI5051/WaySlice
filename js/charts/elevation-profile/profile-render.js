@@ -790,6 +790,28 @@ function drawWaypointPins() {
   ctx.restore();
 }
 
+/** @private True while a clicked waypoint's pinned line owns the chart. The
+ *  pin stands down while the chart's own mouse hover is live — the hover
+ *  crosshair + readout take over and the violet line returns when the
+ *  pointer leaves the chart — and while a waypoint pin is hovered on the
+ *  MAP, whose own violet line takes its place. The pin itself only ever
+ *  changes on a waypoint click (it switches) or a click anywhere else
+ *  (it clears); at most one waypoint is pinned at a time. */
+function pinOwnsChart() {
+  if (!state.pinnedWaypoint) return false;
+  if (state.hoverOrigin === 'profile' && state.hoverX != null) return false;
+  if (state.hoverOrigin === 'waypoint' && state.waypointHover) {
+    // Yield only while the hovered waypoint can actually be drawn — a hover
+    // outside the zoomed window keeps the pin on the chart (its line and
+    // readout would otherwise vanish with nothing in their place).
+    const xv = distToX(state.waypointHover.dist, state.track, state.xMode);
+    const v0 = state.view ? state.view.start : 0;
+    const v1 = state.view ? state.view.end : state.xs[state.xs.length - 1];
+    if (xv >= v0 && xv <= v1) return false;
+  }
+  return true;
+}
+
 /** @private Hover crosshair drawn on the annotation canvas: hairline + white
  *  dot with an orange ring on the profile line (kept visible over the orange
  *  stroke), and a smaller solid series-colored dot where the hairline crosses
@@ -805,8 +827,12 @@ function drawHoverCrosshair() {
   const v1 = view ? view.end : xEnd;
 
   // Pinned waypoint (clicked): its violet line + readout stay on the chart
-  // until the next click anywhere — chart hover is inert while pinned.
-  if (state.pinnedWaypoint) {
+  // until the next click anywhere — except while the pointer hovers the chart
+  // itself (the hover crosshair + cursor readout take over) or while another
+  // waypoint pin is hovered on the map (that waypoint's violet line takes
+  // over); the pin yields either way and comes back when the pointer moves
+  // off (see pinOwnsChart).
+  if (pinOwnsChart()) {
     const xv = distToX(state.pinnedWaypoint.dist, track, state.xMode);
     if (xv >= v0 && xv <= v1) {
       const px = xvToPx(xv, view, xs, plot);
@@ -1001,14 +1027,14 @@ function drawZoneBands(u) {
  * (nearest track point's heart rate, classified against the configured
  * zones), so the deepened band always matches the label the tooltip shows.
  * Follows the touch probe's position while one is active, else the hover.
- * No highlight while a waypoint is pinned (the chart hover is inert then)
- * or over points without a reading.
+ * No highlight while a pinned waypoint owns the chart (hover stands down
+ * then) or over points without a reading.
  * @param {{zones: {lo: number, hi: number|null}[]}} bounds
  * @param {number|null} dist  inspected track distance (probe or hover)
  */
 function hrHoverZone(bounds, dist) {
   const { track } = state;
-  if (state.pinnedWaypoint || dist == null || !track) return null;
+  if (pinOwnsChart() || dist == null || !track) return null;
   const pt = pointAtDistance(track, dist);
   if (!pt) return null;
   const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
