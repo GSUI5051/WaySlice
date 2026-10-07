@@ -1,8 +1,11 @@
 import { calculateCRC, readRecord } from './binary.js';
 import { mapDataIntoLap, mapDataIntoSession } from './helper.js';
 export { FitBaseType, FitEncoder } from './fit-encoder.js';
+export { getFitCoursePointId, getFitGarminProductDisplayName, getFitGarminProductName, getFitManufacturerName, getFitSportId, getFitSportName, getFitSubSportId, getFitSubSportName, } from './profile-lookup.js';
+export { FitMessageReaderError, fitTimestampToUnixMilliseconds, getFitBaseTypeId, readFitMessages, readFitStringField, readFitUnsignedField, } from './raw-message-reader.js';
 export default class FitParser {
     constructor(options = {}) {
+        var _a, _b, _c, _d;
         this.options = {
             force: options.force != null ? options.force : true,
             speedUnit: options.speedUnit || 'm/s',
@@ -11,6 +14,10 @@ export default class FitParser {
             elapsedRecordField: options.elapsedRecordField || false,
             pressureUnit: options.pressureUnit || 'bar',
             mode: options.mode || 'list',
+            includeRawDeveloperFields: (_a = options.includeRawDeveloperFields) !== null && _a !== void 0 ? _a : false,
+            includeRawMessages: (_b = options.includeRawMessages) !== null && _b !== void 0 ? _b : false,
+            includeUnmappedMessages: (_c = options.includeUnmappedMessages) !== null && _c !== void 0 ? _c : false,
+            rawMessagesOnly: (_d = options.rawMessagesOnly) !== null && _d !== void 0 ? _d : false,
         };
     }
     parseAsync(content) {
@@ -26,7 +33,7 @@ export default class FitParser {
         });
     }
     parse(content, callback) {
-        var _a, _b;
+        var _a, _b, _c;
         const blob = content instanceof ArrayBuffer
             ? new Uint8Array(content)
             : new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
@@ -113,6 +120,16 @@ export default class FitParser {
         const time_in_zone = [];
         const activity_metrics = [];
         const user_metrics = [];
+        const rawDeveloperFields = this.options.includeRawDeveloperFields === true
+            || Array.isArray(this.options.includeRawDeveloperFields)
+            ? []
+            : undefined;
+        const rawMessages = this.options.includeRawMessages === true
+            || Array.isArray(this.options.includeRawMessages)
+            ? []
+            : undefined;
+        const unmappedMessages = this.options.includeUnmappedMessages ? [] : undefined;
+        const messageCountsByGlobalNumber = new Map();
         let loopIndex = headerLength;
         const messageTypes = [];
         const developerFields = [];
@@ -123,12 +140,55 @@ export default class FitParser {
         let lastStopTimestamp;
         let pausedTime = 0;
         while (loopIndex < crcStart) {
-            const { nextIndex, messageType, message } = readRecord(blob, messageTypes, developerFields, loopIndex, this.options, startDate, pausedTime, dataView, decoderState);
+            const { globalMessageNumber, littleEndian, message, messageType, nextIndex, compressedTimestamp, rawFields: recordRawFields, rawDeveloperFields: recordRawDeveloperFields, unmappedFields: recordUnmappedFields, unmappedDeveloperFields: recordUnmappedDeveloperFields, } = readRecord(blob, messageTypes, developerFields, loopIndex, this.options, startDate, pausedTime, dataView, decoderState, crcStart);
             loopIndex = nextIndex;
+            if (globalMessageNumber !== undefined) {
+                const messageIndex = (_a = messageCountsByGlobalNumber.get(globalMessageNumber)) !== null && _a !== void 0 ? _a : 0;
+                messageCountsByGlobalNumber.set(globalMessageNumber, messageIndex + 1);
+                if (recordRawFields && littleEndian !== undefined) {
+                    rawMessages === null || rawMessages === void 0 ? void 0 : rawMessages.push(Object.assign(Object.assign({ global_message_number: globalMessageNumber, message_index: messageIndex, little_endian: littleEndian }, (compressedTimestamp === undefined
+                        ? {}
+                        : { compressed_timestamp: compressedTimestamp })), { fields: recordRawFields.map(field => ({
+                            field_definition_number: field.fieldDefinitionNumber,
+                            base_type: field.baseType,
+                            raw_value: field.rawValue,
+                        })), developer_fields: (recordRawDeveloperFields !== null && recordRawDeveloperFields !== void 0 ? recordRawDeveloperFields : []).map(field => ({
+                            developer_data_index: field.developerDataIndex,
+                            field_definition_number: field.fieldDefinitionNumber,
+                            raw_value: field.rawValue,
+                        })) }));
+                }
+                recordRawDeveloperFields === null || recordRawDeveloperFields === void 0 ? void 0 : recordRawDeveloperFields.forEach((field) => {
+                    rawDeveloperFields === null || rawDeveloperFields === void 0 ? void 0 : rawDeveloperFields.push({
+                        global_message_number: globalMessageNumber,
+                        message_index: messageIndex,
+                        developer_data_index: field.developerDataIndex,
+                        field_definition_number: field.fieldDefinitionNumber,
+                        raw_value: field.rawValue,
+                    });
+                });
+                if (littleEndian !== undefined
+                    && ((recordUnmappedFields === null || recordUnmappedFields === void 0 ? void 0 : recordUnmappedFields.length) || (recordUnmappedDeveloperFields === null || recordUnmappedDeveloperFields === void 0 ? void 0 : recordUnmappedDeveloperFields.length))) {
+                    unmappedMessages === null || unmappedMessages === void 0 ? void 0 : unmappedMessages.push(Object.assign(Object.assign({ global_message_number: globalMessageNumber, message_index: messageIndex, little_endian: littleEndian }, (compressedTimestamp === undefined
+                        ? {}
+                        : { compressed_timestamp: compressedTimestamp })), { fields: (recordUnmappedFields !== null && recordUnmappedFields !== void 0 ? recordUnmappedFields : []).map(field => ({
+                            field_definition_number: field.fieldDefinitionNumber,
+                            base_type: field.baseType,
+                            raw_value: field.rawValue,
+                        })), developer_fields: (recordUnmappedDeveloperFields !== null && recordUnmappedDeveloperFields !== void 0 ? recordUnmappedDeveloperFields : []).map(field => ({
+                            developer_data_index: field.developerDataIndex,
+                            field_definition_number: field.fieldDefinitionNumber,
+                            raw_value: field.rawValue,
+                        })) }));
+                }
+            }
+            if (this.options.rawMessagesOnly) {
+                continue;
+            }
             if (messageType !== ''
                 && messageType !== 'definition'
                 && message !== undefined) {
-                ((_a = messages[messageType]) !== null && _a !== void 0 ? _a : (messages[messageType] = [])).push(message);
+                ((_b = messages[messageType]) !== null && _b !== void 0 ? _b : (messages[messageType] = [])).push(message);
             }
             switch (messageType) {
                 case 'lap':
@@ -244,6 +304,19 @@ export default class FitParser {
                     break;
             }
         }
+        if (this.options.rawMessagesOnly) {
+            if (rawDeveloperFields) {
+                fitObj.raw_developer_fields = rawDeveloperFields;
+            }
+            if (rawMessages) {
+                fitObj.raw_messages = rawMessages;
+            }
+            if (unmappedMessages && unmappedMessages.length > 0) {
+                fitObj.unmapped_messages = unmappedMessages;
+            }
+            callback(undefined, fitObj);
+            return;
+        }
         fitObj.hr_zone = hr_zone;
         fitObj.power_zone = power_zone;
         fitObj.dive_gases = dive_gases;
@@ -263,11 +336,20 @@ export default class FitParser {
         fitObj.activity_metrics = activity_metrics;
         fitObj.user_metrics = user_metrics;
         fitObj.messages = messages;
+        if (rawDeveloperFields) {
+            fitObj.raw_developer_fields = rawDeveloperFields;
+        }
+        if (rawMessages) {
+            fitObj.raw_messages = rawMessages;
+        }
+        if (unmappedMessages && unmappedMessages.length > 0) {
+            fitObj.unmapped_messages = unmappedMessages;
+        }
         if (isCascadeNeeded) {
             laps = mapDataIntoLap(laps, 'records', records);
             laps = mapDataIntoLap(laps, 'lengths', lengths);
             sessions = mapDataIntoSession(sessions, laps);
-            fitObj.activity = Object.assign(Object.assign({}, ((_b = fitObj.activity) !== null && _b !== void 0 ? _b : {})), { // ugly but we assume the activity was parsed correctly with all other members correctly
+            fitObj.activity = Object.assign(Object.assign({}, ((_c = fitObj.activity) !== null && _c !== void 0 ? _c : {})), { // ugly but we assume the activity was parsed correctly with all other members correctly
                 sessions,
                 events,
                 hrv,

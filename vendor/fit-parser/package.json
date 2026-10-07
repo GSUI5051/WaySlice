@@ -1,7 +1,7 @@
 {
   "name": "fit-file-parser",
   "type": "module",
-  "version": "5.0.2",
+  "version": "6.1.2",
   "private": false,
   "description": "Parse your .FIT files easily, directly from JS (Garmin, Polar, Suunto)",
   "author": {
@@ -37,13 +37,42 @@
       "types": "./dist/fit-parser.d.ts",
       "import": "./dist/fit-parser.js",
       "require": "./dist/cjs/fit-parser.js"
+    },
+    "./encoder": {
+      "types": "./dist/fit-encoder.d.ts",
+      "import": "./dist/fit-encoder.js",
+      "require": "./dist/cjs/fit-encoder.js"
+    },
+    "./profile": {
+      "types": "./dist/profile-lookup.d.ts",
+      "import": "./dist/profile-lookup.js",
+      "require": "./dist/cjs/profile-lookup.js"
+    },
+    "./raw": {
+      "types": "./dist/raw-message-reader.d.ts",
+      "import": "./dist/raw-message-reader.js",
+      "require": "./dist/cjs/raw-message-reader.js"
     }
   },
   "main": "dist/cjs/fit-parser.js",
+  "typesVersions": {
+    "*": {
+      "encoder": [
+        "dist/fit-encoder.d.ts"
+      ],
+      "profile": [
+        "dist/profile-lookup.d.ts"
+      ],
+      "raw": [
+        "dist/raw-message-reader.d.ts"
+      ]
+    }
+  },
   "files": [
     "CHANGELOG.md",
     "CONTRIBUTORS.md",
     "LICENSE",
+    "PROFILE.md",
     "README.md",
     "dist/"
   ],
@@ -54,13 +83,14 @@
     }
   ],
   "scripts": {
-    "dev": "tsx --watch --watch-path=src/type_generator.ts --watch-path=src/fit.ts --watch-path=src/garmin_profile.generated.ts codegen/codegen.ts",
-    "codegen:profile": "tsx codegen/garmin-profile.ts",
-    "codegen": "npm run codegen:profile && tsx codegen/codegen.ts",
-    "codegen:check": "tsx codegen/garmin-profile.ts --check && tsx codegen/codegen.ts --check",
-    "profile:audit": "npm run codegen:check && tsx scripts/profile-audit.ts",
+    "dev": "tsx --watch --watch-path=src/type_generator.ts --watch-path=src/fit.ts --watch-path=src/profile.ts --watch-path=src/profile-lookup-data.ts codegen/codegen.ts",
+    "codegen": "tsx codegen/codegen.ts",
+    "codegen:check": "tsx codegen/codegen.ts --check",
+    "profile:budget": "tsx scripts/profile-lookup-budget.ts",
+    "profile:check": "npm run codegen:check && tsx scripts/profile-check.ts && npm run profile:budget",
+    "compatibility:check": "npm run build && tsx scripts/compatibility-check.ts",
     "corpus:check": "tsx scripts/corpus-check.ts",
-    "check": "npm run profile:audit && npm run lint && npm run type-check && npm test -- --run && npm run build",
+    "check": "npm run profile:check && npm run lint && npm run type-check && npm test -- --run && npm run build",
     "example-output": "node examples/parse.js examples/example.fit > examples/output-example.json",
     "example-output-tank": "node examples/parse.js examples/example-diving.fit > examples/output-diving.json",
     "example-output-summary-first": "node examples/parse.js examples/triathlon_summary_first.fit > examples/output_summary_first.json",
@@ -71,7 +101,8 @@
     "lint": "eslint .",
     "fmt": "eslint --fix .",
     "type-check": "tsc --noEmit",
-    "build": "tsc --noCheck && tsc --project tsconfig.cjs.json --noCheck && echo '{\"type\": \"commonjs\"}' > dist/cjs/package.json",
+    "clean": "tsx scripts/clean-dist.ts",
+    "build": "npm run clean && tsc --noCheck && tsc --project tsconfig.cjs.json --noCheck && echo '{\"type\": \"commonjs\"}' > dist/cjs/package.json",
     "prepack": "npm run build"
   },
   "test": "vitest",
@@ -80,9 +111,9 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.2.0",
-    "@garmin/fitsdk": "21.208.0",
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^4.0.13",
+    "esbuild": "^0.25.12",
     "eslint": "^9.10.0",
     "eslint-plugin-format": "^1.1.0",
     "tsx": "^4.21.0",
