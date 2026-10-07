@@ -149,7 +149,7 @@ majuscule, il faut le prendre exactement au sens suivant :
 
 | Format | Géométrie | Altitude | Horodatage |
 |--------|----------|-----------|------------|
-| `.gpx` | `<trk><trkseg><trkpt>` (multi-segments) | ✅ | ✅ |
+| `.gpx` | `<trk><trkseg><trkpt>` (multi-segments) ; `<rte><rtept>` comme source dégradée de route | ✅ | ✅ |
 | `.fit` | Fichiers d'activité binaires Garmin FIT | ✅ | ✅ |
 | `.tcx` | XML TrainingCenterDatabase | ✅ | ✅ |
 | `.kml` | `LineString` + `gx:Track` | ✅ (depuis les coordonnées) | ✅ (`gx:Track` / `<when>`) |
@@ -161,7 +161,11 @@ capteurs GPX sont lues sans tenir compte du préfixe de namespace : TrackPointEx
 (fréquence cardiaque, cadence, température, vitesse, distance) et les trois variantes courantes de
 puissance (`<power>` nu, `PowerInWatts`, `ns3:Watts`). Tous les formats convergent vers le même
 modèle de point de trace : les métriques de secteur se comportent identiquement quelle que soit la
-source.
+source. Les sites de courses publient souvent des GPX dont la géométrie est une `<rte>` (route)
+plutôt qu’une `<trk>` enregistrée. WaySlice les charge comme source dégradée de route : la carte, la
+distance et l’analyse d’altitude fonctionnent, tandis que le temps, la vitesse et la fréquence
+cardiaque s’affichent « Indisponible » au lieu de chiffres inventés. Quand un fichier contient les
+deux, la trace enregistrée l’emporte et la route est ignorée.
 
 ## Prise en main
 

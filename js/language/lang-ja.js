@@ -219,6 +219,7 @@ const lang_ja = {
   unavailable: 'データなし',
   noElevationData: '標高データなし',
   noTimestampData: '時刻データなし',
+  routeSourceNote: 'このGPXは記録されたトラックポイントではなくルートポイントで構成されています。時刻・心拍数などのアクティビティデータは利用できません。',
 
   // Heart Rate Zones
   hrZones: '心拍ゾーン',

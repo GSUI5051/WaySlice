@@ -34,6 +34,9 @@
  * @typedef {Object} ParsedFile
  * @property {TrackPoint[]} points             Track points, in file order.
  * @property {Waypoint[]} waypoints            Waypoints (empty when the format carries none).
+ * @property {'track'|'route'} [sourceType]    'route' when the points are <rtept> route points
+ *                                             (degraded GPX route source: no time, no sensors);
+ *                                             'track' otherwise (the default when absent).
  */
 
 /**
@@ -57,6 +60,9 @@
  * @property {number|null} eleMax              Maximum elevation, meters (null when no elevation).
  * @property {number} pointCount               Number of track points.
  * @property {Waypoint[]} waypoints            Waypoints from the same file (empty when none).
+ * @property {'track'|'route'} [sourceType]    'route' when the points are GPX route points
+ *                                             (degraded source: hasTime/hasHr/… are false by
+ *                                             construction); 'track' otherwise.
  */
 
 /**

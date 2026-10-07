@@ -220,6 +220,7 @@ const lang_en = {
   unavailable: 'Unavailable',
   noElevationData: 'No elevation data',
   noTimestampData: 'No timestamp data',
+  routeSourceNote: 'This GPX contains route points rather than recorded track points. Time, heart rate, and other activity data are unavailable.',
 
   // Heart Rate Zones
   hrZones: 'Heart Rate Zones',

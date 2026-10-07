@@ -119,6 +119,15 @@
           <span class="btn-icon-slot" data-icon="info"></span>
         </button>
       </div>
+      <!-- Route-source notice: a lone warning square for degraded route GPX
+           files (<rte>/<rtept>), shaped after the chip's compact info button
+           and shown only when such a file loads (js/ui/routeNote.js owns
+           visibility). Clicking it opens the full notice sentence in the
+           same kind of popover the compact chip uses. -->
+      <button type="button" id="route-note" class="route-note" hidden
+              aria-expanded="false">
+        <span class="btn-icon-slot" data-icon="triangle-alert"></span>
+      </button>
       <div class="header-actions">
         <!-- GitHub link. One of these four logo files shows at a time — the
              lockup while the header is bare, the bare mark once a track is

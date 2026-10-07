@@ -150,7 +150,7 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
 
 | Formato | Geometria | Quota | Marcature temporali |
 |--------|----------|-----------|------------|
-| `.gpx` | `<trk><trkseg><trkpt>` (multi-segmento) | ✅ | ✅ |
+| `.gpx` | `<trk><trkseg><trkpt>` (multi-segmento); `<rte><rtept>` come sorgente degradata di route | ✅ | ✅ |
 | `.fit` | File di attività binari Garmin FIT | ✅ | ✅ |
 | `.tcx` | XML TrainingCenterDatabase | ✅ | ✅ |
 | `.kml` | `LineString` + `gx:Track` | ✅ (dalle coordinate) | ✅ (`gx:Track` / `<when>`) |
@@ -161,7 +161,11 @@ La decodifica FIT è affidata alla libreria [fit-parser](https://github.com/jimm
 sono lette in modo agnostico rispetto al namespace: Garmin TrackPointExtension (frequenza cardiaca,
 cadenza, temperatura, velocità, distanza) e le tre varianti comuni di potenza (`<power>` nuda,
 `PowerInWatts`, `ns3:Watts`). Tutti i formati confluiscono nello stesso modello di punto della traccia,
-così le metriche del tratto funzionano identicamente a prescindere dal formato di origine.
+così le metriche del tratto funzionano identicamente a prescindere dal formato di origine. I siti delle
+gare pubblicano spesso GPX la cui geometria è una `<rte>` (route) invece di una `<trk>` registrata.
+WaySlice li carica come sorgente degradata di route: mappa, distanza e analisi della quota funzionano,
+mentre tempo, velocità e frequenza cardiaca appaiono «Non disponibile» invece di numeri inventati.
+Se il file contiene entrambi, vince la traccia registrata e la route viene ignorata.
 
 ## Per iniziare
 

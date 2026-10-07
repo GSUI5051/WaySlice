@@ -224,6 +224,7 @@ const lang_it = {
   unavailable: 'Non disponibile',
   noElevationData: 'Nessun dato di quota',
   noTimestampData: 'Nessun dato orario',
+  routeSourceNote: 'Questo GPX contiene punti di route anziché punti di traccia registrati. Tempo, frequenza cardiaca e altri dati dell’attività non sono disponibili.',
 
   // Heart Rate Zones
   hrZones: 'Zone di frequenza cardiaca',

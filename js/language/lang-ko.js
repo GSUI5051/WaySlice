@@ -219,6 +219,7 @@ const lang_ko = {
   unavailable: '데이터 없음',
   noElevationData: '고도 데이터 없음',
   noTimestampData: '시간 데이터 없음',
+  routeSourceNote: '이 GPX는 기록된 트랙 포인트가 아닌 경로 포인트로 구성되어 있습니다. 시간, 심박수 등 활동 데이터는 사용할 수 없습니다.',
 
   // Heart Rate Zones
   hrZones: '심박 존',

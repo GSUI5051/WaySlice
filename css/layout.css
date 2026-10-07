@@ -109,6 +109,41 @@
 }
 .file-chip-popover .file-chip-pop-row + .file-chip-pop-row { margin-block-start: 2px; }
 
+/* The route-source notice — a lone warning square shown only for degraded
+   route GPX files (js/ui/routeNote.js), shaped after the chip's compact
+   info button so the pair reads as one family. The triangle wears the
+   heart-rate curve red (--series-hr, identical in both themes — the chart's
+   alarm color); hover deepens it to the same family's per-theme text
+   variant. */
+.route-note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface-muted);
+  color: var(--series-hr);
+  cursor: pointer;
+}
+
+.route-note .btn-icon-slot {
+  width: 20px;
+  height: 20px;
+  justify-content: center;
+}
+
+.route-note:hover { color: var(--series-hr-text); }
+
+/* Coarse-pointer hit-area extension: the same 12px transparent margin the
+   chip's info button gains, visually unchanged; the marker sits in clear
+   header space, so the extension covers no neighboring control. */
+@media (hover: none) and (pointer: coarse) {
+  .route-note { position: relative; }
+  .route-note::after { content: ""; position: absolute; inset: -12px; }
+}
+
 .header-actions {
   margin-inline-start: auto;
   display: flex;

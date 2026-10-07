@@ -16,6 +16,13 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-07',
+      ps: [
+        'GPX files that carry a <rte> route instead of a recorded <trk> track now load. Race websites hand out this form. The route points enter the same pipeline as track points, so the map line, the distance, the elevation profile, gain and loss, sectors and waypoints all work as usual.',
+        'Route files never invent activity data. Time, speed, pace, heart rate and cadence stay unavailable and say so. A warning square next to the file chip explains why: the file is a route rather than a recording, and clicking it shows the full notice. A file with both forms uses the track and ignores the route.',
+      ],
+    },
+    {
       h: '2026-10-06',
       ps: [
         'The pinned waypoint now stands out on the map: its marker wears a pushpin badge filled in the waypoint purple, outlined in the same border color as every waypoint, with the needle planted on the marker\'s center. The badge follows a new pin and disappears when the pin clears, so the pinned spot reads at a glance.',

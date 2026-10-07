@@ -7,6 +7,7 @@ import { parseTCX } from '../js/parsers/tcx.js';
 import { detectFormat, parseTrackFile } from '../js/parsers/index.js';
 import { ParseError } from '../js/parsers/parseError.js';
 import { prepareTrack } from '../js/geo/track.js';
+import { runParseJob } from '../js/workers/parseJob.js';
 import { buildStoredZip, deflateRaw } from './helpers.js';
 
 const GPX_FULL = `<?xml version="1.0" encoding="UTF-8"?>
@@ -139,6 +140,99 @@ suite('parsers / gpx waypoints', () => {
   test('a track-only file yields an empty waypoint array', () => {
     const { waypoints } = parseGPX(GPX_FULL);
     assert.equal(waypoints.length, 0);
+  });
+});
+
+suite('parsers / gpx route (rtept degraded source)', () => {
+  const GPX_ROUTE = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="WaySlice tests" xmlns="http://www.topografix.com/GPX/1/1">
+  <rte><name>Race course</name>
+    <rtept lat="47.2000" lon="11.3000"><ele>900</ele></rtept>
+    <rtept lat="47.2010" lon="11.3010"><ele>910</ele></rtept>
+    <rtept lat="47.2020" lon="11.3020"><ele>930</ele></rtept>
+  </rte>
+</gpx>`;
+
+  test('route points parse in order with elevation, no fabricated time or sensors', () => {
+    const parsed = parseGPX(GPX_ROUTE);
+    assert.equal(parsed.sourceType, 'route');
+    assert.equal(parsed.points.length, 3);
+    assert.closeTo(parsed.points[1].lat, 47.201, 1e-9);
+    assert.equal(parsed.points[2].ele, 930);
+    assert.equal(parsed.points[0].time, null);
+    assert.equal(parsed.points[0].hr, null);
+    assert.equal(parsed.points[0].speed, null);
+  });
+
+  test('a route track computes distance but has no time series', () => {
+    const track = prepareTrack(parseGPX(GPX_ROUTE).points, 'route.gpx');
+    assert.equal(track.sourceType, undefined); // only runParseJob stamps the flag
+    assert.truthy(track.totalDistance > 0);
+    assert.equal(track.hasElevation, true);
+    assert.equal(track.hasTime, false);
+    assert.equal(track.hasHr, false);
+  });
+
+  test('route without <ele> degrades honestly (no fabricated elevation)', () => {
+    const gpx = GPX_ROUTE.replace(/<ele>[^<]*<\/ele>/g, '');
+    const parsed = parseGPX(gpx);
+    assert.equal(parsed.sourceType, 'route');
+    assert.equal(parsed.points.length, 3);
+    const track = prepareTrack(parsed.points, 'r');
+    assert.equal(track.hasElevation, false);
+    assert.equal(track.eleMin, null);
+    assert.equal(track.eleMax, null);
+  });
+
+  test('trkpt wins over rtept: both present means track points only, never merged', () => {
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="WaySlice tests" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lat="47.2000" lon="11.3000"><ele>900</ele><time>2026-08-15T07:00:00Z</time></trkpt>
+    <trkpt lat="47.2010" lon="11.3010"><ele>910</ele><time>2026-08-15T07:01:00Z</time></trkpt>
+  </trkseg></trk>
+  <rte>
+    <rtept lat="47.5000" lon="11.5000"><ele>1000</ele></rtept>
+    <rtept lat="47.5100" lon="11.5100"><ele>1100</ele></rtept>
+    <rtept lat="47.5200" lon="11.5200"><ele>1200</ele></rtept>
+  </rte>
+</gpx>`;
+    const parsed = parseGPX(gpx);
+    assert.equal(parsed.sourceType, 'track');
+    assert.equal(parsed.points.length, 2); // route points neither append nor replace
+    assert.equal(parsed.points[0].time, Date.parse('2026-08-15T07:00:00Z'));
+  });
+
+  test('a track file reports sourceType track', () => {
+    assert.equal(parseGPX(GPX_FULL).sourceType, 'track');
+  });
+
+  test('invalid route points are filtered; empty route leaves nothing usable', () => {
+    const invalid = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="WaySlice tests" xmlns="http://www.topografix.com/GPX/1/1">
+  <rte>
+    <rtept lat="nan" lon="11.3"><ele>900</ele></rtept>
+    <rtept lat="47.2" lon="not-a-number"></rtept>
+  </rte>
+</gpx>`;
+    const parsed = parseGPX(invalid);
+    assert.equal(parsed.sourceType, 'track'); // nothing usable → no route claim
+    assert.equal(parsed.points.length, 0);
+    assert.equal(parseGPX('<gpx version="1.1"><rte></rte></gpx>').points.length, 0);
+  });
+
+  test('runParseJob stamps sourceType and rejects a route with too few points', async () => {
+    const buffer = (gpx) => new TextEncoder().encode(gpx).buffer;
+    const route = await runParseJob(buffer(GPX_ROUTE), 'course.gpx');
+    assert.equal(route.sourceType, 'route');
+    assert.equal(route.hasTime, false);
+    const plain = await runParseJob(buffer(GPX_FULL), 'track.gpx');
+    assert.equal(plain.sourceType, 'track');
+    let err = null;
+    try { await runParseJob(buffer('<gpx version="1.1"><rte></rte></gpx>'), 'empty.gpx'); }
+    catch (e) { err = e; }
+    assert.truthy(err instanceof ParseError);
+    assert.equal(err.key, 'errorNoTrackPoints');
   });
 });
 

@@ -14,6 +14,7 @@ import { initDualVariableAnalysis } from './charts/dual-variable-analysis/index.
 import { initMetricsPanel } from './ui/metricsPanel.js';
 import { initUpload } from './ui/upload.js';
 import { initFileChip, setFileChipContent } from './ui/fileChip.js';
+import { initRouteNote } from './ui/routeNote.js';
 import { initExport } from './export/exporter.js';
 import { initAutoSegments } from './ui/autoSegments.js';
 import { initSheets, openDetailsSheet } from './ui/sheets.js';
@@ -59,6 +60,7 @@ async function boot() {
     openButtons: [document.getElementById('btn-open')],
   });
   initFileChip(document.getElementById('app-header'));
+  initRouteNote();
   initExport(document.getElementById('btn-export'));
   initAutoSegments(document.getElementById('btn-auto-segments'));
   initDualVariableAnalysis({
@@ -187,7 +189,8 @@ function wireStores() {
     document.getElementById('btn-waypoint-snap').hidden = !hasWaypoints;
     refreshWaypointsButton();
 
-    // "No elevation data" hint above the profile.
+    // "No elevation data" hint above the profile. Route sources announce
+    // themselves in the header instead (js/ui/routeNote.js).
     document.getElementById('profile-note').hidden = track.hasElevation;
 
     document.getElementById('file-chip').hidden = false;

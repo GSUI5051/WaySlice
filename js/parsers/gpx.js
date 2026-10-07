@@ -1,6 +1,13 @@
 /**
  * GPX 1.0/1.1 parser — <trk><trkseg><trkpt> track points plus root-level
- * <wpt> waypoints (routes remain out of scope; see roadmap).
+ * <wpt> waypoints.
+ *
+ * Files that carry only <rte>/<rtept> route points (the form race
+ * organizers often publish) load as a degraded route source: the points
+ * enter the same TrackPoint array with time and sensors null, and the
+ * result is flagged sourceType 'route' so the UI can say what is
+ * unavailable. <trkpt> always wins when both forms are present; the two
+ * are never merged.
  *
  * Extensions are read namespace-agnostically via localName so the common
  * Garmin TrackPointExtension (hr / cad / atemp) and the Garmin Power
@@ -33,6 +40,21 @@ export function parseGPX(text) {
     }
   }
 
+  // Degraded route source: only when the file has no usable track point do
+  // the <rtept> route points feed the same TrackPoint array. readPoint
+  // validates lat/lon and reads ele — an rtept carries nothing else in the
+  // wild, and any time/speed a producer did include stays honest data.
+  let sourceType = 'track';
+  if (!points.length) {
+    for (const rte of doc.getElementsByTagName('rte')) {
+      for (const pt of rte.getElementsByTagName('rtept')) {
+        const p = readPoint(pt);
+        if (p) points.push(p);
+      }
+    }
+    if (points.length) sourceType = 'route';
+  }
+
   /** @type {import('../types.js').Waypoint[]} */
   const waypoints = [];
   // <wpt> only appears at the GPX root, so a doc-wide lookup is safe
@@ -42,7 +64,7 @@ export function parseGPX(text) {
     if (w) waypoints.push(w);
   }
 
-  return { points, waypoints };
+  return { points, waypoints, sourceType };
 }
 
 /** @private */

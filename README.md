@@ -136,7 +136,7 @@ capital letter, it means exactly this:
 
 | Format | Geometry | Elevation | Timestamps |
 |--------|----------|-----------|------------|
-| `.gpx` | `<trk><trkseg><trkpt>` (multi-segment) | ✅ | ✅ |
+| `.gpx` | `<trk><trkseg><trkpt>` (multi-segment); `<rte><rtept>` as a degraded route source | ✅ | ✅ |
 | `.fit` | Garmin FIT binary activity files | ✅ | ✅ |
 | `.tcx` | TrainingCenterDatabase XML | ✅ | ✅ |
 | `.kml` | `LineString` + `gx:Track` | ✅ (from coordinates) | ✅ (`gx:Track` / `<when>`) |
@@ -147,7 +147,11 @@ FIT decoding is done by the vendored [fit-parser](https://github.com/jimmykane/f
 namespace-agnostically: Garmin TrackPointExtension (heart rate, cadence, temperature, speed,
 distance) and the three common power flavors (bare `<power>`, `PowerInWatts`, `ns3:Watts`). Every
 format funnels into the same track-point model, so sector metrics work identically regardless of
-the source format.
+the source format. Race websites often publish GPX files whose geometry is a `<rte>` route instead
+of a recorded `<trk>` track. WaySlice loads those as a degraded route source: map, distance and
+elevation analysis work, while the time, speed and heart-rate metrics read Unavailable instead of
+showing invented numbers. When a file carries both, the recorded track wins and the route is
+ignored.
 
 ## Getting started
 
@@ -254,7 +258,7 @@ http://localhost:8080/tests/
 
 The suite covers distance math, interpolation between points, gradient windows, time metrics,
 GPX/FIT/TCX/KML/KMZ parsing (including malformed files and archives, plus the GPX power and
-sensor-extension flavors), the theme preference matrix
+sensor-extension flavors and the degraded `<rtept>` route source), the theme preference matrix
 (system/manual × OS light/dark), the language fallback chain, and Metric/Imperial conversions
 (including pace rounding, VAM, persistence and unit-independent gradients), plus the sector
 export (csv/txt/md/gpx content and file names).

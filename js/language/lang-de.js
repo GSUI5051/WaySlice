@@ -223,6 +223,7 @@ const lang_de = {
   unavailable: 'Nicht verfügbar',
   noElevationData: 'Keine Höhendaten',
   noTimestampData: 'Keine Zeitstempeldaten',
+  routeSourceNote: 'Dieses GPX enthält Routenpunkte statt aufgezeichneter Trackpunkte. Zeit, Herzfrequenz und andere Aktivitätsdaten sind nicht verfügbar.',
 
   // Heart Rate Zones
   hrZones: 'Herzfrequenz-Zonen',

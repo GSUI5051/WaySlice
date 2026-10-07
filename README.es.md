@@ -150,7 +150,7 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
 
 | Formato | Geometría | Altitud | Marcas de tiempo |
 |--------|----------|-----------|------------|
-| `.gpx` | `<trk><trkseg><trkpt>` (multisegmento) | ✅ | ✅ |
+| `.gpx` | `<trk><trkseg><trkpt>` (multisegmento); `<rte><rtept>` como fuente de ruta degradada | ✅ | ✅ |
 | `.fit` | Archivos de actividad binarios Garmin FIT | ✅ | ✅ |
 | `.tcx` | XML TrainingCenterDatabase | ✅ | ✅ |
 | `.kml` | `LineString` + `gx:Track` | ✅ (de las coordenadas) | ✅ (`gx:Track` / `<when>`) |
@@ -161,7 +161,11 @@ El decodificado FIT lo realiza la biblioteca [fit-parser](https://github.com/jim
 GPX se leen sin fijarse en el espacio de nombres: Garmin TrackPointExtension (frecuencia cardíaca,
 cadencia, temperatura, velocidad, distancia) y las tres variantes habituales de potencia (`<power>`
 desnuda, `PowerInWatts`, `ns3:Watts`). Todos los formatos desembocan en el mismo modelo de punto de
-traza, así que las métricas del tramo funcionan igual con independencia del formato de origen.
+traza, así que las métricas del tramo funcionan igual con independencia del formato de origen. Las webs
+de carreras publican a menudo GPX cuya geometría es una `<rte>` de ruta en lugar de una `<trk>` grabada.
+WaySlice los carga como fuente de ruta degradada: el mapa, la distancia y el análisis de altitud
+funcionan, mientras que el tiempo, la velocidad y la frecuencia cardíaca se muestran como «No disponible»
+en lugar de inventar valores. Si el archivo contiene ambos, gana la traza grabada y la ruta se ignora.
 
 ## Primeros pasos
 

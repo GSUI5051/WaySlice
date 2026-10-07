@@ -151,7 +151,7 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
 
 | Format | Geometrie | Höhe | Zeitstempel |
 |--------|----------|-----------|------------|
-| `.gpx` | `<trk><trkseg><trkpt>` (mehrere Segmente) | ✅ | ✅ |
+| `.gpx` | `<trk><trkseg><trkpt>` (mehrere Segmente); `<rte><rtept>` als degradierte Routenquelle | ✅ | ✅ |
 | `.fit` | Binäre Garmin-FIT-Aktivitätsdateien | ✅ | ✅ |
 | `.tcx` | TrainingCenterDatabase-XML | ✅ | ✅ |
 | `.kml` | `LineString` + `gx:Track` | ✅ (aus den Koordinaten) | ✅ (`gx:Track` / `<when>`) |
@@ -163,7 +163,11 @@ eingebauter DOM-Parser. GPX-Sensorerweiterungen werden unabhängig vom Namespace
 TrackPointExtension (Herzfrequenz, Trittfrequenz, Temperatur, Geschwindigkeit, Distanz) und die drei
 gängigen Leistungsvarianten (nacktes `<power>`, `PowerInWatts`, `ns3:Watts`). Alle Formate münden in
 dasselbe Trackpunkt-Modell, die Abschnittsmesswerte funktionieren also identisch, egal woher die Datei
-stammt.
+stammt. Renn-Websites veröffentlichen oft GPX-Dateien, deren Geometrie eine `<rte>`-Route statt eines
+aufgezeichneten `<trk>`-Tracks ist. WaySlice lädt solche Dateien als degradierte Routenquelle: Karte,
+Distanz und Höhenanalyse funktionieren, während Zeit-, Geschwindigkeits- und Herzfrequenzwerte „Nicht
+verfügbar" anzeigen, statt Zahlen zu erfinden. Enthält eine Datei beides, gewinnt der aufgezeichnete
+Track und die Route wird ignoriert.
 
 ## Erste Schritte
 

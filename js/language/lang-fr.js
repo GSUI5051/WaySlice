@@ -221,6 +221,7 @@ const lang_fr = {
   unavailable: 'Indisponible',
   noElevationData: 'Pas de données d’altitude',
   noTimestampData: 'Pas de données d’horodatage',
+  routeSourceNote: 'Ce GPX contient des points de route plutôt que des points de trace enregistrés. Le temps, la fréquence cardiaque et les autres données d’activité sont indisponibles.',
 
   // Heart Rate Zones
   hrZones: 'Zones de fréquence cardiaque',

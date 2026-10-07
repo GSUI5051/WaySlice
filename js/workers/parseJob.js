@@ -17,7 +17,11 @@ import { ParseError, PARSE_ERROR_KEYS } from '../parsers/parseError.js';
  */
 export async function runParseJob(buffer, fileName) {
 	const format = detectFormat(fileName, buffer);
-	const { points, waypoints } = await parseTrackFile(buffer, format);
+	const { points, waypoints, sourceType = 'track' } = await parseTrackFile(buffer, format);
 	if (points.length < 2) throw new ParseError(PARSE_ERROR_KEYS.noTrack);
-	return prepareTrack(points, fileName.replace(/\.[^.]+$/, ''), waypoints);
+	const track = prepareTrack(points, fileName.replace(/\.[^.]+$/, ''), waypoints);
+	// Always stamped so the source kind is explicit on every Track: 'route'
+	// marks the degraded GPX <rtept> source, 'track' everything else.
+	track.sourceType = sourceType;
+	return track;
 }

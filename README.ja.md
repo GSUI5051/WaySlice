@@ -92,13 +92,13 @@ WaySlice はオープンソースの純フロントエンド GPX/FIT/TCX/KML/KMZ
 
 | フォーマット | ジオメトリ | 標高 | タイムスタンプ |
 |--------|----------|-----------|------------|
-| `.gpx` | `<trk><trkseg><trkpt>`（複数セグメント） | ✅ | ✅ |
+| `.gpx` | `<trk><trkseg><trkpt>`（複数セグメント）、`<rte><rtept>` は劣化ルートソース | ✅ | ✅ |
 | `.fit` | Garmin FIT バイナリのアクティビティファイル | ✅ | ✅ |
 | `.tcx` | TrainingCenterDatabase XML | ✅ | ✅ |
 | `.kml` | `LineString` + `gx:Track` | ✅（座標から） | ✅（`gx:Track` / `<when>`） |
 | `.kmz` | ZIP → KML（ネイティブ `DecompressionStream`、ライブラリー不要） | ✅ | ✅ |
 
-FIT のデコードは、同梱の [fit-parser](https://github.com/jimmykane/fit-parser) ライブラリー（MIT、`vendor/fit-parser/`）が担い、TCX は内蔵の DOM パーサーで直接読みます。GPX の一般的なセンサー拡張は localName で識別され、名前空間プレフィックスは問いません：Garmin TrackPointExtension（心拍/ケイデンス/気温/速度/距離）と 3 種類のパワー表記（裸の `<power>`、`PowerInWatts`、`ns3:Watts`）。すべてのフォーマットは同じトラックポイントモデルに流れ込むため、セクター指標はソース形式に依存しません。
+FIT のデコードは、同梱の [fit-parser](https://github.com/jimmykane/fit-parser) ライブラリー（MIT、`vendor/fit-parser/`）が担い、TCX は内蔵の DOM パーサーで直接読みます。GPX の一般的なセンサー拡張は localName で識別され、名前空間プレフィックスは問いません：Garmin TrackPointExtension（心拍/ケイデンス/気温/速度/距離）と 3 種類のパワー表記（裸の `<power>`、`PowerInWatts`、`ns3:Watts`）。すべてのフォーマットは同じトラックポイントモデルに流れ込むため、セクター指標はソース形式に依存しません。レース公式サイトが配布する GPX には、記録された `<trk>` ではなく `<rte>`（ルート）で幾何を持つものがあります。WaySlice はそれらを劣化ルートソースとして読み込みます。地図・距離・標高の分析はそのまま機能し、時刻・速度・心拍などの指標はでたらめな数値を表示する代わりに「データなし」と明示します。両方が含まれるファイルでは、記録されたトラックを優先し、ルートは無視します。
 
 ## はじめに
 
