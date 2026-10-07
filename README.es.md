@@ -90,9 +90,14 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   centra el mapa, y al enfocar una chincheta se muestra su ventana emergente con el nombre, igual que
   al pasar el cursor.
 - **Mapa satelital híbrido.** El botón en la esquina superior izquierda del mapa activa una
-  superposición de red viaria en las bases satelitales: carreteras vectoriales, nombres de calles
-  y etiquetas de lugares se dibujan sobre la imagen — siempre bajo la traza. El botón solo está
-  activo con una base satelital, y cambiar de base apaga la superposición.
+  superposición de red viaria en las bases satelitales: carreteras vectoriales, nombres de calles,
+  etiquetas de lugares y hitos naturales — cumbres, collados, volcanes, entradas de cuevas,
+  manantiales, rocas y piedras, con las elevaciones en tus unidades — se dibujan sobre la imagen,
+  siempre bajo la traza. Las etiquetas de los hitos naturales apilan el nombre local original bajo
+  el nombre principal, como todas las etiquetas de la superposición, y al acercar el zoom los hitos
+  naturales nunca se pierden: una cumbre sigue en el mapa más allá del límite de detalle de las
+  teselas viarias, y una que ya hayas visto conserva su sitio mientras sigas acercándote. El botón
+  solo está activo con una base satelital, y cambiar de base apaga la superposición.
 - **Zoom con rueda en el perfil (escritorio), zoom por pellizco (táctil).** Coloca el cursor sobre el
   perfil altimétrico y haz scroll para hacer zoom en su eje de distancia/tiempo alrededor del cursor;
   Mayús + arrastre para desplazarlo; en pantallas táctiles, un dedo desplaza y un pellizco de dos dedos hace zoom. Doble
@@ -395,7 +400,7 @@ Las traducciones existentes ([English](README.md), [日本語](README.ja.md), [�
 [Italiano](README.it.md)) te sirven de ejemplo. Para añadir una:
 
 1. Copia este `README.md` (o cualquier traducción existente) como `README.xx.md`
-   (`xx` = un código BCP 47, p. ej. `README.pt-BR.md`).
+   (`xx` = un código BCP 47, p. ej. `README.de.md`).
 2. Traduce el texto. Mantén sin cambios la estructura, el orden de las secciones, las tablas, los
    bloques de código y las rutas de archivos, para que todas las versiones sigan siendo fáciles de
    comparar y mantener.

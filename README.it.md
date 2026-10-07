@@ -89,9 +89,14 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   anche da tastiera: Tab passa da una all'altra, Invio o Spazio centra la mappa e una puntina con il
   focus mostra la sua soffietta, come al passaggio del mouse.
 - **Mappa satellite ibrida.** Il pulsante in alto a sinistra dell'area mappa attiva una
-  sovrapposizione della rete stradale sulle basi satellitari: strade vettoriali, nomi delle strade
-  ed etichette dei luoghi vengono disegnati sopra le immagini — sempre sotto la traccia. Il
-  pulsante è attivo solo con una base satellitare, e cambiare base spegne la sovrapposizione.
+  sovrapposizione della rete stradale sulle basi satellitari: strade vettoriali, nomi delle strade,
+  etichette dei luoghi e punti di riferimento naturali — vette, selle, vulcani, ingressi di
+  grotte, sorgenti, rocce e pietre, con le elevazioni nelle tue unità — vengono disegnati sopra le
+  immagini, sempre sotto la traccia. Le etichette dei punti naturali sovrappongono il nome locale
+  originale sotto il nome principale, come tutte le etichette della sovrapposizione, e lo zoom non
+  fa mai perdere i punti naturali: una vetta resta sulla mappa oltre il limite di dettaglio delle
+  tile stradali, e una già vista conserva il suo posto mentre continui ad avvicinarti. Il pulsante
+  è attivo solo con una base satellitare, e cambiare base spegne la sovrapposizione.
 - **Zoom a rotella del profilo (desktop), zoom a pizzico (touch).** Passa col cursore sul profilo
   altimetrico e scorri per ingrandire l'asse distanza/tempo attorno al cursore; Maiusc + trascinamento
   per spostarlo; sul touch, un dito sposta e un pizzico di due dita fa zoom. Un doppio clic in un punto qualsiasi del
@@ -390,7 +395,7 @@ Le traduzioni esistenti ([English](README.md), [日本語](README.ja.md), [한�
 [Español](README.es.md)) sono il tuo esempio. Per aggiungerne una:
 
 1. Copia questo `README.md` (o qualsiasi traduzione esistente) in `README.xx.md`
-   (`xx` = un codice BCP 47, es. `README.pt-BR.md`).
+   (`xx` = un codice BCP 47, es. `README.es.md`).
 2. Traduci il testo. Mantieni invariati struttura, ordine delle sezioni, tabelle, blocchi di codice e
    percorsi dei file, così tutte le versioni restano facili da confrontare e mantenere.
 3. Aggiorna la riga di cambio lingua sotto il titolo in **ogni** README: aggiungi la tua lingua come

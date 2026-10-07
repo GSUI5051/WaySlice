@@ -87,12 +87,17 @@ majuscule, il faut le prendre exactement au sens suivant :
   affichés sous forme d'épingles avec leur nom en info-bulle — activez-les avec le bouton épingle
   sous « Cadrer sur la trace ». Survoler une épingle marque le point correspondant sur le profil
   altimétrique, et cliquer dessus centre la carte dessus sans changer le niveau de zoom. Les épingles
-  se manipulent aussi au clavier : Tab passe de l'une à l)autre, Entrée ou Espace centre la carte, et
+  se manipulent aussi au clavier : Tab passe de l'une à l'autre, Entrée ou Espace centre la carte, et
   le focus sur une épingle affiche son info-bulle, comme au survol.
 - **Carte satellite hybride.** Le bouton en haut à gauche de la carte active une superposition du
-  réseau routier sur les fonds satellite : routes vectorielles, noms de rues et toponymes se
-  dessinent au-dessus de l'imagerie — toujours sous la trace. Le bouton n'est actif que sur un
-  fond satellite, et changer de fond désactive la superposition.
+  réseau routier sur les fonds satellite : routes vectorielles, noms de rues, toponymes et repères
+  naturels — sommets, cols, volcans, entrées de grottes, sources, rochers et pierres, avec les
+  altitudes dans vos unités — se dessinent au-dessus de l'imagerie, toujours sous la trace. Les
+  étiquettes des repères naturels empilent le nom local d'origine sous le nom principal, comme
+  toutes les étiquettes de la superposition, et zoomer ne fait jamais perdre les repères : un
+  sommet reste sur la carte au-delà de la limite de détail des tuiles routières, et un repère déjà
+  vu garde sa place à mesure qu'on zoome davantage. Le bouton n'est actif que sur un fond
+  satellite, et changer de fond désactive la superposition.
 - **Zoom molette du profil (bureau), zoom par pincement (tactile).** Survolez le profil altimétrique
   et faites défiler pour zoomer son axe distance/temps autour du curseur ; Maj + glisser pour
   déplacer ; sur tactile, un doigt déplace et un pincement à deux doigts fait de même. Double-cliquer n'importe où sur

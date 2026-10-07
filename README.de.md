@@ -394,7 +394,7 @@ Die vorhandenen Übersetzungen ([English](README.md), [日本語](README.ja.md),
 [Italiano](README.it.md)) sind deine Vorbilder. So fügst du eine hinzu:
 
 1. Kopiere dieses `README.md` (oder eine beliebige vorhandene Übersetzung) zu `README.xx.md`
-   (`xx` = ein BCP-47-Code, z. B. `README.pt-BR.md`).
+   (`xx` = ein BCP-47-Code, z. B. `README.es.md`).
 2. Übersetze den Fließtext. Lass Struktur, Kapitelreihenfolge, Tabellen, Codeblöcke und Dateipfade
    unverändert, damit alle Versionen leicht zu vergleichen und zu pflegen bleiben.
 3. Aktualisiere die Sprachwechselleiste unter dem Titel in **jedem** README: Ergänze deine Sprache in
