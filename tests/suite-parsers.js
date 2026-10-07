@@ -100,10 +100,12 @@ suite('parsers / gpx', () => {
 });
 
 suite('parsers / gpx waypoints', () => {
+  // Trailhead and Summit sit a few meters off the 2-point track; the
+  // nameless wpt is ~690 m away, so prepareTrack's 50 m rule drops it.
   const GPX_WPT = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="WaySlice tests" xmlns="http://www.topografix.com/GPX/1/1">
-  <wpt lat="47.1900" lon="11.2950"><ele>700</ele><time>2026-08-15T06:50:00Z</time><name><![CDATA[Trailhead]]></name><sym>Flag, Blue</sym></wpt>
-  <wpt lat="47.2100" lon="11.3150"><name>Summit</name></wpt>
+  <wpt lat="47.2002" lon="11.3001"><ele>700</ele><time>2026-08-15T06:50:00Z</time><name><![CDATA[Trailhead]]></name><sym>Flag, Blue</sym></wpt>
+  <wpt lat="47.2009" lon="11.3009"><name>Summit</name></wpt>
   <wpt lat="47.2050" lon="11.3080"><name></name></wpt>
   <trk><trkseg>
     <trkpt lat="47.2000" lon="11.3000"><ele>900</ele></trkpt>
@@ -115,8 +117,8 @@ suite('parsers / gpx waypoints', () => {
     const { points, waypoints } = parseGPX(GPX_WPT);
     assert.equal(points.length, 2);       // waypoints stay out of the track
     assert.equal(waypoints.length, 3);
-    assert.closeTo(waypoints[0].lat, 47.19, 1e-9);
-    assert.closeTo(waypoints[0].lon, 11.295, 1e-9);
+    assert.closeTo(waypoints[0].lat, 47.2002, 1e-9);
+    assert.closeTo(waypoints[0].lon, 11.3001, 1e-9);
     assert.equal(waypoints[0].name, 'Trailhead');
     assert.equal(waypoints[0].ele, 700);
     assert.equal(waypoints[0].time, Date.parse('2026-08-15T06:50:00Z'));
@@ -129,11 +131,15 @@ suite('parsers / gpx waypoints', () => {
     assert.equal(waypoints[2].ele, null);
   });
 
-  test('prepareTrack carries waypoints without touching track math', () => {
+  test('prepareTrack resolves waypoints onto the track, ordered, 50 m rule applied', () => {
     const { points, waypoints } = parseGPX(GPX_WPT);
     const track = prepareTrack(points, 'g', waypoints);
-    assert.equal(track.waypoints.length, 3);
+    assert.equal(track.waypoints.length, 2);  // the far wpt never reaches the track
     assert.equal(track.waypoints[0].name, 'Trailhead');
+    assert.closeTo(track.waypoints[0].dist, 22.64, 0.5);
+    assert.closeTo(track.waypoints[0].offTrack, 6.25, 0.5);
+    assert.equal(track.waypoints[1].name, 'Summit');
+    assert.closeTo(track.waypoints[1].dist, 120.99, 0.5);
     assert.equal(track.pointCount, 2);
   });
 

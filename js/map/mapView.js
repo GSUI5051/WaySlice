@@ -689,12 +689,10 @@ function rebuildWaypoints() {
   waypointPlates = [];
   const wpts = track?.waypoints || [];
   if (!wpts.length || !waypointsVisible) return;
-  let hint = 0;
   layers.waypoints = wpts.map((w, i) => {
-    // Resolve the waypoint onto the track once, so pin hovers can point the
-    // elevation profile at the exact x position.
-    const near = nearestOnTrack(track, w.lat, w.lon, hint);
-    hint = near.i;
+    // Waypoints arrive resolved onto the track by prepareTrack (sorted by
+    // that distance), so pin hovers can point the elevation profile at the
+    // exact x position without a lookup here.
     const el = document.createElement('div');
     el.className = 'map-waypoint-icon';
     el.innerHTML = `<div class="map-waypoint" style="--waypoint-color:${cssToken('--map-waypoint')}"></div>`;
@@ -717,9 +715,9 @@ function rebuildWaypoints() {
     const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
       .setLngLat([w.lon, w.lat])
       .addTo(map);
-    el.addEventListener('mouseover', () => emit('waypoint:hover', { dist: near.dist, name: w.name || null }));
+    el.addEventListener('mouseover', () => emit('waypoint:hover', { dist: w.dist, name: w.name || null }));
     el.addEventListener('mouseout', () => emit('waypoint:hover', { dist: null }));
-    el.addEventListener('focus', () => emit('waypoint:hover', { dist: near.dist, name: w.name || null }));
+    el.addEventListener('focus', () => emit('waypoint:hover', { dist: w.dist, name: w.name || null }));
     el.addEventListener('blur', () => emit('waypoint:hover', { dist: null }));
     // Clicking a waypoint centers the viewport on it; panTo keeps the
     // current zoom level untouched. The profile (wide screens only) pans
@@ -729,14 +727,14 @@ function rebuildWaypoints() {
     // coordinates, so a lat/lon match could flag both.
     el.addEventListener('click', () => {
       map.panTo([w.lon, w.lat]);
-      emit('waypoint:select', { dist: near.dist, name: w.name || null, index: i });
+      emit('waypoint:select', { dist: w.dist, name: w.name || null, index: i });
     });
     el.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
       el.click();
     });
-    waypointPlates.push({ el, dist: near.dist, name: w.name || null, lat: w.lat, lon: w.lon });
+    waypointPlates.push({ el, dist: w.dist, name: w.name || null, lat: w.lat, lon: w.lon });
     return marker;
   });
 }

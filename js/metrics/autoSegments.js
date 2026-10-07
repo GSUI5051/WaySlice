@@ -8,7 +8,6 @@
  *  - splitByGrade:  climb / descent / flat stretches from the window-smoothed
  *    gradient, with short transitions merged into their predecessor
  */
-import { nearestOnTrack } from '../geo/interpolate.js';
 import { GRADIENT_WINDOW_M } from './sectorMetrics.js';
 
 /** A segment shorter than this is not worth its own row, meters. */
@@ -98,9 +97,9 @@ export function splitByGrade(track) {
 }
 
 /**
- * Splits the track at its waypoints — the CP-to-CP table. Each waypoint is
- * resolved to its nearest distance along the track (file order primes the
- * search, same as the profile's waypoint placement); a boundary closer than
+ * Splits the track at its waypoints — the CP-to-CP table. The waypoints
+ * arrive resolved onto the track (each carries its `dist` along the track,
+ * ordered by it, off-track ones already dropped); a boundary closer than
  * WAYPOINT_MIN_SPACING_M to the previous one or to either track end folds
  * away instead of producing a sliver segment. `name` carries the waypoint
  * name at each segment's start boundary (null for the track start) so the
@@ -114,14 +113,11 @@ export function splitByWaypoints(track) {
   const wpts = track.waypoints || [];
   if (!wpts.length) return null;
   const total = track.totalDistance;
-  let hint = 0;
   const bounds = [{ dist: 0, name: null }];
   for (const w of wpts) {
-    const near = nearestOnTrack(track, w.lat, w.lon, hint);
-    hint = near.i;
     const prev = bounds[bounds.length - 1];
-    if (near.dist - prev.dist >= WAYPOINT_MIN_SPACING_M && total - near.dist >= WAYPOINT_MIN_SPACING_M) {
-      bounds.push({ dist: near.dist, name: w.name || null });
+    if (w.dist - prev.dist >= WAYPOINT_MIN_SPACING_M && total - w.dist >= WAYPOINT_MIN_SPACING_M) {
+      bounds.push({ dist: w.dist, name: w.name || null });
     }
   }
   bounds.push({ dist: total, name: null });

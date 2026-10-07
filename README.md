@@ -78,7 +78,9 @@ capital letter, it means exactly this:
 - **Map + elevation profile.** Drag the sector handles on either surface. Both stay in sync in
   real time, and a boundary can sit anywhere between two track points, interpolation included.
 - **Waypoints on map and profile.** GPX (`<wpt>`) and KML (`<Point>`) waypoints render as pins
-  with name tooltips — toggle them with the pin button below "zoom to track". Hovering a pin
+  with name tooltips — toggle them with the pin button below "zoom to track". Each waypoint is
+  matched to its nearest spot on the track and shown in track order; one lying more than 50 m
+  from the track is not shown at all. Hovering a pin
   marks the matching spot on the elevation profile, and clicking one centers the map on it without
   changing the zoom level. The pins work from the keyboard too: Tab moves between them, Enter or
   Space centers the map, and focusing a pin shows its name tooltip the same way hovering does.

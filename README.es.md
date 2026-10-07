@@ -84,7 +84,8 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   puntos de traza, interpolación incluida.
 - **Waypoints en el mapa y el perfil.** Los waypoints de GPX (`<wpt>`) y KML (`<Point>`) se dibujan
   como chinchetas con su nombre en una ventana emergente — actívalos con el botón de chincheta situado
-  bajo «Zoom a la traza». Al pasar el cursor sobre una chincheta se marca el punto correspondiente en
+  bajo «Zoom a la traza». Cada waypoint se ajusta a su punto más cercano de la traza y se muestra en el
+  orden de la traza; el que quede a más de 50 m de la traza no se muestra. Al pasar el cursor sobre una chincheta se marca el punto correspondiente en
   el perfil altimétrico, y al hacer clic en ella el mapa se centra en ese punto sin cambiar el nivel de
   zoom. Las chinchetas también se manejan con el teclado: Tab se mueve entre ellas, Intro o Espacio
   centra el mapa, y al enfocar una chincheta se muestra su ventana emergente con el nombre, igual que

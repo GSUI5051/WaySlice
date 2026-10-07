@@ -34,7 +34,6 @@
  * accident.
  */
 import { sectorStore } from '../../sector/sectorStore.js';
-import { nearestOnTrack } from '../../geo/interpolate.js';
 import { trackStore } from '../../core/stores.js';
 import { emit, on } from '../../core/events.js';
 import { state, isWideLayout } from './profile-state.js';
@@ -210,19 +209,12 @@ export function setProfileTrack(newTrack) {
 }
 
 /**
- * Resolves each waypoint to its nearest distance along the track so the
- * profile can place it on the x axis in either mode. File-ordered waypoints
- * are usually monotonic, so the previous hit primes the next search.
+ * The track's waypoints arrive resolved onto the track (each carries its
+ * `dist` along the track, ordered by it) — the profile only strips them to
+ * the pair the pins draw from.
  * @private
  */
 function rebuildProfileWaypoints() {
-  const wpts = state.track?.waypoints || [];
-  const out = [];
-  let hint = 0;
-  for (const w of wpts) {
-    const near = nearestOnTrack(state.track, w.lat, w.lon, hint);
-    hint = near.i;
-    out.push({ dist: near.dist, name: w.name || null });
-  }
-  state.profileWaypoints = out;
+  state.profileWaypoints = (state.track?.waypoints || [])
+    .map((w) => ({ dist: w.dist, name: w.name || null }));
 }

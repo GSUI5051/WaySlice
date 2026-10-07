@@ -85,7 +85,9 @@ majuscule, il faut le prendre exactement au sens suivant :
   entre deux points de trace, interpolation comprise.
 - **Waypoints sur la carte et le profil.** Les waypoints GPX (`<wpt>`) et KML (`<Point>`) sont
   affichés sous forme d'épingles avec leur nom en info-bulle — activez-les avec le bouton épingle
-  sous « Cadrer sur la trace ». Survoler une épingle marque le point correspondant sur le profil
+  sous « Cadrer sur la trace ». Chaque waypoint est ramené à son point le plus proche de la trace et
+  affiché dans l'ordre de la trace ; un waypoint à plus de 50 m de la trace n'est pas affiché du tout.
+  Survoler une épingle marque le point correspondant sur le profil
   altimétrique, et cliquer dessus centre la carte dessus sans changer le niveau de zoom. Les épingles
   se manipulent aussi au clavier : Tab passe de l'une à l'autre, Entrée ou Espace centre la carte, et
   le focus sur une épingle affiche son info-bulle, comme au survol.

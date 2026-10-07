@@ -84,6 +84,8 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   traccia, interpolazione compresa.
 - **Waypoint su mappa e profilo.** I waypoint GPX (`<wpt>`) e KML (`<Point>`) sono mostrati come
   puntine con il nome in una soffietta — attivale con il bottone a puntina sotto «Zoom sulla traccia».
+  Ogni waypoint viene agganciato al punto più vicino della traccia e mostrato nell'ordine della traccia;
+  uno che dista più di 50 m dalla traccia non viene mostrato affatto.
   Passando sopra una puntina, il punto corrispondente viene marcato sul profilo altimetrico;
   cliccandola la mappa si centra su di essa senza cambiare il livello di zoom. Le puntine funzionano
   anche da tastiera: Tab passa da una all'altra, Invio o Spazio centra la mappa e una puntina con il

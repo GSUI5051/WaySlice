@@ -83,7 +83,9 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   Echtzeit synchron, und eine Grenze kann an jeder Stelle zwischen zwei Trackpunkten liegen,
   Interpolation eingeschlossen.
 - **Wegpunkte auf Karte und Profil.** GPX- (`<wpt>`) und KML-Wegpunkte (`<Point>`) erscheinen als Pins
-  mit Namens-Tooltip — ein- und ausschalten über den Pin-Button unter „Auf Track zoomen“. Fährst du mit
+  mit Namens-Tooltip — ein- und ausschalten über den Pin-Button unter „Auf Track zoomen“. Jeder
+  Wegpunkt wird an seine nächstgelegene Stelle am Track gerückt und in Trackreihenfolge gezeigt; was
+  mehr als 50 m vom Track entfernt liegt, wird gar nicht erst angezeigt. Fährst du mit
   der Maus über einen Pin, wird die passende Stelle im Höhenprofil markiert; ein Klick zentriert die
   Karte darauf, ohne die Zoomstufe zu ändern. Die Pins lassen sich auch per Tastatur bedienen: Tab
   springt zwischen ihnen, Enter oder Leertaste zentriert die Karte, und ein fokussierter Pin zeigt

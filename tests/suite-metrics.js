@@ -1,7 +1,7 @@
 /** Sector metrics tests — the accuracy-critical core. */
 import { suite, test, assert } from './runner.js';
 import { computeSectorMetrics, minettiFactor } from '../js/metrics/sectorMetrics.js';
-import { segmentType } from '../js/metrics/autoSegments.js';
+import { segmentType, splitByWaypoints } from '../js/metrics/autoSegments.js';
 import { computeTrackStats } from '../js/metrics/trackStats.js';
 import { prepareTrack } from '../js/geo/track.js';
 import { eastTrack } from './helpers.js';
@@ -717,5 +717,45 @@ suite('metrics / segment type', () => {
   test('balanced rolling terrain is mixed', () => {
     assert.equal(segmentType(50, 50, 0), 'mixed');
     assert.equal(segmentType(48, 52, -4), 'mixed');
+  });
+});
+
+suite('metrics / waypoint split (CP-to-CP)', () => {
+  // 0..2° of longitude ≈ 2223.9 m, so nothing folds against the track ends.
+  const count = 21;
+  const withWaypoints = (wpts) => prepareTrack(eastTrack({ count }), 't', wpts);
+
+  test('boundaries follow the resolved track order; off-track ones are gone', () => {
+    // The file lists Second before First, and Far sits ~1.1 km off the line:
+    // prepareTrack re-orders and filters, so the CP table never sees either quirk.
+    const track = withWaypoints([
+      { lat: 0.0002, lon: 0.0023, name: 'Second' },
+      { lat: 0.0002, lon: 0.0012, name: 'First' },
+      { lat: 0.01, lon: 0.001, name: 'Far' },
+    ]);
+    const ranges = splitByWaypoints(track);
+    assert.truthy(ranges);
+    assert.equal(ranges.length, 3);
+    assert.equal(ranges[0].name, null);   // the track start has no name
+    assert.equal(ranges[1].name, 'First');
+    assert.closeTo(ranges[1].start, 0.0012 * 111194.9, 0.5);
+    assert.equal(ranges[2].name, 'Second');
+    assert.closeTo(ranges[2].start, 0.0023 * 111194.9, 0.5);
+    assert.equal(ranges[2].end, track.totalDistance);
+  });
+
+  test('waypoints closer than 100 m to the previous boundary fold away', () => {
+    const track = withWaypoints([
+      { lat: 0, lon: 0.0005, name: 'Near start' },  // 55.6 m from the start
+      { lat: 0, lon: 0.0006, name: 'Near prior' },  // 11.1 m behind the same fold
+      { lat: 0, lon: 0.001, name: 'Middle' },       // 111.2 m gap: stays
+    ]);
+    const ranges = splitByWaypoints(track);
+    assert.equal(ranges.length, 2);
+    assert.equal(ranges[1].name, 'Middle');
+  });
+
+  test('no waypoints, no table', () => {
+    assert.isNull(splitByWaypoints(prepareTrack(eastTrack({ count }), 't')));
   });
 });

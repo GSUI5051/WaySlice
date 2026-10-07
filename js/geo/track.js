@@ -6,6 +6,14 @@
  * simplification can never corrupt calculations: the original data stays here.
  */
 import { haversine } from './distance.js';
+import { nearestOnTrack } from './interpolate.js';
+
+/**
+ * A waypoint farther than this from the track never reaches the UI: markers,
+ * profile pins and the CP-to-CP table all read `track.waypoints`, so one
+ * cutoff keeps every consumer honest about what is on the route.
+ */
+export const WAYPOINT_MAX_OFF_TRACK_M = 50;
 
 /**
  * @param {import('../types.js').TrackPoint[]} points  Valid points (lat/lon finite), file order.
@@ -51,7 +59,7 @@ export function prepareTrack(points, name, waypoints = []) {
     }
   }
 
-  return {
+  const track = {
     name,
     points,
     cumDist,
@@ -68,4 +76,32 @@ export function prepareTrack(points, name, waypoints = []) {
     pointCount: n,
     waypoints,
   };
+  track.waypoints = resolveWaypoints(track, waypoints);
+  return track;
+}
+
+/**
+ * Resolves the file's waypoints onto the track, TrailScope-style: each
+ * waypoint is matched to its globally nearest on-track position (full-scan
+ * nearest-point search refined onto the polyline — no reliance on file
+ * order), tagged with the distance along the track to that position, and
+ * the list is then ordered by that distance. Waypoints farther than
+ * `WAYPOINT_MAX_OFF_TRACK_M` from the track are dropped, so consumers can
+ * treat `track.waypoints` as "the pins the user will actually see".
+ *
+ * @param {import('../types.js').Track} track  The track just built by prepareTrack.
+ * @param {import('../types.js').Waypoint[]} waypoints  Raw waypoints, file order.
+ * @returns {import('../types.js').Waypoint[]}  Resolved waypoints ({dist, offTrack} added).
+ */
+function resolveWaypoints(track, waypoints) {
+  if (!track.pointCount || !waypoints.length) return waypoints;
+  const resolved = [];
+  for (const w of waypoints) {
+    const near = nearestOnTrack(track, w.lat, w.lon);
+    const offTrack = haversine(w.lat, w.lon, near.lat, near.lon);
+    if (offTrack > WAYPOINT_MAX_OFF_TRACK_M) continue;
+    resolved.push({ ...w, dist: near.dist, offTrack });
+  }
+  resolved.sort((a, b) => a.dist - b.dist);
+  return resolved;
 }

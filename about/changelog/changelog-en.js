@@ -18,6 +18,8 @@ export const CHANGELOG_EN = {
     {
       h: '2026-10-07',
       ps: [
+        'Waypoints are now matched to the track before anything renders. Each waypoint lands on its nearest spot along the route, and the list is ordered by that distance, so a file that lists its waypoints out of order still shows them along the track.',
+        'A waypoint farther than 50 m from the track is left out entirely: no pin on the map, no line on the elevation profile, no boundary in the CP-to-CP table.',
         'GPX files that carry a <rte> route instead of a recorded <trk> track now load. Race websites hand out this form. The route points enter the same pipeline as track points, so the map line, the distance, the elevation profile, gain and loss, sectors and waypoints all work as usual.',
         'Route files never invent activity data. Time, speed, pace, heart rate and cadence stay unavailable and say so. A warning square next to the file chip explains why: the file is a route rather than a recording, and clicking it shows the full notice. A file with both forms uses the track and ignores the route.',
       ],

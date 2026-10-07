@@ -20,12 +20,21 @@
  * A named location along the route (GPX `<wpt>`). Waypoints are annotations:
  * they never enter sector selection or metric math.
  *
+ * `prepareTrack` resolves every waypoint onto the track (nearest on-track
+ * position), orders them by that distance, and drops any farther than 50 m
+ * from the track, so a `Track`'s `waypoints` array carries only on-track
+ * waypoints in track order. The raw file order is gone by then.
+ *
  * @typedef {Object} Waypoint
  * @property {number} lat                      WGS84 latitude, degrees.
  * @property {number} lon                      WGS84 longitude, degrees.
  * @property {number|null} [ele]               Elevation in meters.
  * @property {number|null} [time]              Unix timestamp in milliseconds.
  * @property {string|null} [name]              Display name (null when the source has none).
+ * @property {number} [dist]                   Meters along the track from the start to the
+ *                                             waypoint's nearest on-track position (filled by prepareTrack).
+ * @property {number} [offTrack]               Distance from the waypoint to that nearest
+ *                                             on-track position, meters (filled by prepareTrack).
  */
 
 /**
@@ -59,7 +68,9 @@
  * @property {number|null} eleMin              Minimum elevation, meters (null when no elevation).
  * @property {number|null} eleMax              Maximum elevation, meters (null when no elevation).
  * @property {number} pointCount               Number of track points.
- * @property {Waypoint[]} waypoints            Waypoints from the same file (empty when none).
+ * @property {Waypoint[]} waypoints            Waypoints from the same file, resolved onto the
+ *                                             track and ordered by distance (only waypoints
+ *                                             within 50 m of the track; empty when none).
  * @property {'track'|'route'} [sourceType]    'route' when the points are GPX route points
  *                                             (degraded source: hasTime/hasHr/… are false by
  *                                             construction); 'track' otherwise.

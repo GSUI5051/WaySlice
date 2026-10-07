@@ -111,6 +111,50 @@ suite('geo / interpolation', () => {
   });
 });
 
+suite('geo / waypoint resolution', () => {
+  // A straight east-west track on the equator: 0.0001° of latitude is
+  // ~11.12 m, so the "near" waypoints sit 22.2 m off the line and the far
+  // one 1.1 km off.
+  const count = 11; // 0..1° of longitude, ~1111.9 m total
+  const eqTrack = () => eastTrack({ count });
+
+  test('waypoints resolve to their on-track distance, ordered along the track', () => {
+    const wpts = [
+      { lat: 0.0002, lon: 0.0009, name: 'Late' },   // file order reversed…
+      { lat: 0.0002, lon: 0.0002, name: 'Early' },  // …but track order fixes it
+      { lat: 0.01, lon: 0.0005, name: 'Far' },      // ~1112 m off, must drop
+    ];
+    const { waypoints } = prepareTrack(eqTrack(), 't', wpts);
+    assert.equal(waypoints.length, 2);
+    assert.equal(waypoints[0].name, 'Early');
+    assert.closeTo(waypoints[0].dist, 0.0002 * 111194.9, 0.5);
+    assert.closeTo(waypoints[0].offTrack, 0.0002 * 111194.9, 0.5);
+    assert.equal(waypoints[1].name, 'Late');
+    assert.closeTo(waypoints[1].dist, 0.0009 * 111194.9, 0.5);
+  });
+
+  test('the 50 m rule keeps nearby waypoints and drops the rest', () => {
+    const kept = prepareTrack(eqTrack(), 't', [
+      { lat: 0.0004, lon: 0.0005, name: 'On' },     // 44.5 m off the line
+    ]).waypoints;
+    assert.equal(kept.length, 1);
+    assert.closeTo(kept[0].offTrack, 44.478, 0.5);
+    const dropped = prepareTrack(eqTrack(), 't', [
+      { lat: 0.0005, lon: 0.0015, name: 'Off' },    // 55.6 m off the line
+    ]).waypoints;
+    assert.equal(dropped.length, 0);
+  });
+
+  test('a waypoint exactly on the track reports zero offset', () => {
+    const { waypoints } = prepareTrack(eqTrack(), 't', [
+      { lat: 0, lon: 0.003, name: 'Mid' },
+    ]);
+    assert.equal(waypoints.length, 1);
+    assert.closeTo(waypoints[0].dist, 3 * 111.1949, 0.5);
+    assert.closeTo(waypoints[0].offTrack, 0, 1e-6);
+  });
+});
+
 suite('geo / display simplification', () => {
   test('Douglas–Peucker keeps shape within tolerance and below the cap', () => {
     const pts = eastTrack({ count: 5000 });
