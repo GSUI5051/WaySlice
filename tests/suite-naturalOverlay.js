@@ -16,6 +16,8 @@ import {
   parseElevationTag, parseFeetTag, canonicalElevationMeters, localizedName, buildNaturalLabel,
   gateClassFor, overpassQuery, parseOverpassElements, peaksFromTileFeatures, mergeModels,
   buildNaturalFeatureCollection, rasterizeNaturalIcon, createOverpassFetch,
+  NATURAL_OVERLAY_STORAGE_KEY, savedNaturalOverlayOn, saveNaturalOverlayOn,
+  setNaturalLiftSource, naturalLiftSource, removeNaturalOverlay,
 } from '../js/map/naturalOverlay.js';
 import { ROAD_OVERLAY_LABEL_FONT, overlayNameKeys, ROAD_OVERLAY_SOURCE_ID } from '../js/map/roadOverlay.js';
 import { setUnitSystem } from '../js/units/units.js';
@@ -552,5 +554,49 @@ suite('natural overlay / overpass hedged chain', () => {
     outer.abort();
     await assert.throwsAsync(() => chain.run('Q', outer.signal), 'the chain rejects without starting');
     assert.equal(rec.calls.length, 0, 'no mirror was dialed');
+  });
+});
+
+/* ---- the natural face (vector-basemap availability, ported from Terra) ---- */
+
+suite('natural overlay / natural-face preference', () => {
+  test('the storage key follows the wayslice- convention', () => {
+    assert.equal(NATURAL_OVERLAY_STORAGE_KEY, 'wayslice-natural-overlay');
+  });
+
+  test('absent or garbage reads ON — only an explicit off hides', () => {
+    localStorage.removeItem(NATURAL_OVERLAY_STORAGE_KEY);
+    assert.equal(savedNaturalOverlayOn(), true, 'absent = on (default read)');
+    localStorage.setItem(NATURAL_OVERLAY_STORAGE_KEY, 'garbage');
+    assert.equal(savedNaturalOverlayOn(), true, 'garbage = on');
+    saveNaturalOverlayOn(false);
+    assert.equal(localStorage.getItem(NATURAL_OVERLAY_STORAGE_KEY), 'off');
+    assert.equal(savedNaturalOverlayOn(), false, 'explicit off = off');
+    saveNaturalOverlayOn(true);
+    assert.equal(localStorage.getItem(NATURAL_OVERLAY_STORAGE_KEY), 'on');
+    assert.equal(savedNaturalOverlayOn(), true, 'explicit on = on');
+    localStorage.removeItem(NATURAL_OVERLAY_STORAGE_KEY);
+  });
+});
+
+suite('natural overlay / tile-lift source seam', () => {
+  test('the lift reads the road source by default and re-points on demand', () => {
+    assert.equal(naturalLiftSource(), ROAD_OVERLAY_SOURCE_ID, 'default = the roads planet source');
+    setNaturalLiftSource('basemap-style-planet');
+    assert.equal(naturalLiftSource(), 'basemap-style-planet', 'the face re-points at the style source');
+    setNaturalLiftSource(null);
+    assert.equal(naturalLiftSource(), ROAD_OVERLAY_SOURCE_ID, 'nullish falls back to the roads source');
+  });
+
+  test('teardown restores the default lift source', () => {
+    setNaturalLiftSource('some-style-source');
+    const stub = {
+      getLayer: () => null,
+      removeLayer: () => {},
+      getSource: () => null,
+      removeSource: () => {},
+    };
+    removeNaturalOverlay(stub);
+    assert.equal(naturalLiftSource(), ROAD_OVERLAY_SOURCE_ID, 'a fresh mount starts from the roads source');
   });
 });

@@ -18,6 +18,7 @@ export const CHANGELOG_EN = {
     {
       h: '2026-10-08',
       ps: [
+        'Natural landmarks now draw on the OpenFreeMap, Stadia Maps and Thunderforest World Map basemaps too: peaks, saddles, volcanoes, cave entrances, springs, rocks and stones, with names and elevations. They used to appear only over satellite imagery, as part of the road overlay. The same map button toggles the landmarks there; its icon and title change with the basemap, the choice is remembered on its own and defaults to on, and on the plain raster maps the button stays disabled because their tiles already carry their own peak markers.',
         'The elevation profile\'s axis labels now repaint immediately when the language or the unit system changes. The chart used to keep the previous language\'s or unit\'s tick strings on screen until a data change forced a full redraw.',
         'The elevation profile\'s horizontal grid now lands on whole units of the active system: whole miles at a mile and up and whole hundreds of feet below it under imperial, whole meters and kilometers under metric. A metric grid converted for display used to read as 1.24 miles per division.',
         'In time mode the horizontal grid now steps in whole minutes and hours (15:00, 1:00:00, 2:00:00) instead of decimal-time fractions such as 1:23:20.',

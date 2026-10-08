@@ -92,6 +92,11 @@ capital letter, it means exactly this:
   landmarks: a summit stays on the map past the road tiles' detail limit, and one you have already
   seen keeps its place while you zoom closer. The toggle is enabled only while a satellite basemap
   is active, and switching basemaps turns the overlay off.
+- **Natural landmarks on vector basemaps.** On the OpenFreeMap, Stadia Maps and Thunderforest
+  World Map styles the same map button becomes a landmarks toggle: peaks, saddles, volcanoes,
+  cave entrances, springs, rocks and stones draw straight on the basemap, with names and
+  elevations in your units. The choice is remembered on its own and defaults to on. The plain
+  raster maps already draw their own peak markers, so the button rests there.
 - **Profile wheel zoom (desktop), pinch zoom (touch).** Hover the elevation profile and scroll to zoom its
   distance/time axis around the cursor; Shift-drag to pan; on touch, one finger pans and a two-finger
   pinch zooms the same way.

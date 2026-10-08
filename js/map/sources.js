@@ -20,6 +20,12 @@
  *                                source; attribution then comes from the
  *                                style's TileJSON and needs no raster `url`
  * @property {string} [hintKey]     optional i18n key for a hint line
+ * @property {boolean|'3d'} [naturalOverlay]  natural landmark overlay
+ *                                  gating (js/map/mapView.js): '3d' = the
+ *                                  overlay only rides a 3D view (the
+ *                                  standard raster maps draw their own
+ *                                  natural markers into the tiles);
+ *                                  unset = every view mode
  */
 
 /** @type {MapSource[]} */
@@ -31,6 +37,11 @@ export const MAP_SOURCES = [
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+    // The standard raster maps draw their own natural markers into the
+    // tiles: a 2D app overlay would double them. WaySlice has no 3D view
+    // today, so the gate keeps the overlay off here outright; the '3d'
+    // value documents the rule should a 3D mode ever arrive.
+    naturalOverlay: '3d',
   },
   {
     id: 'OpenFreeMapBright',
@@ -78,6 +89,8 @@ export const MAP_SOURCES = [
     url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
     maxZoom: 17,
     attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors, SRTM | style: &copy; <a href="https://opentopomap.org" target="_blank" rel="noreferrer">OpenTopoMap</a> (CC-BY-SA)',
+    // See the osm entry: 2D tiles carry their own peak markers.
+    naturalOverlay: '3d',
   },
   {
     id: 'cyclosm',
@@ -87,6 +100,8 @@ export const MAP_SOURCES = [
 	subdomains:['a', 'b', 'c'],
     maxZoom: 19,
     attribution: '© CyclOSM',
+    // See the osm entry: 2D tiles carry their own peak markers.
+    naturalOverlay: '3d',
   },
   {
     id: 'TFOutdoor',
@@ -95,6 +110,8 @@ export const MAP_SOURCES = [
     url: 'https://api.thunderforest.com/outdoors/{z}/{x}/{y}{r}.png?apikey=8008601e01cf4f2aaf9a8ad4a3867e4a',
     maxZoom: 19,
     attribution: '© Thunderforest',
+    // See the osm entry: 2D tiles carry their own peak markers.
+    naturalOverlay: '3d',
   },
   {
     id: 'MapyOutdoor',
@@ -103,6 +120,8 @@ export const MAP_SOURCES = [
     url: 'https://api.mapy.com/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=ZmLnzZY7g5dYIIPshyx5-anT4M2WPQYWKQd_Cmy8icE',
     maxZoom: 19,
     attribution: '<a href="https://api.mapy.com/copyright" target="_blank">&copy; Seznam.cz a.s. a další</a>',
+    // See the osm entry: 2D tiles carry their own peak markers.
+    naturalOverlay: '3d',
   },
   {
     id: 'EOXSentinel2',
@@ -210,6 +229,26 @@ export function groupedSources() {
   return GROUP_ORDER
     .map((group) => ({ group, groupKey: `group${group[0].toUpperCase()}${group.slice(1)}`, sources: MAP_SOURCES.filter((s) => s.group === group) }))
     .filter((g) => g.sources.length > 0);
+}
+
+/**
+ * Whether the natural landmark overlay may show for this basemap in the
+ * given view mode:
+ *   - `naturalOverlay: '3d'`  → only while a 3D view is active. The
+ *     standard raster maps draw their own peak markers INTO the tiles —
+ *     in 2D the app's overlay would double them, so it stays off;
+ *   - unset                   → every view mode (the vector basemaps).
+ * `false` would opt a basemap out entirely; no shipped entry uses it.
+ * @param {MapSource} [source]  the active basemap catalog entry (null-safe;
+ *        no basemap yet = no overlay)
+ * @param {boolean} is3d  true while a 3D view is active
+ * @returns {boolean}
+ */
+export function naturalOverlayEnabled(source, is3d) {
+  if (source == null) return false;
+  if (source.naturalOverlay === '3d') return !!is3d;
+  if (source.naturalOverlay === false) return false;
+  return true;
 }
 
 /**

@@ -36,6 +36,8 @@ const lang_en = {
   // Header controls
   mapSource: 'Map',
   roadOverlay: 'Roads',
+  naturalOverlay: "Natural landmarks",
+
   appearance: 'Theme',
   language: 'Language',
   units: 'Units',

@@ -99,6 +99,12 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   naturales nunca se pierden: una cumbre sigue en el mapa más allá del límite de detalle de las
   teselas viarias, y una que ya hayas visto conserva su sitio mientras sigas acercándote. El botón
   solo está activo con una base satelital, y cambiar de base apaga la superposición.
+- **Elementos naturales en mapas vectoriales.** En los estilos de OpenFreeMap, Stadia Maps y
+  Thunderforest World Map, el mismo botón del mapa se convierte en el conmutador de elementos
+  naturales: picos, collados, volcanes, entradas de cuevas, manantiales, rocas y piedras se
+  dibujan directamente sobre el mapa base, con nombres y elevaciones en sus unidades. La
+  preferencia se recuerda por separado y viene activada. Los mapas ráster sencillos ya dibujan
+  sus propios marcadores de picos, así que el botón descansa ahí.
 - **Zoom con rueda en el perfil (escritorio), zoom por pellizco (táctil).** Coloca el cursor sobre el
   perfil altimétrico y haz scroll para hacer zoom en su eje de distancia/tiempo alrededor del cursor;
   Mayús + arrastre para desplazarlo; en pantallas táctiles, un dedo desplaza y un pellizco de dos dedos hace zoom. Doble

@@ -99,6 +99,12 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   fa mai perdere i punti naturali: una vetta resta sulla mappa oltre il limite di dettaglio delle
   tile stradali, e una già vista conserva il suo posto mentre continui ad avvicinarti. Il pulsante
   è attivo solo con una base satellitare, e cambiare base spegne la sovrapposizione.
+- **Elementi naturali sulle basi vettoriali.** Sugli stili OpenFreeMap, Stadia Maps e
+  Thunderforest World Map lo stesso bottone della mappa diventa l'interruttore degli elementi
+  naturali: vette, selle, vulcani, ingressi di grotte, sorgenti, rocce e sassi si disegnano
+  direttamente sulla base, con nomi e quote nelle vostre unità. La preferenza viene ricordata
+  a parte ed è attiva di serie. Le mappe raster semplici disegnano già i loro marcatori di
+  vette, lì il bottone resta a riposo.
 - **Zoom a rotella del profilo (desktop), zoom a pizzico (touch).** Passa col cursore sul profilo
   altimetrico e scorri per ingrandire l'asse distanza/tempo attorno al cursore; Maiusc + trascinamento
   per spostarlo; sul touch, un dito sposta e un pizzico di due dita fa zoom. Un doppio clic in un punto qualsiasi del

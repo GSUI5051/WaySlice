@@ -99,6 +99,12 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   Gipfel bleibt auch über der Detailgrenze der Straßenkacheln erhalten, und ein bereits gesehener
   behält seinen Platz, während du näher heranzoomst. Der Schalter ist nur bei einer
   Satellitenbasemap aktiv, und ein Basemap-Wechsel blendet das Overlay wieder aus.
+- **Naturpunkte auf Vektorbasemaps.** Bei den OpenFreeMap-, Stadia Maps- und
+  Thunderforest-World-Map-Stilen wird derselbe Kartenknopf zum Umschalter für Naturpunkte:
+  Gipfel, Scharten, Vulkane, Höhleneingänge, Quellen, Felsen und Steine erscheinen direkt auf
+  der Basiskarte, mit Namen und Höhen in Ihren Einheiten. Die Wahl wird separat gemerkt und
+  ist standardmäßig aktiv. Die einfachen Rasterkarten zeichnen ihre eigenen Gipfelmarker,
+  dort ruht der Knopf.
 - **Profil-Zoom mit dem Mausrad (Desktop), Pinch-Zoom (Touchscreen).** Fahre über das Höhenprofil
   und scrolle, um seine Distanz-/Zeitachse um den Zeiger herum zu zoomen; mit Umschalt + Ziehen
   verschiebst du es; am Touchscreen verschiebt ein Finger und zoomt ein Zwei-Finger-Pinch. Ein Doppelklick irgendwo auf das

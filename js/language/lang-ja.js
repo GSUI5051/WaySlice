@@ -33,6 +33,8 @@ const lang_ja = {
   // Header controls
   mapSource: '地図',
   roadOverlay: '道路',
+  naturalOverlay: "自然地物",
+
   appearance: '外観',
   language: '言語',
   units: '単位',

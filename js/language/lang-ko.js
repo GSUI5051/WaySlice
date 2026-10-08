@@ -33,6 +33,8 @@ const lang_ko = {
   // Header controls
   mapSource: '지도',
   roadOverlay: '도로',
+  naturalOverlay: "자연 지물",
+
   appearance: '테마',
   language: '언어',
   units: '단위',

@@ -40,6 +40,8 @@ const lang_es = {
   // Header controls
   mapSource: 'Mapa',
   roadOverlay: 'Carreteras',
+  naturalOverlay: "Elementos naturales",
+
   appearance: 'Tema',
   language: 'Idioma',
   units: 'Unidades',

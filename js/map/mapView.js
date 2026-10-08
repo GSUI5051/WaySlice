@@ -27,13 +27,14 @@ import { thinStride } from '../geo/simplify.js';
  *  upload per frame beats exactness mid-drag, and the store change after
  *  pointerup re-renders the exact slice. */
 const DRAG_SECTOR_CAP = 3000;
-import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES } from './sources.js';
+import { getSavedSource, createRasterSource, saveSource, MAP_SOURCES, naturalOverlayEnabled } from './sources.js';
 import {
   ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE, ROAD_OVERLAY_LAYERS, ROAD_OVERLAY_GLYPHS,
   roadOverlayTextField, savedRoadOverlayOn, saveRoadOverlayOn,
 } from './roadOverlay.js';
 import {
   ensureNaturalOverlay, removeNaturalOverlay, setNaturalVisibility, refreshNaturalOverlay,
+  setNaturalLiftSource, savedNaturalOverlayOn, saveNaturalOverlayOn,
 } from './naturalOverlay.js';
 import { cssToken } from '../utils/cssToken.js';
 import { wantsCooperativeGestures, addGestureHint } from './gestures.js';
@@ -355,6 +356,7 @@ function setSource(source) {
     switchStyle(source.styleUrl, () => {
       map.setMaxZoom(source.maxZoom);
       hangTrackGeometry();
+      syncNaturalOverlay();
     });
     return;
   }
@@ -367,12 +369,14 @@ function setSource(source) {
       addRasterLayers(source);
       map.setMaxZoom(source.maxZoom);
       syncRoadOverlay();
+      syncNaturalOverlay();
     }, false);
     return;
   }
   addRasterLayers(source);
   map.setMaxZoom(source.maxZoom);
   syncRoadOverlay();
+  syncNaturalOverlay();
 }
 
 /** @private Adds the raster basemap layer(s) at the bottom of the style stack,
@@ -403,9 +407,29 @@ function satelliteBasemapActive() {
   return !!source && source.group === 'satellite';
 }
 
-/** @private Broadcasts the button state (disabled + pressed) to the UI. */
+/** @private Which face the overlay button wears on the ACTIVE basemap:
+ * 'roads' on the satellite imagery, 'natural' on the gated vector basemaps,
+ * null on the plain raster maps and before any basemap loads. */
+export function mapOverlayMode() {
+  if (satelliteBasemapActive()) return 'roads';
+  if (naturalFaceActive()) return 'natural';
+  return null;
+}
+
+/** The overlay button's full state — the single shape the UI and the
+ * roadOverlay:changed event both speak. Each face reads its own persisted
+ * preference live, so the pressed state is honest the moment the basemap
+ * changes, before any deferred map pass. */
+export function mapOverlayState() {
+  const mode = mapOverlayMode();
+  const enabled = mode === 'roads' ? roadOverlayOn
+    : mode === 'natural' ? savedNaturalOverlayOn() : false;
+  return { available: mode != null, enabled, mode };
+}
+
+/** @private Broadcasts the button state to the UI. */
 function emitRoadOverlayState() {
-  emit('roadOverlay:changed', { available: satelliteBasemapActive(), enabled: roadOverlayOn });
+  emit('roadOverlay:changed', mapOverlayState());
 }
 
 /** @private Shows or hides the mounted overlay layers (no-op before a mount).
@@ -457,7 +481,10 @@ function ensureRoadOverlayLayers() {
     map.moveLayer('basemap-layer', firstOverlay.id);
   }
   // The natural landmarks mount last with the same anchor — topmost inside
-  // the overlay block, still beneath the track vectors.
+  // the overlay block, still beneath the track vectors. Their tile lift
+  // reads this overlay's own planet source; a natural-face visit may have
+  // re-pointed the seam at a since-wiped style source.
+  setNaturalLiftSource(ROAD_OVERLAY_SOURCE_ID);
   ensureNaturalOverlay(map, beforeId);
 }
 
@@ -487,6 +514,9 @@ function removeRoadOverlay() {
   for (const layer of ROAD_OVERLAY_LAYERS) {
     if (map.getLayer(layer.id)) map.removeLayer(layer.id);
   }
+  // The natural face's lift feeder may still reference the road source —
+  // drop it first or MapLibre refuses the source removal.
+  if (map.getLayer(NATURAL_LIFT_FEEDER_ID)) map.removeLayer(NATURAL_LIFT_FEEDER_ID);
   if (map.getSource(ROAD_OVERLAY_SOURCE_ID)) map.removeSource(ROAD_OVERLAY_SOURCE_ID);
   removeNaturalOverlay(map);
 }
@@ -527,6 +557,125 @@ export function toggleRoadOverlay() {
  * duplicates, stacking order) against the real map. */
 export function getMapInstance() {
   return map;
+}
+
+/* Natural landmarks face (vector basemaps) ------------------------------------
+ *
+ * The catalog's vector styles (OpenFreeMap / Stadia Maps / Thunderforest
+ * World Map — the js/map/sources.js `naturalOverlay` gate) draw no natural
+ * landmarks of their own, so the overlay button wears a second face there:
+ * the natural landmark layer ALONE, under its own persisted toggle
+ * (default on; naturalOverlay.js). Satellite keeps the roads face, whose
+ * toggle owns the landmarks as its tail; the plain raster maps' tiles draw
+ * their own peak markers, so the button disables there.
+ *
+ * The peak trio's tile lift reads from wherever the active style already
+ * carries planet tiles: the style's own planet source on the OpenFreeMap
+ * styles (matched by TileJSON url — zero extra tile traffic), else a
+ * face-provisioned planet source under an invisible feeder layer (the
+ * Stadia / Thunderforest tile schemas differ; MapLibre fetches tiles only
+ * for sources some layer references, which is the feeder's job). */
+
+/** @private The natural face's lift-feeder layer id. */
+const NATURAL_LIFT_FEEDER_ID = 'natural-lift-feeder';
+
+/** Fresh feeder def per use — MapLibre takes ownership. Paints nothing: a
+ * filter no transportation class matches, zero opacity. It exists only to
+ * mark the provisioned planet source used; the OpenFreeMap styles' own
+ * layers already mark theirs used, so the face mounts a feeder only next
+ * to a provisioned source. */
+function naturalLiftFeederDef() {
+  return {
+    id: NATURAL_LIFT_FEEDER_ID,
+    type: 'line',
+    source: ROAD_OVERLAY_SOURCE_ID,
+    'source-layer': 'transportation',
+    filter: ['==', ['get', 'class'], '__natural-lift-feeder__'],
+    paint: { 'line-opacity': 0 },
+  };
+}
+
+/** @private The active style's own planet vector source, matched by
+ * TileJSON url — the same resolution the trio's lift seam applies. Null
+ * when the style carries none. */
+function stylePlanetSourceId(m) {
+  if (typeof m?.getStyle !== 'function') return null;
+  const sources = m.getStyle()?.sources ?? {};
+  for (const [id, def] of Object.entries(sources)) {
+    if (def?.type === 'vector' && def.url === ROAD_OVERLAY_SOURCE.url) return id;
+  }
+  return null;
+}
+
+/** @private True while the active basemap wears the natural face. */
+function naturalFaceActive() {
+  const source = MAP_SOURCES.find((s) => s.id === currentSourceId);
+  return !!source && source.group !== 'satellite' && naturalOverlayEnabled(source, false);
+}
+
+/** @private Idempotently mounts the natural face on the ACTIVE style and
+ * shows it — the landmark stack through ensureNaturalOverlay's shared
+ * pass, plus the lift provision the face owes. The stored preference stays
+ * the truth: this only ever mounts and shows as part of a sync. */
+function ensureNaturalFace() {
+  const stylePlanet = stylePlanetSourceId(map);
+  setNaturalLiftSource(stylePlanet ?? ROAD_OVERLAY_SOURCE_ID);
+  if (!stylePlanet && !map.getSource(ROAD_OVERLAY_SOURCE_ID)) {
+    map.addSource(ROAD_OVERLAY_SOURCE_ID, ROAD_OVERLAY_SOURCE);
+  }
+  const beforeId = map.getLayer('track-casing') ? 'track-casing' : undefined;
+  // The feeder rides directly under the landmark layers — it paints
+  // nothing, it only marks a provisioned source used (see its def).
+  if (map.getLayer(NATURAL_LIFT_FEEDER_ID)) {
+    map.moveLayer(NATURAL_LIFT_FEEDER_ID, beforeId);
+  } else if (stylePlanet == null) {
+    map.addLayer(naturalLiftFeederDef(), beforeId);
+  }
+  ensureNaturalOverlay(map, beforeId);
+}
+
+/** @private Drops the natural face entirely — landmark stack, feeder and
+ * the provisioned lift source (on the face a road-overlay source can only
+ * be the face's own; the roads face never coexists with it). Idempotent. */
+function removeNaturalFace() {
+  removeNaturalOverlay(map);
+  if (map.getLayer(NATURAL_LIFT_FEEDER_ID)) map.removeLayer(NATURAL_LIFT_FEEDER_ID);
+  if (map.getSource(ROAD_OVERLAY_SOURCE_ID) && !ROAD_OVERLAY_LAYERS.some((l) => map.getLayer(l.id))) {
+    map.removeSource(ROAD_OVERLAY_SOURCE_ID);
+  }
+}
+
+/** @private Aligns the natural face with the current basemap — every
+ * setSource lands here after the roads sync. On satellite the roads face
+ * owns the landmarks (nothing to do); a gated vector basemap re-reads the
+ * stored preference on every pass (mount + show, or the cheap-toggle hide);
+ * anything else tears the face down. */
+function syncNaturalOverlay() {
+  if (!map || satelliteBasemapActive()) return;
+  if (!naturalFaceActive()) {
+    removeNaturalFace();
+    emitRoadOverlayState();
+    return;
+  }
+  if (savedNaturalOverlayOn()) {
+    ensureNaturalFace();
+  } else {
+    setNaturalLiftSource(ROAD_OVERLAY_SOURCE_ID);
+    setNaturalVisibility(map, false);
+  }
+  emitRoadOverlayState();
+}
+
+/** Toggles the overlay button's CURRENT face and persists the choice: the
+ * roads toggle on the satellite imagery, the natural landmarks on the
+ * gated vector basemaps. A no-op on the plain raster basemaps — the button
+ * is disabled there. */
+export function toggleMapOverlay() {
+  if (!map) return;
+  if (satelliteBasemapActive()) return toggleRoadOverlay();
+  if (!naturalFaceActive()) return;
+  saveNaturalOverlayOn(!savedNaturalOverlayOn());
+  syncNaturalOverlay();
 }
 
 /**

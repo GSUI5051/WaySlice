@@ -8,7 +8,7 @@
 import * as theme from './theme/theme.js';
 import * as language from './language/language.js';
 import * as units from './units/units.js';
-import { initMap, setTrack as mapSetTrack, fitTrack, fitSector, showHover as mapShowHover, setWaypointsVisible, toggleRoadOverlay } from './map/mapView.js';
+import { initMap, setTrack as mapSetTrack, fitTrack, fitSector, showHover as mapShowHover, setWaypointsVisible, toggleMapOverlay, mapOverlayState } from './map/mapView.js';
 import { initProfile, setProfileTrack } from './charts/elevation-profile/index.js';
 import { initDualVariableAnalysis } from './charts/dual-variable-analysis/index.js';
 import { initMetricsPanel } from './ui/metricsPanel.js';
@@ -132,19 +132,38 @@ function refreshWaypointsButton() {
 }
 
 /**
- * @private Satellite road-network overlay toggle (top-left map button).
- * mapView owns the state — it force-resets on every basemap change — and
- * broadcasts roadOverlay:changed {available, enabled}; this only mirrors it
- * into the button. The label is static (data-i18n), so the language switch
- * needs no listener here.
+ * @private Map-area overlay toggle (top-left column). The BUTTON FACE
+ * follows the basemap family — mapView owns the state and broadcasts
+ * roadOverlay:changed {available, enabled, mode}; this only mirrors it:
+ * over satellite imagery the mode is 'roads' (map icon, the road-network
+ * toggle), on the gated vector basemaps (OpenFreeMap / Stadia Maps /
+ * Thunderforest World Map) it is 'natural' (map-pinned icon, the natural
+ * landmarks toggle), and on the plain raster basemaps the button is
+ * disabled. The icon and the i18n keys swap with the mode; the attribute
+ * swap keeps later static language re-applications on the current face,
+ * and language:changed re-runs this refresh so the title tracks the face.
  */
 function wireRoadOverlay() {
   const btn = document.getElementById('btn-road-overlay');
-  btn.addEventListener('click', () => toggleRoadOverlay());
-  on('roadOverlay:changed', ({ available, enabled }) => {
+  const slot = btn.querySelector('.btn-icon-slot');
+  const refresh = () => {
+    const { available, enabled, mode } = mapOverlayState();
     btn.disabled = !available;
     btn.setAttribute('aria-pressed', String(enabled));
+    slot.innerHTML = icon(mode === 'natural' ? 'map-pinned' : 'map');
+    const key = mode === 'natural' ? 'naturalOverlay' : 'roadOverlay';
+    btn.setAttribute('data-i18n-aria', key);
+    btn.setAttribute('data-i18n-title', key);
+    btn.setAttribute('aria-label', t(key));
+    btn.title = t(key);
+  };
+  btn.addEventListener('click', () => {
+    toggleMapOverlay();
+    refresh();
   });
+  on('roadOverlay:changed', refresh);
+  on('language:changed', refresh);
+  refresh();
 }
 
 /**

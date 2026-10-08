@@ -38,6 +38,8 @@ const lang_it = {
   // Header controls
   mapSource: 'Mappa',
   roadOverlay: 'Strade',
+  naturalOverlay: "Elementi naturali",
+
   appearance: 'Tema',
   language: 'Lingua',
   units: 'Unità',

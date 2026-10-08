@@ -2,7 +2,7 @@
 import { suite, test, assert } from './runner.js';
 import {
   MAP_SOURCES, groupedSources, DEFAULT_SOURCE_ID,
-  getSavedSource, getSavedSourceId,
+  getSavedSource, getSavedSourceId, naturalOverlayEnabled,
 } from '../js/map/sources.js';
 import * as language from '../js/language/language.js';
 import '../js/language/langs.js';
@@ -87,5 +87,47 @@ suite('basemap / default source', () => {
     localStorage.setItem('wayslice-basemap', 'not-a-source');
     assert.equal(getSavedSourceId(), DEFAULT_SOURCE_ID);
     localStorage.removeItem('wayslice-basemap');
+  });
+});
+
+/* ---- the natural overlay gate (js/map/mapView.js natural face) ---- */
+
+suite('basemap / natural overlay gate', () => {
+  test('exactly the seven vector styles carry the natural face', () => {
+    // The gate alone says nothing about the satellite group — the roads
+    // face owns it, and the controller (mapView naturalFaceActive) checks
+    // the group BEFORE the gate. The catalog half is what this pins.
+    const gated = MAP_SOURCES.filter((s) => s.group !== 'satellite' && naturalOverlayEnabled(s, false));
+    assert.deepEqual(gated.map((s) => s.id).sort(), [
+      'OpenFreeMapBright', 'OpenFreeMapDark', 'OpenFreeMapPositron',
+      'StadiaOSMBright', 'StadiaSmooth', 'StadiaSmoothDark', 'TFAtlas',
+    ]);
+    for (const s of gated) {
+      assert.truthy(s.styleUrl, `the natural face rides vector styles only: ${s.id}`);
+      assert.equal(s.naturalOverlay, undefined, `ungated entries stay unmarked: ${s.id}`);
+    }
+  });
+
+  test('the plain raster maps gate the face to 3D (their tiles draw their own markers)', () => {
+    for (const s of MAP_SOURCES.filter((x) => x.url && x.group !== 'satellite')) {
+      assert.equal(s.naturalOverlay, '3d', `raster entry gated '3d': ${s.id}`);
+      assert.equal(naturalOverlayEnabled(s, false), false, `face closed in 2D: ${s.id}`);
+      assert.equal(naturalOverlayEnabled(s, true), true, `face open in 3D: ${s.id}`);
+    }
+  });
+
+  test('the satellite group needs no gate — the roads face owns it', () => {
+    for (const s of MAP_SOURCES.filter((x) => x.group === 'satellite')) {
+      assert.equal(s.naturalOverlay, undefined, `satellite entries unmarked: ${s.id}`);
+    }
+  });
+
+  test('naturalOverlayEnabled truth table', () => {
+    assert.equal(naturalOverlayEnabled(null, true), false, 'no basemap = no overlay');
+    assert.equal(naturalOverlayEnabled(undefined, false), false);
+    assert.equal(naturalOverlayEnabled({}, false), true, 'unset = every view mode');
+    assert.equal(naturalOverlayEnabled({ naturalOverlay: false }, true), false, 'false opts out entirely');
+    assert.equal(naturalOverlayEnabled({ naturalOverlay: '3d' }, false), false, "'3d' closed in 2D");
+    assert.equal(naturalOverlayEnabled({ naturalOverlay: '3d' }, true), true, "'3d' open in 3D");
   });
 });

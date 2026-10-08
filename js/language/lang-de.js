@@ -37,6 +37,8 @@ const lang_de = {
   // Header controls
   mapSource: 'Karte',
   roadOverlay: 'Straßen',
+  naturalOverlay: "Naturpunkte",
+
   appearance: 'Design',
   language: 'Sprache',
   units: 'Einheiten',

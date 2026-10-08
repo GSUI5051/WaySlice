@@ -1,17 +1,26 @@
 /**
- * Natural landmarks — the satellite road overlay's natural=* point family.
+ * Natural landmarks — the natural=* point family over the imagery and the
+ * vector basemaps alike.
  *
- * Seven OSM point features ride the road-network overlay as one GeoJSON
- * symbol layer: peak, saddle, volcano, cave_entrance, spring, rock, stone.
- * They share the overlay's whole lifecycle (satellite-only, the Roads
- * toggle, under the track vectors) — there is no separate POI system and no
- * new switch.
+ * Seven OSM point features render as one GeoJSON symbol layer: peak,
+ * saddle, volcano, cave_entrance, spring, rock, stone. On a satellite
+ * basemap they ride the road overlay's whole lifecycle (the Roads toggle,
+ * under the track vectors); on the vector basemaps whose tiles carry no
+ * natural landmarks of their own (the OpenFreeMap, Stadia Maps and
+ * Thunderforest World Map styles, flagged `naturalOverlay` in
+ * js/map/sources.js) they also stand ALONE — the overlay button's natural
+ * face, persisted under its own key below, default on (ported from
+ * WaySliceTerra's natural-only face). There is no separate POI system.
  *
  * Two data feeds, one display source:
- *  - peak / saddle / volcano already ride the OpenFreeMap planet tiles the
- *    overlay draws roads from (the `mountain_peak` source layer, rank-rated
- *    and carrying ele/ele_ft plus the full name:* set). They are lifted out
- *    of the already-loaded tiles — zero extra requests.
+ *  - peak / saddle / volcano already ride the OpenFreeMap planet tiles —
+ *    the road overlay's source on satellite, the basemap style's own planet
+ *    source on the OpenFreeMap styles, or a provisioned face source where
+ *    the style carries no planet tiles (Stadia/Thunderforest; the
+ *    mapView-owned lift-source seam below picks per basemap). They are
+ *    lifted out of the already-loaded tiles (the `mountain_peak` source
+ *    layer, rank-rated and carrying ele/ele_ft plus the full name:* set) —
+ *    zero extra requests.
  *  - cave_entrance / spring / rock / stone are absent from the vector tiles
  *    (the tile `poi` layer carries no natural=* points at all), so they come
  *    from one debounced viewport query to the Overpass API, cached per
@@ -62,6 +71,37 @@ export const NATURAL_TILE_MAX_ZOOM = 14;
 /** Viewport Overpass queries start at this zoom — below it every natural
  * gate is still closed, so the request would buy nothing. */
 export const NATURAL_FETCH_MIN_ZOOM = 12;
+
+/* ---- the natural face's persisted toggle (vector basemaps) ---------------- */
+
+/**
+ * Persisted preference of the overlay button's natural face — the landmark
+ * layer standing alone on the vector basemaps (OpenFreeMap / Stadia Maps /
+ * Thunderforest World Map; see js/map/sources.js). Same `wayslice-` key
+ * family and guarded-access pattern as the roads face, with the OPPOSITE
+ * default: the landmarks are part of these basemaps' default read, so a
+ * missing or garbage value reads ON and only an explicit 'off' hides them.
+ */
+export const NATURAL_OVERLAY_STORAGE_KEY = 'wayslice-natural-overlay';
+
+/** Reads the stored natural-face preference as the truth. Never throws.
+ * @returns {boolean} */
+export function savedNaturalOverlayOn() {
+  try {
+    return localStorage.getItem(NATURAL_OVERLAY_STORAGE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+/** Persists the natural-face toggle as 'on' / 'off'; silently inert when
+ * localStorage is unavailable (the choice degrades to session-only).
+ * @param {boolean} on */
+export function saveNaturalOverlayOn(on) {
+  try {
+    localStorage.setItem(NATURAL_OVERLAY_STORAGE_KEY, on ? 'on' : 'off');
+  } catch { /* ignore */ }
+}
 
 /** How far the fetched bounding box reaches past the viewport (fraction of
  * its size, per axis) — pans inside the padded box never refetch. */
@@ -692,6 +732,29 @@ export function buildNaturalFeatureCollection(peaks, pois, latchedKeys = new Set
 /* ---- lifecycle -------------------------------------------------------------- */
 
 let enabled = false;
+/**
+ * The vector source the tile lift reads the peak family from — the roads
+ * face's own planet source by default. The natural face re-points this at
+ * the ACTIVE basemap style's own planet source when it carries one (the
+ * OpenFreeMap styles: same TileJSON, zero extra tile traffic), else at the
+ * face's provisioned planet source (Stadia / Thunderforest schemas differ;
+ * mapView mounts one under an invisible feeder layer). Reset to the roads
+ * default on every teardown.
+ * @type {string}
+ */
+let naturalLiftSourceId = ROAD_OVERLAY_SOURCE_ID;
+
+/** Re-points the tile lift. A nullish id falls back to the roads source.
+ * @param {string|null} sourceId */
+export function setNaturalLiftSource(sourceId) {
+  naturalLiftSourceId = sourceId == null ? ROAD_OVERLAY_SOURCE_ID : sourceId;
+}
+
+/** Test seam: the source id the tile lift currently reads.
+ * @returns {string} */
+export function naturalLiftSource() {
+  return naturalLiftSourceId;
+}
 let layersVisible = false;
 /** Maps whose data wiring (moveend/idle → rebuild) is already attached —
  * keyed per map instance, so a rebuilt map re-wires itself instead of a
@@ -762,8 +825,9 @@ function rebuild(map) {
   const source = map.getSource(NATURAL_SOURCE_ID);
   if (!source) return;
   collectLatched(map);
-  const lifted = map.getSource(ROAD_OVERLAY_SOURCE_ID)
-    ? peaksFromTileFeatures(map.querySourceFeatures(ROAD_OVERLAY_SOURCE_ID, { sourceLayer: 'mountain_peak' }))
+  const liftId = naturalLiftSourceId;
+  const lifted = liftId && map.getSource(liftId)
+    ? peaksFromTileFeatures(map.querySourceFeatures(liftId, { sourceLayer: 'mountain_peak' }))
     : [];
   // Past the tile maxzoom the overzoomed query may return nothing (or only
   // part of the ancestor tiles) — merge into the held set so the summit
@@ -884,6 +948,7 @@ export function setNaturalVisibility(map, visible) {
  * Overpass cache deliberately survives. */
 export function removeNaturalOverlay(map) {
   enabled = false;
+  naturalLiftSourceId = ROAD_OVERLAY_SOURCE_ID;
   if (rebuildTimer) { clearTimeout(rebuildTimer); rebuildTimer = null; }
   if (fetchController) { fetchController.abort(); fetchController = null; }
   liftedModels = [];

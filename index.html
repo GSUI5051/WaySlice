@@ -176,9 +176,13 @@
     <main id="workspace">
       <section id="map-pane" aria-label="Track map">
         <div id="map"></div>
-        <!-- Road-network overlay column (top-left): a vertical group that
-             currently holds one toggle. Enabled only while a satellite
-             basemap is active — js/map/mapView.js owns the state and
+        <!-- Overlay column (top-left): a vertical group that currently
+             holds one button with two faces. On satellite basemaps it is
+             the road-network toggle (map icon); on the vector basemaps
+             flagged naturalOverlay in js/map/sources.js (OpenFreeMap /
+             Stadia Maps / Thunderforest World Map) it is the natural
+             landmarks toggle (map-pinned icon); on the plain raster maps
+             it is disabled. js/map/mapView.js owns the state and
              broadcasts roadOverlay:changed, wired in js/main.js. -->
         <div id="map-tools">
           <button type="button" id="btn-road-overlay" class="btn btn-icon btn-elevated" aria-pressed="false" disabled

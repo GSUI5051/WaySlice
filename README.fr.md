@@ -100,6 +100,12 @@ majuscule, il faut le prendre exactement au sens suivant :
   sommet reste sur la carte au-delà de la limite de détail des tuiles routières, et un repère déjà
   vu garde sa place à mesure qu'on zoome davantage. Le bouton n'est actif que sur un fond
   satellite, et changer de fond désactive la superposition.
+- **Éléments naturels sur les fonds vectoriels.** Sur les styles OpenFreeMap, Stadia Maps et
+  Thunderforest World Map, le même bouton de carte devient la bascule des éléments naturels :
+  sommets, cols, volcans, entrées de grottes, sources, rochers et pierres se dessinent
+  directement sur le fond de carte, avec noms et altitudes dans vos unités. Le choix est
+  mémorisé à part et activé par défaut. Les cartes raster simples dessinent déjà leurs propres
+  repères de sommets ; le bouton s'y repose.
 - **Zoom molette du profil (bureau), zoom par pincement (tactile).** Survolez le profil altimétrique
   et faites défiler pour zoomer son axe distance/temps autour du curseur ; Maj + glisser pour
   déplacer ; sur tactile, un doigt déplace et un pincement à deux doigts fait de même. Double-cliquer n'importe où sur
