@@ -137,6 +137,10 @@ export function initProfile(rootEl) {
     scheduleSync();
   });
   on('language:changed', () => {
+    // Axis tick labels are format-composed text read at draw time —
+    // without the style bump the chartKey memo sees nothing new and skips
+    // the resync, leaving the previous language's ticks on the canvas.
+    invalidateChartStyle();
     refreshHandleLabels();
     refreshSnapToggle();
     // Also re-decides the header's text-vs-icon LEVEL (it measures the

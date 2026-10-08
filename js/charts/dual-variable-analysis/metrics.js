@@ -17,6 +17,7 @@
 import {
   getUnitSystem,
   metersToFeet,
+  METERS_PER_FOOT,
   METERS_PER_MILE,
   mpsToKmh,
   mpsToMph,
@@ -97,7 +98,10 @@ export const METRICS = [
     id: 'ele', labelKey: 'elevationGroup',
     unit: elevationUnit, format: formatElevation,
     toDisplay: (m) => (getUnitSystem() === 'imperial' ? metersToFeet(m) : m),
-    fromDisplay: (d) => (getUnitSystem() === 'imperial' ? d / 0.3048 : d),
+    // feet → meters MULTIPLIES by 0.3048 — dividing a second time (the
+    // same factor toDisplay already applied) pushed every imperial tick
+    // 10.76× past the domain: no y labels, no gridlines.
+    fromDisplay: (d) => (getUnitSystem() === 'imperial' ? d * METERS_PER_FOOT : d),
   },
 ];
 

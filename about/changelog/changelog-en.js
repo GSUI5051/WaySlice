@@ -16,6 +16,16 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-08',
+      ps: [
+        'The elevation profile\'s axis labels now repaint immediately when the language or the unit system changes. The chart used to keep the previous language\'s or unit\'s tick strings on screen until a data change forced a full redraw.',
+        'The elevation profile\'s horizontal grid now lands on whole units of the active system: whole miles at a mile and up and whole hundreds of feet below it under imperial, whole meters and kilometers under metric. A metric grid converted for display used to read as 1.24 miles per division.',
+        'In time mode the horizontal grid now steps in whole minutes and hours (15:00, 1:00:00, 2:00:00) instead of decimal-time fractions such as 1:23:20.',
+        'The elevation profile\'s y-axis gutter now widens to fit its longest label, so extreme-altitude tracks keep their leading digits: the old fixed-width gutter clipped grouped five-digit feet readings such as 29,032 ft.',
+        'The dual-variable analysis\'s elevation axis draws its tick labels and gridlines under imperial units again: a reversed meters–feet conversion used to push every tick past the chart edge, leaving the axis blank.',
+      ],
+    },
+    {
       h: '2026-10-07',
       ps: [
         'Waypoints are now matched to the track before anything renders. Each waypoint lands on its nearest spot along the route, and the list is ordered by that distance, so a file that lists its waypoints out of order still shows them along the track.',

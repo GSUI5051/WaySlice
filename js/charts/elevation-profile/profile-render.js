@@ -50,7 +50,8 @@ import {
   bandScaleRange, distToX, xToDist, xvToPx, formatOverlayValue,
 } from './profile-data.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
-import { niceStep } from '../ticks.js';
+import { niceStep, niceStepForUnit, niceTimeStep } from '../ticks.js';
+import { getUnitSystem } from '../../units/units.js';
 import { loadUPlot } from './uplot-loader.js';
 
 // Zone band tint. The band under the hover dot is drawn about twice as deep
@@ -127,13 +128,18 @@ export function initRender() {
   masks.right = createMask();
 }
 
-/** Style stamp — bumped on theme/units changes so the next render
- *  re-applies chart style (colors are per-draw functions; only the axis
- *  label re-derivation needs a forced re-converge, which every syncChart
- *  data pass or setScale issues anyway). */
+/** Style stamp — bumped on theme/units/language changes so the next render
+ *  re-applies chart style. Colors are per-draw functions, but the axis tick
+ *  STRINGS are cached by uPlot between size convergences (axis._values is
+ *  only re-derived inside convergeSize, gated by redraw's recalcAxes flag),
+ *  so an invalidation must also demand an axis recalc — otherwise the
+ *  redraw repaints the cached strings and a unit/language flip leaves the
+ *  previous system's ticks on the canvas. */
 let styleStamp = 0;
+let axesRecalcPending = false;
 export function invalidateChartStyle() {
   styleStamp++;
+  axesRecalcPending = true;
 }
 
 /** rAF-batched redraw. */
@@ -428,7 +434,7 @@ function createChart(uPlot) {
         gap: 8,
         // No elevation → no y axis at all (the size fn re-converges on the
         // forced redraw every track/x-mode syncChart pass issues).
-        size: () => (scalesCache?.ele ? 58 : 0),
+        size: (self, values) => (scalesCache?.ele ? yAxisGutter(values) : 0),
         splits: (u, i, min, max) => eleTickValues(),
         values: (u, splits) => splits.map((v) => formatElevation(Math.round(v))),
       },
@@ -534,8 +540,11 @@ function syncChart() {
       chart.setScale(key, { min: entry.scale[0], max: entry.scale[1] });
     }
     applyX();
-    // Show-flag flips are not auto-committed by uPlot.
-    chart.redraw(false);
+    // Show-flag flips are not auto-committed by uPlot. The second argument
+    // re-derives the cached axis tick strings after a style/units/language
+    // invalidation (see invalidateChartStyle).
+    chart.redraw(false, axesRecalcPending);
+    axesRecalcPending = false;
   });
   updateStatePlot();
 }
@@ -1100,14 +1109,40 @@ function drawXGrid(u) {
 // ---------------------------------------------------------------------------
 
 /** @private X ticks over the visible window, strictly inside it (a tick at
- *  the exact window start is not drawn — the old loop's rule). */
+ *  the exact window start is not drawn — the old loop's rule). The grid
+ *  step re-rounds into the display unit's own ladder: distance grids in
+ *  whole km / miles / feet, time grids on the duration ladder (whole
+ *  minutes / hours — a milliseconds 1/2/5 ladder formats as 1:23:20). */
 function xTickValues(min, max) {
   const vw = max - min;
   if (!(vw > 1e-9)) return [];
-  const step = niceStep(vw / 5);
+  const step = state.xMode === 'time'
+    ? niceTimeStep(vw / 5000) * 1000 // ladder returns seconds; the loop is ms
+    : niceStepForUnit(niceStep(vw / 5), getUnitSystem());
   const out = [];
   for (let v = (Math.floor(min / step) + 1) * step; v <= max; v += step) out.push(v);
   return out;
+}
+
+/** @private Offscreen 2d context for text measurement (never painted). */
+let measureCtx = null;
+
+/** @private The y-axis gutter: the widest CURRENT tick label + the label
+ *  gap + a small pad, floored at 58 (the old fixed width, kept for short
+ *  labels so the common layout doesn't breathe). uPlot clips axis text at
+ *  the canvas edge, so a fixed 58 cut leading digits off labels that grew
+ *  past it — extreme-altitude imperial elevations, five grouped digits
+ *  wide. uPlot hands the size fn the axis's own tick strings; a
+ *  language/unit flip re-converges through the recalcAxes flag
+ *  (invalidateChartStyle), so the gutter always fits the live labels. */
+function yAxisGutter(labels) {
+  let w = 58;
+  if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+  measureCtx.font = monoFont();
+  for (const label of labels ?? []) {
+    w = Math.max(w, Math.ceil(measureCtx.measureText(label).width) + 12);
+  }
+  return w;
 }
 
 /** @private X tick labels — distance or elapsed time, per current mode. */

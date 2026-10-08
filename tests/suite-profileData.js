@@ -8,6 +8,7 @@ import {
   eleYRange, sectorFitWindow, FIT_SECTOR_FRACTION,
 } from '../js/charts/elevation-profile/profile-data.js';
 import { loadUPlot } from '../js/charts/elevation-profile/uplot-loader.js';
+import { niceStepForUnit, niceTimeStep } from '../js/charts/ticks.js';
 import {
   cleanSpeedSeries, cleanComputedSpeeds, minettiFactor,
 } from '../js/metrics/sectorMetrics.js';
@@ -406,5 +407,50 @@ suite('profileData / fit-to-sector window', () => {
     const w = sectorFitWindow(2_000_000, 3_600_000, 7_200_000, 1_200_000);
     assert.closeTo(w.end - w.start, 1_600_000 / FIT_SECTOR_FRACTION, 1e-6);
     assert.truthy(w.start <= 2_000_000 && w.end >= 3_600_000, 'sector fully visible');
+  });
+});
+
+/* Axis grid ladders (ticks.js) ------------------------------------------------- */
+
+suite('axis grid ladders / unit- and duration-aware rounding', () => {
+  const MILE = 1609.344;
+  const FOOT = 0.3048;
+
+  test('metric keeps the meters ladder — already whole meters / whole km', () => {
+    assert.equal(niceStepForUnit(500, 'metric'), 500);
+    assert.equal(niceStepForUnit(2000, 'metric'), 2000);
+    assert.equal(niceStepForUnit(10000, 'metric'), 10000);
+  });
+
+  test('imperial grids round in whole miles at a mile and up', () => {
+    // A metric 2 km grid converted for display reads as 1.24 miles — the
+    // imperial ladder re-rounds into its own whole miles.
+    assert.equal(niceStepForUnit(2000, 'imperial'), 2 * MILE);
+    assert.equal(niceStepForUnit(6210, 'imperial'), 5 * MILE);
+    assert.equal(niceStepForUnit(10000, 'imperial'), 10 * MILE);
+    assert.closeTo(niceStepForUnit(MILE, 'imperial'), MILE, 1e-9);
+  });
+
+  test('imperial grids below the mile line round in whole feet', () => {
+    assert.equal(niceStepForUnit(30, 'imperial'), 100 * FOOT);
+    assert.equal(niceStepForUnit(200, 'imperial'), 1000 * FOOT);
+    assert.equal(niceStepForUnit(300, 'imperial'), 1000 * FOOT);
+    // The ladders cross just under a mile: the feet ladder would jump to
+    // 10000 ft — past the mile line, formatting as fractional miles — so
+    // the step clamps to a whole 1-mile grid instead.
+    assert.equal(niceStepForUnit(1590, 'imperial'), MILE);
+  });
+
+  test('the time-mode grid steps on the duration ladder (whole min / h)', () => {
+    // The ms 1/2/5 ladder grids a 5 h track at 5000 s — "1:23:20". The
+    // duration ladder gives whole seconds / minutes / hours.
+    assert.equal(niceTimeStep(20), 30, 'sub-minute → whole 30 s');
+    assert.equal(niceTimeStep(45), 60);
+    assert.equal(niceTimeStep(90), 120);
+    assert.equal(niceTimeStep(600), 600, '10 min');
+    assert.equal(niceTimeStep(900), 900, '15 min');
+    assert.equal(niceTimeStep(3600), 3600, 'exactly 1 h');
+    assert.equal(niceTimeStep(5000), 7200, 'the old 1:23:20 grid → 2 h');
+    assert.equal(niceTimeStep(90000), 2 * 86400, 'past a day → the 1/2/5 day ladder');
   });
 });
