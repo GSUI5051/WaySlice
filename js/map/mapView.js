@@ -988,6 +988,9 @@ function createHandle(which) {
 
   marker.on('dragstart', () => {
     dragging[which] = true;
+    // Same signal the chart's rubber-band drag sends: the metrics panel
+    // renders sector stats at the slow mid-drag cadence while this runs.
+    emit('sector:drag', true);
     clearWaypointBridge();
     dragHints[which] = sectorPoint(which)?.i ?? null;
   });
@@ -1006,6 +1009,7 @@ function createHandle(which) {
   });
   marker.on('dragend', () => {
     dragging[which] = false;
+    emit('sector:drag', false);
     const pt = sectorPoint(which);
     if (pt) marker.setLngLat([pt.lon, pt.lat]);
     bridgeWaypoint(marker);

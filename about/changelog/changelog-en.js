@@ -23,6 +23,8 @@ export const CHANGELOG_EN = {
         'In time mode the horizontal grid now steps in whole minutes and hours (15:00, 1:00:00, 2:00:00) instead of decimal-time fractions such as 1:23:20.',
         'The elevation profile\'s y-axis gutter now widens to fit its longest label, so extreme-altitude tracks keep their leading digits: the old fixed-width gutter clipped grouped five-digit feet readings such as 29,032 ft.',
         'The dual-variable analysis\'s elevation axis draws its tick labels and gridlines under imperial units again: a reversed meters–feet conversion used to push every tick past the chart edge, leaving the axis blank.',
+        'Dragging and swiping the elevation profile now keeps up with the pointer on long tracks. The sector highlight used to draw one path segment per recorded point — 92,000 segments a frame on a long route; on dense spans it now draws per-pixel min/max bars instead, the rule uPlot applies to the curves underneath, so a frame follows the chart width rather than the point count. The data itself stays full-resolution.',
+        'The metrics panel now recalculates at a calmer pace while a sector boundary is being dragged, and settles to the exact values the moment the drag ends. Dragging a boundary across a 90,000-point track used to stutter the chart and the map.',
       ],
     },
     {

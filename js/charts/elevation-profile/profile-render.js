@@ -6,8 +6,11 @@
  * the x/y scales, grid and axes, and the drawing of every series from its
  * COMPLETE raw data. The renderer receives the full-resolution series —
  * zooming, the sector view and the x-axis mode act on the chart's scale
- * range (or swap cached arrays), never on the data; there is no
- * per-pixel-column downsampling anywhere in this module.
+ * range (or swap cached arrays), never on the data. The one view-layer
+ * stroke that re-draws the elevation (the sector accent) decimates its
+ * Path2D to pixel columns on dense spans — uPlot's own ≥4-points-per-pixel
+ * rule, a draw-time path optimization that never touches the data (see
+ * buildAccentPath).
  *
  * WaySlice keeps the business layers it always owned, drawn on its own
  * annotation canvas (#profile-canvas — the same element the pointer
@@ -705,12 +708,13 @@ function drawOverlayStrip() {
   }
 }
 
-/** @private The sector highlight: the full-resolution elevation path
- *  re-drawn in the accent color, clipped to the sector ∩ visible window —
- *  a pure view-layer statement about the SAME series uPlot drew (no second
- *  data pass, no re-sampling). The path is cached per (sector, view, plot,
- *  track, mode) so hover frames only re-stroke. Line only: the area fill
- *  below the curve was dropped by design (user decision, 2026-10-03). */
+/** @private The sector highlight: the elevation path re-drawn in the accent
+ *  color, clipped to the sector ∩ visible window — a pure view-layer
+ *  statement about the SAME series uPlot drew (no second data pass; dense
+ *  spans decimate the stroke path to pixel columns, never the data — see
+ *  buildAccentPath). The path is cached per (sector, view, plot, track,
+ *  mode) so hover frames only re-stroke. Line only: the area fill below
+ *  the curve was dropped by design (user decision, 2026-10-03). */
 function drawSectorAccent() {
   const { track, view, xs, plot } = state;
   if (!track.hasElevation || !scalesCache?.ele) return;
@@ -743,6 +747,17 @@ function drawSectorAccent() {
   ctx.restore();
 }
 
+/** Accent-path decimation threshold, in points per plot pixel — the same 4×
+ *  rule uPlot's own linear() path builder applies to the series it draws
+ *  (vendor/uplot/uPlot.esm.js). At or above it the accent path is built per
+ *  PIXEL COLUMN (each column contributes its min and max y, then its exit y),
+ *  so a dense span — Bruksleden's 92k points at full view — costs O(plot
+ *  width) per frame instead of O(visible points) in both path building and
+ *  rasterization; below it every point is kept, byte-identical to the raw
+ *  polyline. The DATA is never touched — this is a draw-time statement about
+ *  the same full-resolution series. */
+const ACCENT_DECIMATE_PPP = 4;
+
 /** @private Builds the accent stroke path — the elevation polyline across
  *  the sector span. Points one bracket outside each edge are included so
  *  the clip cuts clean vertical boundaries. Null readings bridge, exactly
@@ -757,11 +772,51 @@ function buildAccentPath(sA, sB) {
   const px = (v) => xvToPx(v, view, xs, plot);
   const stroke = new Path2D();
   let pen = false;
+  if (hi - lo < plot.w * ACCENT_DECIMATE_PPP) {
+    for (let i = lo; i <= hi; i++) {
+      const eleVal = ele[i];
+      if (eleVal == null) continue;
+      stroke.lineTo(px(xs[i]), pyOf(eleVal, 'ele'));
+      pen = true;
+    }
+    return pen ? stroke : null;
+  }
+  // Dense span: per-pixel-column min/max, uPlot-style. A column's vertical
+  // extent is preserved exactly (the min and max of every point in it), and
+  // the pen leaves the column at its last y so neighboring columns connect
+  // like the raw polyline does. Each emitted bar spans the extremes of its
+  // THREE-column neighborhood (the column's own and one column each side):
+  // uPlot assigns boundary-straddling points to its own rounded column and
+  // CONNECTS its bars with diagonals whose endpoints belong to neighboring
+  // columns — without the neighborhood union those segments can poke a few
+  // px past this stroke at steep transitions.
+  const cols = [];
   for (let i = lo; i <= hi; i++) {
     const eleVal = ele[i];
     if (eleVal == null) continue;
-    stroke.lineTo(px(xs[i]), pyOf(eleVal, 'ele'));
+    const x = Math.floor(px(xs[i]));
+    const y = pyOf(eleVal, 'ele');
+    const last = cols[cols.length - 1];
+    if (!last || last.x !== x) cols.push({ x, minY: y, maxY: y, exitY: y });
+    else {
+      if (y < last.minY) last.minY = y;
+      if (y > last.maxY) last.maxY = y;
+      last.exitY = y;
+    }
     pen = true;
+  }
+  for (let k = 0; k < cols.length; k++) {
+    const c = cols[k];
+    let loY = c.minY;
+    let hiY = c.maxY;
+    for (const j of [k - 1, k + 1]) {
+      if (j < 0 || j >= cols.length) continue;
+      if (cols[j].minY < loY) loY = cols[j].minY;
+      if (cols[j].maxY > hiY) hiY = cols[j].maxY;
+    }
+    stroke.lineTo(c.x, loY);
+    stroke.lineTo(c.x, hiY);
+    stroke.lineTo(c.x, c.exitY);
   }
   return pen ? stroke : null;
 }

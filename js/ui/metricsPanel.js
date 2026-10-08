@@ -41,6 +41,16 @@ let renderRaf = 0;
 let trailingTimer = 0;
 /** performance.now() of the last executed render. @private */
 let lastRenderAt = 0;
+/** True while a sector boundary drag is running (the 'sector:drag' signal —
+ *  a chart rubber-band selection or a map handle drag). A sector render is
+ *  O(sector points) — full-resolution stats by contract — and at 10 Hz over
+ *  a 90k-point selection those renders own the main thread and the drag
+ *  stops following the hand; mid-drag renders run at the slower cadence
+ *  instead, keeping the live readout without the jank. The trailing timer
+ *  still lands the exact resting values. @private */
+let sectorDragging = false;
+/** Mid-drag render cadence (ms) — see `sectorDragging`. @private */
+const DRAG_RENDER_INTERVAL_MS = 400;
 
 /**
  * @param {HTMLElement} pane  metrics pane container
@@ -51,6 +61,13 @@ export function initMetricsPanel(pane, detailsTarget) {
   detailsRoot = detailsTarget;
 
   sectorStore.subscribe(() => scheduleRender());
+  // Sector boundary drags switch the render cadence (see sectorDragging);
+  // the release also re-arms the trailing timer at the fast interval so the
+  // resting values land promptly.
+  on('sector:drag', (dragging) => {
+    sectorDragging = !!dragging;
+    if (!sectorDragging) scheduleRender();
+  });
   trackStore.subscribe(() => renderNow());
   on('language:changed', () => renderNow());
   on('units:changed', () => renderNow());
@@ -80,17 +97,19 @@ function scheduleRender() {
   if (renderRaf) return;
   renderRaf = requestAnimationFrame(() => {
     renderRaf = 0;
+    const interval = sectorDragging ? DRAG_RENDER_INTERVAL_MS : SECTOR_RENDER_INTERVAL_MS;
     const sinceLast = performance.now() - lastRenderAt;
-    if (sinceLast >= SECTOR_RENDER_INTERVAL_MS) {
+    if (sinceLast >= interval) {
       renderNow();
     } else if (!trailingTimer) {
       // Trailing edge at the end of the current throttle window: mid-drag
-      // renders keep the readout at ~10 Hz, and this timer doubles as the
-      // guarantee that the values shown after release are the final ones.
+      // renders keep the readout live (~10 Hz, ~2.5 Hz inside a boundary
+      // drag), and this timer doubles as the guarantee that the values
+      // shown after release are the final ones.
       trailingTimer = setTimeout(() => {
         trailingTimer = 0;
         renderNow();
-      }, SECTOR_RENDER_INTERVAL_MS - sinceLast);
+      }, interval - sinceLast);
     }
   });
 }

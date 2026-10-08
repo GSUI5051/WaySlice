@@ -670,6 +670,11 @@ export function wirePointer() {
     }
     dragging = true;
     panHintShown = false;
+    // A rubber-band drag changes the sector on every move: tell the metrics
+    // panel a drag is running so its (O(sector points)) renders take the
+    // slow mid-drag cadence ('sector:drag', see metricsPanel). The final
+    // commit on pointerup releases it.
+    emit('sector:drag', true);
     anchor = distFromEvent(e);
     setRange(anchor, anchor);
   });
@@ -764,6 +769,9 @@ export function wirePointer() {
     }
     if (!dragging) return;
     dragging = false;
+    // Release the metrics panel's slow mid-drag cadence BEFORE the final
+    // commit, so the resting values render at the fast interval.
+    emit('sector:drag', false);
     const dist = distFromEvent(e);
     if (anchor != null && Math.abs(dist - anchor) < MIN_SECTOR_M / 4) {
       // Tap: move the nearest boundary to the tap position.
@@ -789,7 +797,12 @@ export function wirePointer() {
   // The browser can revoke an active touch at any moment (notification shade,
   // incoming gesture); a stale pan or a half-finished pinch must not linger.
   canvas.addEventListener('pointercancel', (e) => {
-    if (e.pointerType !== 'touch') return;
+    if (e.pointerType !== 'touch') {
+      // A revoked mouse capture must not leave the metrics panel on its
+      // slow mid-drag cadence forever.
+      if (dragging) { dragging = false; anchor = null; emit('sector:drag', false); }
+      return;
+    }
     if (virtualHandle && virtualHandle.pointerId === e.pointerId) virtualHandle = null;
     if (probeDrag && probeDrag.pointerId === e.pointerId) probeDrag = null;
     viewport.cancel(e);

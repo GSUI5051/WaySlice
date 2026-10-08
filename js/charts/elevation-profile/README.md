@@ -14,7 +14,10 @@ vendored ES module in `vendor/uplot/`, lazy-loaded on the first track — see
 `uplot-loader.js`): elevation line, metric overlay curves (heart rate, speed/pace/GAP,
 cadence, temperature, power), heart-rate zone bands, grid and axes. uPlot always draws the
 COMPLETE raw series — zooming and the sector view act on the chart's x scale range, never
-on the data; there is no per-pixel-column downsampling anywhere in the draw path. WaySlice
+on the data. The DATA stays full-resolution end to end; the one view-layer stroke that
+re-draws the elevation (the sector accent on the annotation canvas) decimates its Path2D
+to pixel columns on dense spans — uPlot's own series-path rule, never touching the data
+(see the sector highlight below). WaySlice
 owns the business layers: the sector selection, hover crosshair, waypoint pins, the
 per-overlay axis strip (drawn on its own annotation canvas above the chart) and the
 map-linked interactions. It used to be one ~1500-line file; it is now a system of
@@ -133,9 +136,11 @@ for tracks without elevation — the flat dashed reference line (`draw` hook, ab
 series). uPlot's cursor and legend are disabled: it binds no pointer listeners.
 
 **Annotation half (the `#profile-canvas` pass, after the chart):** overlay axis strip →
-sector highlight (the full-resolution elevation path re-drawn in the accent color,
-clipped to sector ∩ window; its Path2D cache rebuilds only on sector/view/plot/track
-changes) → waypoint pins → hover/probe crosshair (hairline, surface-filled dot with an
+sector highlight (the elevation path re-drawn in the accent color,
+clipped to sector ∩ window; dense spans — ≥4 points per plot pixel, uPlot's own
+series-path rule — decimate the Path2D to per-pixel-column min/max so a pan frame
+costs O(plot width), never touching the data; the cache rebuilds only on
+sector/view/plot/track changes) → waypoint pins → hover/probe crosshair (hairline, surface-filled dot with an
 accent ring on the elevation curve, solid dot where the crosshair crosses the drawn HR
 polyline — interpolated along the same segment the drawn line spans). While a touch probe
 is active it draws in the crosshair's place — same line and dots, anchored to the probe's
@@ -271,6 +276,10 @@ conversion, add it there as a pure function with explicit parameters.
    per-pixel-column sampler (bucketing by canvas width, per-column min/max/mean) as a
    "uPlot adapter": the suite pins `sampleElevation`/`sampleOverlay` to `undefined`, and
    any new pixel-width-dependent data path is a regression, not an optimization.
+   The annotation layer's sector-accent STROKE is not a data path: on dense spans
+   (≥ 4 points per plot pixel — uPlot's own series-path rule) it decimates its
+   Path2D to per-pixel-column min/max while the series it re-colors stays
+   full-resolution (see `buildAccentPath`).
 7. Canvas caching: during development the browser may serve stale modules — the project
    has no build step and the dev server sends no explicit caching directives, so browsers
    can apply heuristic caching. Hard-reload via CDP `Page.reload {ignoreCache: true}`
