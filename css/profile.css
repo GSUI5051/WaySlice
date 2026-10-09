@@ -68,8 +68,11 @@
   background: none;
   border: none;
   padding: 0;
-  cursor: ew-resize;
-  touch-action: none;
+  /* Pointer-transparent: hovering anywhere on the chart keeps reading
+     telemetry, and the mouse/pen drag grab lives on the canvas
+     (HANDLE_HIT_HALF in profile-interaction.js). The element keeps its
+     keyboard focus and arrow-key adjustment. */
+  pointer-events: none;
   z-index: var(--z-profile-handle);
 }
 
@@ -106,9 +109,6 @@
 
 #handle-start::before { background: var(--map-handle-start); }
 #handle-end::before { background: var(--map-handle-end); }
-
-/* Hover brightens whatever the side color is, instead of switching hue. */
-.profile-handle:hover::before { filter: brightness(1.12); }
 
 .profile-handle:focus-visible {
   outline: none;

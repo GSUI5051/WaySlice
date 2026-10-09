@@ -22,6 +22,8 @@ export const CHANGELOG_EN = {
         'Both the map-source picker and the overlays picker now follow the page layout. While the page shows its single-column layout the two open as a full-width list docked to the bottom of the screen with a backdrop, and on the wide layout they open as dropdowns. The map-source picker used to keep the dropdown form all the way down to 720 px, floating free of its button across the tablet range in between.',
         'On the wide layout the overlays dropdown caps its height at the bottom of the viewport. Deep browser zoom or a short window used to let it run past the screen edge, where the app clips and the lower rows were out of reach; the rows now scroll inside the panel, driven by the mouse wheel and by touch swipes alike.',
         'In dropdown mode both panels hug their longest row instead of a fixed width, so each language renders at its own width.',
+        'The elevation profile no longer re-draws the curve for the selected sector. The elevation curve now renders in the accent color at one constant stroke width in every state, and the span outside the handles is simply dimmed by the translucent veils; the separate orange highlight over the selected span and the gray outside it are gone.',
+        'The sector handles no longer block hover telemetry. Moving the pointer across a handle shows the crosshair and its readings there like everywhere else on the chart. A boundary drag starts when the pointer is pressed inside a handle\'s hit area and stays locked until the button is released, with the hover crosshair out of the way while the drag runs.',
       ],
     },
     {

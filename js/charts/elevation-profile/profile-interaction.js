@@ -416,6 +416,10 @@ export function unpinWaypoint() {
 }
 
 const GRAB_RADIUS = 30; // px — touch grab radius around handle positions
+// Precise-pointer (mouse/pen) handle hit half-width — the reach of the old
+// 44px-wide handle element. Hovering anywhere on the chart reads telemetry;
+// only a press inside this hit area starts a locked handle drag.
+const HANDLE_HIT_HALF = 22;
 // Touch grab radius around the probe cursor line. Slightly tighter than the
 // handle radius so a contested touch always resolves to the handle
 // (priority: selection handle > probe > normal chart).
@@ -426,9 +430,9 @@ const PROBE_GRAB_RADIUS = 24;
 // tap (probe create / reposition), and it is the same radius the double-tap
 // detector uses, so both agree on what a "tap" is.
 
-/** Returns 'start' | 'end' if `clientX` is within GRAB_RADIUS px of either
+/** Returns 'start' | 'end' if `clientX` is within `radius` px of either
  *  handle's rendered position, picking the nearer one; null otherwise. */
-function handleGrabAt(clientX) {
+function handleGrabAt(clientX, radius = GRAB_RADIUS) {
   const { canvas } = state.dom;
   if (!canvas || !state.track || !state.xs || !state.xs.length) return null;
   const rect = canvas.getBoundingClientRect();
@@ -440,8 +444,8 @@ function handleGrabAt(clientX) {
   };
   const dStart = closest(start);
   const dEnd = closest(end);
-  if (dStart < GRAB_RADIUS && dStart <= dEnd) return 'start';
-  if (dEnd < GRAB_RADIUS) return 'end';
+  if (dStart < radius && dStart <= dEnd) return 'start';
+  if (dEnd < radius) return 'end';
   return null;
 }
 
@@ -533,6 +537,10 @@ export function wirePointer() {
   // is driven from canvas pointermove/pointerup, so the real DOM handles
   // (which have their own pointerdown) are never involved in touch drags.
   let virtualHandle = null;   // { which: 'start'|'end', pointerId }
+  // Precise-pointer drag: the mouse/pen currently dragging a boundary — the
+  // canvas-level twin of the touch virtual handle (the DOM handles are
+  // pointer-events:none so their hot zone never blocks hover telemetry).
+  let mouseHandle = null;     // { which: 'start'|'end', pointerId }
   // Touch probe drag: the pointer currently dragging the probe cursor line.
   let probeDrag = null;       // { pointerId }
   const { canvas } = state.dom;
@@ -668,6 +676,27 @@ export function wirePointer() {
       viewport.down(e);
       return;
     }
+    // Precise pointers (mouse/pen) grab a handle at the handle's own hit
+    // width, exactly like touch — the old 44px-wide element hot zone is
+    // pointer-transparent, so plain hovering keeps reading the chart
+    // telemetry everywhere and only a press inside the hit area starts a
+    // drag. The drag is locked to this pointer until release.
+    const grab = handleGrabAt(e.clientX, HANDLE_HIT_HALF);
+    if (grab) {
+      e.preventDefault();
+      mouseHandle = { which: grab, pointerId: e.pointerId };
+      lastSnapDist = null;
+      // The hover crosshair (accent hairline + curve intersection dots) is
+      // suppressed for the whole locked drag — the moving boundary is the
+      // indicator; hover telemetry resumes on release.
+      state.hoverX = null;
+      state.hoverDist = null;
+      state.hoverOrigin = null;
+      emit('hover:dist', { dist: null, origin: 'profile' });
+      hideTooltip();
+      scheduleSync();
+      return;
+    }
     // A click on the chart unpins the waypoint line; the drag continues.
     unpinWaypoint();
     if (e.shiftKey) {
@@ -707,6 +736,12 @@ export function wirePointer() {
       viewport.move(e);
       return;
     }
+    if (mouseHandle && mouseHandle.pointerId === e.pointerId) {
+      // Locked handle drag: the boundary follows the pointer and nothing
+      // else — no crosshair, no tooltip, no pan — until the button releases.
+      dragHandleTo(mouseHandle.which, e.clientX);
+      return;
+    }
     if (panning) {
       panHintDone = true; // a real Shift-pan: the hint has done its job
       const total = state.xs[state.xs.length - 1];
@@ -735,7 +770,10 @@ export function wirePointer() {
       return;
     }
     // Grab cursor over a zoomed axis with Shift held: the pan affordance.
-    canvas.style.cursor = e.shiftKey && state.view ? 'grab' : '';
+    // Over a handle hit area: the resize affordance — a hint only, hover
+    // telemetry keeps working across the whole zone.
+    canvas.style.cursor = e.shiftKey && state.view ? 'grab'
+      : handleGrabAt(e.clientX, HANDLE_HIT_HALF) ? 'ew-resize' : '';
     // The chart's own hover stays live while a waypoint is pinned — the
     // hover crosshair + readout take over and the pinned line yields
     // (drawHoverCrosshair restores the pin when the pointer leaves).
@@ -763,6 +801,13 @@ export function wirePointer() {
         return;
       }
       viewport.up(e);
+      return;
+    }
+    if (mouseHandle && mouseHandle.pointerId === e.pointerId) {
+      // Drag over — the boundary was committed per move; hover telemetry
+      // resumes with the next pointermove. The cursor stays as the hover
+      // hint left it (ew-resize over the hit area).
+      mouseHandle = null;
       return;
     }
     if (panning) {
@@ -812,6 +857,7 @@ export function wirePointer() {
       // A revoked mouse capture must not leave the metrics panel on its
       // slow mid-drag cadence forever.
       if (dragging) { dragging = false; anchor = null; emit('sector:drag', false); }
+      if (mouseHandle && mouseHandle.pointerId === e.pointerId) mouseHandle = null;
       return;
     }
     if (virtualHandle && virtualHandle.pointerId === e.pointerId) virtualHandle = null;
@@ -871,20 +917,10 @@ export function wireHandles() {
   for (const which of ['start', 'end']) {
     const el = state.dom.handles[which];
     if (!el) continue;
-    el.addEventListener('pointerdown', (e) => {
-      if (!state.track) return;
-      el.setPointerCapture(e.pointerId);
-      // Each drag gives its own snap feedback, even when it starts inside
-      // the radius of the waypoint the previous drag snapped to.
-      lastSnapDist = null;
-      e.preventDefault();
-    });
-    el.addEventListener('pointermove', (e) => {
-      if (!state.track || !el.hasPointerCapture(e.pointerId)) return;
-      // Same windowed mapping as the rendered handle position, so the handle
-      // follows the cursor exactly at any zoom level.
-      dragHandleTo(which, e.clientX);
-    });
+    // Pointer interaction is canvas-driven (see wirePointer): the handles
+    // are pointer-events:none so their wide hot zone never blocks hover
+    // telemetry, and the canvas grabs mouse, pen and touch alike. Only the
+    // keyboard adjustment stays bound here.
     el.addEventListener('keydown', (e) => {
       if (!state.track) return;
       const action = boundaryKeyAction(which, e, getTrackTotal());
