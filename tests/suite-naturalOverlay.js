@@ -1,12 +1,13 @@
 /**
- * Natural landmark overlay tests: tag-model purity (the seven natural=*
- * values, the independent optionality of name and elevation, the
- * meters-canonical elevation parse across metric/feet/unitied/ambiguous
- * sources), the zoom gates, and the render-path invariants that keep the
- * feature a lightweight citizen of the road overlay (one GeoJSON source,
- * one symbol layer, no DOM markers, no interaction machinery). The live
- * mount/toggle/declutter behavior is verified against a real map by the
- * acceptance tool.
+ * Natural landmark overlay tests: tag-model purity (the eight point
+ * classes — seven natural=* values plus the waterfall via its
+ * waterway=waterfall tag — the independent optionality of name and
+ * elevation, the meters-canonical elevation parse across
+ * metric/feet/unitied/ambiguous sources), the zoom gates, and the
+ * render-path invariants that keep the feature a lightweight citizen of
+ * the road overlay (one GeoJSON source, one symbol layer, no DOM markers,
+ * no interaction machinery). The live mount/toggle/declutter behavior is
+ * verified against a real map by the acceptance tool.
  */
 import { suite, test, assert } from './runner.js';
 import {
@@ -24,10 +25,10 @@ import { setUnitSystem } from '../js/units/units.js';
 import { setLanguage } from '../js/language/language.js';
 import '../js/language/langs.js';
 
-suite('natural overlay / the seven types', () => {
-  test('exactly the seven spec values are supported', () => {
+suite('natural overlay / the eight types', () => {
+  test('exactly the eight point classes are supported — seven natural=* values plus the waterfall', () => {
     assert.deepEqual(NATURAL_TYPES, [
-      'peak', 'saddle', 'volcano', 'cave_entrance', 'spring', 'rock', 'stone',
+      'peak', 'saddle', 'volcano', 'cave_entrance', 'spring', 'waterfall', 'rock', 'stone',
     ]);
   });
 
@@ -45,8 +46,8 @@ suite('natural overlay / the seven types', () => {
     assert.equal(lifted[0].type, 'peak');
   });
 
-  test('the Overpass feed takes only the four tile-absent values', () => {
-    assert.deepEqual(NATURAL_POI_TYPES, ['cave_entrance', 'spring', 'rock', 'stone']);
+  test('the Overpass feed takes only the five tile-absent classes', () => {
+    assert.deepEqual(NATURAL_POI_TYPES, ['cave_entrance', 'spring', 'waterfall', 'rock', 'stone']);
     const features = parseOverpassElements({ elements: [
       { type: 'node', lat: 47.5, lon: 13.0, tags: { natural: 'spring', name: 'Quelle' } },
       { type: 'node', lat: 47.5, lon: 13.1, tags: { natural: 'peak', name: 'must come from tiles' } },
@@ -58,9 +59,32 @@ suite('natural overlay / the seven types', () => {
     assert.equal(features[0].type, 'spring');
   });
 
-  test('the Overpass query names exactly the four types over the padded bbox', () => {
+  test('waterfalls arrive via waterway=waterfall — the natural= alias matches the same class', () => {
+    const primary = parseOverpassElements({ elements: [
+      { type: 'node', lat: 63.5321, lon: -19.5114, tags: { waterway: 'waterfall', name: 'Skógafoss', ele: '60' } },
+    ] });
+    assert.equal(primary.length, 1, 'the waterway tag maps to the class');
+    assert.equal(primary[0].type, 'waterfall');
+    assert.equal(primary[0].tags.name, 'Skógafoss', 'name tags ride verbatim for the label chain');
+    const alias = parseOverpassElements({ elements: [
+      { type: 'node', lat: 43.0828, lon: -79.0742, tags: { natural: 'waterfall', name: 'Horseshoe Falls' } },
+    ] });
+    assert.equal(alias.length, 1, 'the natural alias matches the same class');
+    assert.equal(alias[0].type, 'waterfall');
+    const foreign = parseOverpassElements({ elements: [
+      { type: 'node', lat: 1, lon: 2, tags: { waterway: 'river' } },
+    ] });
+    assert.equal(foreign.length, 0, 'a foreign waterway value is not a waterfall');
+  });
+
+  test('the Overpass query names exactly the five classes over the padded bbox', () => {
     const q = overpassQuery({ s: 47.0, w: 12.5, n: 48.0, e: 13.5 });
     for (const t of NATURAL_POI_TYPES) {
+      if (t === 'waterfall') {
+        assert.truthy(q.includes('node["waterway"="waterfall"]'), 'waterfall rides its waterway tag');
+        assert.truthy(q.includes('node["natural"="waterfall"]'), 'the natural=waterfall alias queried too');
+        continue;
+      }
       assert.truthy(q.includes(`node["natural"="${t}"]`), `query clause for ${t}`);
     }
     assert.truthy(q.includes('[bbox:47,12.5,48,13.5]'), 'south,west,north,east order');
@@ -133,7 +157,7 @@ suite('natural overlay / see-become-latched', () => {
   });
 
   test('only the tile trio latches — small classes keep their base rank', () => {
-    const bases = { cave_entrance: 6, spring: 7, rock: 8, stone: 9 };
+    const bases = { cave_entrance: 6, spring: 7, waterfall: 8, rock: 9, stone: 10 };
     for (const [type, base] of Object.entries(bases)) {
       const model = { type, lon: 14.1, lat: 50.9, tags: {}, rank: 5 };
       assert.equal(rankOf(model, new Set([key(type, 14.1, 50.9)])), base, `${type} is never boosted`);
@@ -296,6 +320,10 @@ suite('natural overlay / zoom gates', () => {
     assert.equal(iconAt('rock', 14.5), 0.5, 'rock enters at z14.5');
     assert.equal(iconAt('spring', 13), 0, 'spring hidden at z13');
     assert.equal(iconAt('spring', 13.5), 0.5, 'spring enters at z13.5');
+    assert.equal(iconAt('waterfall', 13), 0, 'waterfall hidden at z13');
+    assert.equal(iconAt('waterfall', 13.5), 0.5, 'waterfall shares the spring tier — the water pair enters together');
+    assert.equal(iconAt('waterfall', 15.5), 0.6, 'waterfall rides the cave/spring ramp');
+    assert.equal(iconAt('waterfall', 19), 0.65, 'waterfall reaches the shared terminal');
     assert.equal(iconAt('saddle', 11), 0, 'saddle hidden at z11');
     assert.equal(iconAt('saddle', 12), 0.5, 'saddle enters at z12');
     // Labels open a notch later than icons everywhere.
@@ -304,6 +332,10 @@ suite('natural overlay / zoom gates', () => {
     assert.equal(textAt('stone', 15.5), 0, 'stone label hidden at z15.5');
     assert.equal(textAt('stone', 16.5), 11.5, 'stone label from z16.5');
     assert.equal(textAt('cave_entrance', 14.5), 11.5, 'cave label from z14.5');
+    assert.equal(textAt('waterfall', 14), 0, 'waterfall label hidden at z14');
+    assert.equal(textAt('waterfall', 14.5), 11.5, 'waterfall label opens one zoom behind its icon');
+    assert.equal(textAt('waterfall', 16), 12.5, 'waterfall label rides the shared mid ramp');
+    assert.equal(textAt('waterfall', 19), 13.75, 'waterfall label reaches the trio terminal');
     // Small-class alignment anchors (specs/ ZCode Prompt - Natural
     // small-class size alignment.md): the four Overpass classes converge on
     // the trio's 13.75 by z19 and ride the shared icon growth model.
@@ -322,7 +354,7 @@ suite('natural overlay / zoom gates', () => {
 
 suite('natural overlay / render path', () => {
   test('one GeoJSON source, one symbol layer — no per-feature DOM markers', () => {
-    assert.equal(NATURAL_LAYERS.length, 1, 'a single layer renders all seven types');
+    assert.equal(NATURAL_LAYERS.length, 1, 'a single layer renders all eight types');
     const layer = NATURAL_LAYERS[0];
     assert.equal(layer.type, 'symbol', 'symbol layers create no DOM elements');
     assert.equal(layer.source, NATURAL_SOURCE_ID);
@@ -342,7 +374,7 @@ suite('natural overlay / render path', () => {
   test('small classes carry the 1.05em label offset, the trio keeps 0.6 — per-class match', () => {
     const offset = NATURAL_LAYERS[0].layout['text-offset'];
     assert.deepEqual(offset.slice(0, 2), ['match', ['get', 'naturalClass']]);
-    assert.deepEqual(offset[2], ['cave_entrance', 'spring', 'rock', 'stone']);
+    assert.deepEqual(offset[2], ['cave_entrance', 'spring', 'waterfall', 'rock', 'stone']);
     assert.deepEqual(offset[3], ['literal', [0, 1.05]], 'the small-class offset');
     assert.deepEqual(offset[4], ['literal', [0, 0.6]], 'the trio offset is untouched');
   });
@@ -408,6 +440,20 @@ suite('natural overlay / sprite fills', () => {
     if (prev == null) root.removeAttribute('data-theme');
     else root.setAttribute('data-theme', prev);
     closeToColor(after, before, 'volcano fill identical across themes');
+  });
+
+  test('the waterfall glyph fills white over the dark rim — the drawings\' one non-Lucide shape', () => {
+    const image = rasterizeNaturalIcon('waterfall', 48);
+    assert.truthy(image, 'the waterfall has a registered drawing');
+    let white = 0;
+    let rim = 0;
+    for (let i = 0; i < image.data.length; i += 4) {
+      const [r, g, b, a] = [image.data[i], image.data[i + 1], image.data[i + 2], image.data[i + 3]];
+      if (a > 250 && r > 248 && g > 248 && b > 248) white += 1;
+      if (a > 50 && r < 60 && g < 60 && b < 60) rim += 1;
+    }
+    assert.truthy(white > 20, `the fill body renders white (${white} px)`);
+    assert.truthy(rim > 20, `the dark halo rim renders (${rim} px)`);
   });
 });
 

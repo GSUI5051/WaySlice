@@ -86,7 +86,7 @@ capital letter, it means exactly this:
   Space centers the map, and focusing a pin shows its name tooltip the same way hovering does.
 - **Hybrid satellite map.** The map button at the top-left of the map area toggles a road-network
   overlay for satellite basemaps: vector roads, road names, place labels and natural landmarks —
-  peaks, saddles, volcanoes, cave entrances, springs, rocks and stones, with elevations shown in
+  peaks, saddles, volcanoes, cave entrances, springs, waterfalls, rocks and stones, with elevations shown in
   your units — draw over the imagery, always beneath your track. Landmark labels stack the raw
   local name under the main name, like every other overlay label, and zooming in never loses the
   landmarks: a summit stays on the map past the road tiles' detail limit, and one you have already
@@ -94,7 +94,7 @@ capital letter, it means exactly this:
   is active, and switching basemaps turns the overlay off.
 - **Natural landmarks on vector basemaps.** On the OpenFreeMap, Stadia Maps and Thunderforest
   World Map styles the same map button becomes a landmarks toggle: peaks, saddles, volcanoes,
-  cave entrances, springs, rocks and stones draw straight on the basemap, with names and
+  cave entrances, springs, waterfalls, rocks and stones draw straight on the basemap, with names and
   elevations in your units. The choice is remembered on its own and defaults to on. The plain
   raster maps already draw their own peak markers, so the button rests there.
 - **Profile wheel zoom (desktop), pinch zoom (touch).** Hover the elevation profile and scroll to zoom its

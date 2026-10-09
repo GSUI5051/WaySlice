@@ -93,7 +93,7 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
 - **Mappa satellite ibrida.** Il pulsante in alto a sinistra dell'area mappa attiva una
   sovrapposizione della rete stradale sulle basi satellitari: strade vettoriali, nomi delle strade,
   etichette dei luoghi e punti di riferimento naturali — vette, selle, vulcani, ingressi di
-  grotte, sorgenti, rocce e pietre, con le elevazioni nelle tue unità — vengono disegnati sopra le
+  grotte, sorgenti, cascate, rocce e pietre, con le elevazioni nelle tue unità — vengono disegnati sopra le
   immagini, sempre sotto la traccia. Le etichette dei punti naturali sovrappongono il nome locale
   originale sotto il nome principale, come tutte le etichette della sovrapposizione, e lo zoom non
   fa mai perdere i punti naturali: una vetta resta sulla mappa oltre il limite di dettaglio delle
@@ -101,7 +101,7 @@ parola compare con la maiuscola, va presa esattamente in questo senso:
   è attivo solo con una base satellitare, e cambiare base spegne la sovrapposizione.
 - **Elementi naturali sulle basi vettoriali.** Sugli stili OpenFreeMap, Stadia Maps e
   Thunderforest World Map lo stesso bottone della mappa diventa l'interruttore degli elementi
-  naturali: vette, selle, vulcani, ingressi di grotte, sorgenti, rocce e sassi si disegnano
+  naturali: vette, selle, vulcani, ingressi di grotte, sorgenti, cascate, rocce e sassi si disegnano
   direttamente sulla base, con nomi e quote nelle vostre unità. La preferenza viene ricordata
   a parte ed è attiva di serie. Le mappe raster semplici disegnano già i loro marcatori di
   vette, lì il bottone resta a riposo.

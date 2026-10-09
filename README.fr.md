@@ -93,7 +93,7 @@ majuscule, il faut le prendre exactement au sens suivant :
   le focus sur une épingle affiche son info-bulle, comme au survol.
 - **Carte satellite hybride.** Le bouton en haut à gauche de la carte active une superposition du
   réseau routier sur les fonds satellite : routes vectorielles, noms de rues, toponymes et repères
-  naturels — sommets, cols, volcans, entrées de grottes, sources, rochers et pierres, avec les
+  naturels — sommets, cols, volcans, entrées de grottes, sources, cascades, rochers et pierres, avec les
   altitudes dans vos unités — se dessinent au-dessus de l'imagerie, toujours sous la trace. Les
   étiquettes des repères naturels empilent le nom local d'origine sous le nom principal, comme
   toutes les étiquettes de la superposition, et zoomer ne fait jamais perdre les repères : un
@@ -102,7 +102,7 @@ majuscule, il faut le prendre exactement au sens suivant :
   satellite, et changer de fond désactive la superposition.
 - **Éléments naturels sur les fonds vectoriels.** Sur les styles OpenFreeMap, Stadia Maps et
   Thunderforest World Map, le même bouton de carte devient la bascule des éléments naturels :
-  sommets, cols, volcans, entrées de grottes, sources, rochers et pierres se dessinent
+  sommets, cols, volcans, entrées de grottes, sources, cascades, rochers et pierres se dessinent
   directement sur le fond de carte, avec noms et altitudes dans vos unités. Le choix est
   mémorisé à part et activé par défaut. Les cartes raster simples dessinent déjà leurs propres
   repères de sommets ; le bouton s'y repose.

@@ -92,7 +92,7 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   seinen Namens-Tooltip genauso wie beim Überfahren mit der Maus.
 - **Hybrid-Satellitenkarte.** Der Knopf oben links im Kartenbereich blendet bei Satellitenbasemaps
   ein Straßenoverlay ein: Vektorstraßen, Straßennamen, Ortsbeschriftungen und Naturdenkmale —
-  Gipfel, Scharten, Vulkane, Höhleneingänge, Quellen, Felsen und Steine, mit Höhenangaben in
+  Gipfel, Scharten, Vulkane, Höhleneingänge, Quellen, Wasserfälle, Felsen und Steine, mit Höhenangaben in
   deinen Einheiten — liegen über dem Satellitenbild, immer unter deinem Track. Die
   Naturdenkmal-Beschriftungen stapeln wie alle Overlay-Beschriftungen den ursprünglichen lokalen
   Namen unter den Hauptnamen, und beim Hineinzoomen gehen die Naturdenkmale nicht verloren: Ein
@@ -101,7 +101,7 @@ großgeschrieben auf, gilt es genau in dieser Bedeutung:
   Satellitenbasemap aktiv, und ein Basemap-Wechsel blendet das Overlay wieder aus.
 - **Naturpunkte auf Vektorbasemaps.** Bei den OpenFreeMap-, Stadia Maps- und
   Thunderforest-World-Map-Stilen wird derselbe Kartenknopf zum Umschalter für Naturpunkte:
-  Gipfel, Scharten, Vulkane, Höhleneingänge, Quellen, Felsen und Steine erscheinen direkt auf
+  Gipfel, Scharten, Vulkane, Höhleneingänge, Quellen, Wasserfälle, Felsen und Steine erscheinen direkt auf
   der Basiskarte, mit Namen und Höhen in Ihren Einheiten. Die Wahl wird separat gemerkt und
   ist standardmäßig aktiv. Die einfachen Rasterkarten zeichnen ihre eigenen Gipfelmarker,
   dort ruht der Knopf.

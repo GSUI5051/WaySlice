@@ -93,7 +93,7 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
 - **Mapa satelital híbrido.** El botón en la esquina superior izquierda del mapa activa una
   superposición de red viaria en las bases satelitales: carreteras vectoriales, nombres de calles,
   etiquetas de lugares y hitos naturales — cumbres, collados, volcanes, entradas de cuevas,
-  manantiales, rocas y piedras, con las elevaciones en tus unidades — se dibujan sobre la imagen,
+  manantiales, cascadas, rocas y piedras, con las elevaciones en tus unidades — se dibujan sobre la imagen,
   siempre bajo la traza. Las etiquetas de los hitos naturales apilan el nombre local original bajo
   el nombre principal, como todas las etiquetas de la superposición, y al acercar el zoom los hitos
   naturales nunca se pierden: una cumbre sigue en el mapa más allá del límite de detalle de las
@@ -101,7 +101,7 @@ palabra aparece con mayúscula, hay que tomarla exactamente en este sentido:
   solo está activo con una base satelital, y cambiar de base apaga la superposición.
 - **Elementos naturales en mapas vectoriales.** En los estilos de OpenFreeMap, Stadia Maps y
   Thunderforest World Map, el mismo botón del mapa se convierte en el conmutador de elementos
-  naturales: picos, collados, volcanes, entradas de cuevas, manantiales, rocas y piedras se
+  naturales: picos, collados, volcanes, entradas de cuevas, manantiales, cascadas, rocas y piedras se
   dibujan directamente sobre el mapa base, con nombres y elevaciones en sus unidades. La
   preferencia se recuerda por separado y viene activada. Los mapas ráster sencillos ya dibujan
   sus propios marcadores de picos, así que el botón descansa ahí.

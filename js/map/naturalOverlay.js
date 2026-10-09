@@ -2,8 +2,11 @@
  * Natural landmarks — the natural=* point family over the imagery and the
  * vector basemaps alike.
  *
- * Seven OSM point features render as one GeoJSON symbol layer: peak,
- * saddle, volcano, cave_entrance, spring, rock, stone. On a satellite
+ * Eight OSM point features render as one GeoJSON symbol layer: peak,
+ * saddle, volcano, cave_entrance, spring, waterfall, rock, stone — the
+ * waterfall joining 2026-10-09 through its `waterway=waterfall` tag (the
+ * `natural=waterfall` alias queried alongside it), since that is how OSM
+ * actually tags it. On a satellite
  * basemap they ride the road overlay's whole lifecycle (the Roads toggle,
  * under the track vectors); on the vector basemaps whose tiles carry no
  * natural landmarks of their own (the OpenFreeMap, Stadia Maps and
@@ -21,10 +24,11 @@
  *    lifted out of the already-loaded tiles (the `mountain_peak` source
  *    layer, rank-rated and carrying ele/ele_ft plus the full name:* set) —
  *    zero extra requests.
- *  - cave_entrance / spring / rock / stone are absent from the vector tiles
- *    (the tile `poi` layer carries no natural=* points at all), so they come
- *    from one debounced viewport query to the Overpass API, cached per
- *    expanded bounding box and refetched only when the camera leaves it.
+ *  - cave_entrance / spring / waterfall / rock / stone are absent from the
+ *    vector tiles (the tile `poi` layer carries no natural=* points at
+ *    all), so they come from one debounced viewport query to the Overpass
+ *    API, cached per expanded bounding box and refetched only when the
+ *    camera leaves it.
  *
  * The OSM tag reality this module is written against (spec: names and
  * elevations are OPTIONAL and independent): every combination of name/ele
@@ -51,11 +55,21 @@ import {
 
 export const NATURAL_SOURCE_ID = 'road-overlay-natural';
 
-/** The seven supported natural=* values, in gate-table column order. */
-export const NATURAL_TYPES = ['peak', 'saddle', 'volcano', 'cave_entrance', 'spring', 'rock', 'stone'];
+/** The eight supported point classes, in gate-table column order — seven
+ * `natural=*` values plus the waterfall, which rides its
+ * `waterway=waterfall` tag. */
+export const NATURAL_TYPES = ['peak', 'saddle', 'volcano', 'cave_entrance', 'spring', 'waterfall', 'rock', 'stone'];
 
-/** The four types the planet tiles cannot provide (they ride Overpass). */
-export const NATURAL_POI_TYPES = ['cave_entrance', 'spring', 'rock', 'stone'];
+/** The five types the planet tiles cannot provide (they ride Overpass). */
+export const NATURAL_POI_TYPES = ['cave_entrance', 'spring', 'waterfall', 'rock', 'stone'];
+
+/** Per-type Overpass clauses where the bare `natural=*` statement doesn't
+ * apply: waterfalls are tagged `waterway=waterfall` in OSM (the
+ * `natural=waterfall` alias is queried alongside it — a handful of
+ * features carry it). */
+const OVERPASS_CLAUSES = {
+  waterfall: 'node["waterway"="waterfall"];node["natural"="waterfall"];',
+};
 
 /** The three tile-carried classes the mountain_peak source layer may hold —
  * the layer ALSO carries cliff/ridge, which are line/area landforms and
@@ -366,8 +380,9 @@ export function gateClassFor(type, rank = 5) {
 
 /**
  * Per-gate-class entry zooms: the icon first, the label a notch later —
- * never all seven from the world view. stone/rock/spring enter late so the
- * low zooms stay quiet; peak/volcano majors lead from z8. An entry zoom is
+ * never all eight from the world view. stone/rock/spring enter late so the
+ * low zooms stay quiet; peak/volcano majors lead from z8; the waterfall
+ * shares the spring's tier (the two water features enter together). An entry zoom is
  * the first stop where the column is fully open; each class fades in
  * across the preceding stop gap (the place-label curve convention).
  */
@@ -379,6 +394,7 @@ export const NATURAL_GATES = {
   'saddle': { icon: 12, text: 14 },
   'cave_entrance': { icon: 13.5, text: 14.5 },
   'spring': { icon: 13.5, text: 14.5 },
+  'waterfall': { icon: 13.5, text: 14.5 },
   'rock': { icon: 14.5, text: 15.5 },
   'stone': { icon: 15.5, text: 16.5 },
 };
@@ -387,49 +403,52 @@ const GATE_CLASSES = Object.keys(NATURAL_GATES);
 
 /** Icon sizes (fractions of the 24-unit sprite box → 12–17 px on screen).
  * A 0 output hides the class before its entry zoom. Gated on `gateClass`
- * — the derived rank-tier property the features carry. The four small
+ * — the derived rank-tier property the features carry. The five small
  * Overpass classes share one growth model — hold the 0.5 entry size, then
- * climb linearly to the z19 terminal — with cave/spring on the same ramp
- * (0.5 → 0.6@15.5 → 0.65@19), rock rising later (0.65@19) and stone the
- * shallowest (0.6@19); the z17 row carries the linear in-between values. */
+ * climb linearly to the z19 terminal — with cave/spring/waterfall on the
+ * same ramp (0.5 → 0.6@15.5 → 0.65@19; the waterfall mirrors spring's
+ * column exactly, the water pair growing together), rock rising later
+ * (0.65@19) and stone the shallowest (0.6@19); the z17 row carries the
+ * linear in-between values. */
 export const NATURAL_ICON_SIZES = classCurve(GATE_CLASSES, [
-  // zoom, peak-major, peak, volcano-major, volcano, saddle, cave_entrance, spring, rock, stone
-  [8, 0.5, 0, 0.5, 0, 0, 0, 0, 0, 0],
-  [10, 0.55, 0, 0.55, 0.5, 0, 0, 0, 0, 0],
-  [11, 0.55, 0.5, 0.55, 0.55, 0, 0, 0, 0, 0],
-  [12, 0.6, 0.55, 0.6, 0.55, 0.5, 0, 0, 0, 0],
-  [13, 0.6, 0.55, 0.6, 0.6, 0.55, 0, 0, 0, 0],
-  [13.5, 0.6, 0.6, 0.6, 0.6, 0.55, 0.5, 0.5, 0, 0],
-  [14.5, 0.65, 0.6, 0.65, 0.6, 0.6, 0.55, 0.55, 0.5, 0],
-  [15.5, 0.65, 0.65, 0.65, 0.65, 0.6, 0.6, 0.6, 0.5, 0.5],
-  [17, 0.7, 0.65, 0.7, 0.65, 0.65, 0.62, 0.62, 0.56, 0.54],
-  [19, 0.7, 0.7, 0.7, 0.7, 0.7, 0.65, 0.65, 0.65, 0.6],
+  // zoom, peak-major, peak, volcano-major, volcano, saddle, cave_entrance, spring, waterfall, rock, stone
+  [8, 0.5, 0, 0.5, 0, 0, 0, 0, 0, 0, 0],
+  [10, 0.55, 0, 0.55, 0.5, 0, 0, 0, 0, 0, 0],
+  [11, 0.55, 0.5, 0.55, 0.55, 0, 0, 0, 0, 0, 0],
+  [12, 0.6, 0.55, 0.6, 0.55, 0.5, 0, 0, 0, 0, 0],
+  [13, 0.6, 0.55, 0.6, 0.6, 0.55, 0, 0, 0, 0, 0],
+  [13.5, 0.6, 0.6, 0.6, 0.6, 0.55, 0.5, 0.5, 0.5, 0, 0],
+  [14.5, 0.65, 0.6, 0.65, 0.6, 0.6, 0.55, 0.55, 0.55, 0.5, 0],
+  [15.5, 0.65, 0.65, 0.65, 0.65, 0.6, 0.6, 0.6, 0.6, 0.5, 0.5],
+  [17, 0.7, 0.65, 0.7, 0.65, 0.65, 0.62, 0.62, 0.62, 0.56, 0.54],
+  [19, 0.7, 0.7, 0.7, 0.7, 0.7, 0.65, 0.65, 0.65, 0.65, 0.6],
 ], 'gateClass');
 
 /** Label sizes — landmarks read a step below settlement names. The first
  * stop sits at the layer minzoom with every column closed: MapLibre clamps
  * below the first stop, so an 11-zoom first row would silently open the
- * majors' labels at z8 — icons lead, labels join two zooms later. The four
+ * majors' labels at z8 — icons lead, labels join two zooms later. The five
  * small classes share the trio's terminal size: each enters at 11.5 and
- * climbs to 13.75@z19 (cave from 14.5, spring holding 11.5 to 15.5, rock
- * from 15.5, stone from 16.5), so every natural label reads the same size
- * once the camera is deep. The z15/z16 rows are collinear trio stops that
- * carry the small classes' linear in-between values — inserting a
- * collinear stop changes nothing for the trio columns. */
+ * climbs to 13.75@z19 (cave/spring/waterfall from 14.5, with the waterfall
+ * mirroring spring's column, rock from 15.5, stone from 16.5), so every
+ * natural label reads the same size once the camera is deep. The z15/z16
+ * rows are collinear trio stops that carry the small classes' linear
+ * in-between values — inserting a collinear stop changes nothing for the
+ * trio columns. */
 export const NATURAL_TEXT_SIZES = classCurve(GATE_CLASSES, [
-  // zoom, peak-major, peak, volcano-major, volcano, saddle, cave_entrance, spring, rock, stone
-  [8, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [10, 11.25, 0, 11.25, 0, 0, 0, 0, 0, 0],
-  [11, 11.875, 0, 11.875, 0, 0, 0, 0, 0, 0],
-  [12.5, 11.875, 0, 11.875, 11.25, 0, 0, 0, 0, 0],
-  [13, 11.875, 11.25, 11.875, 11.25, 0, 0, 0, 0, 0],
-  [14, 12.5, 11.875, 12.5, 11.875, 11.25, 0, 0, 0, 0],
-  [14.5, 12.5, 11.875, 12.5, 12.5, 11.875, 11.5, 11.5, 0, 0],
-  [15, 12.813, 12.188, 12.813, 12.5, 12.188, 11.833, 11.5, 0, 0],
-  [15.5, 13.125, 12.5, 13.125, 12.5, 12.5, 12.167, 11.5, 11.5, 0],
-  [16, 13.125, 12.813, 13.125, 12.813, 12.813, 12.5, 12.5, 12.5, 0],
-  [16.5, 13.125, 13.125, 13.125, 13.125, 13.125, 12.708, 12.708, 12.708, 11.5],
-  [19, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75],
+  // zoom, peak-major, peak, volcano-major, volcano, saddle, cave_entrance, spring, waterfall, rock, stone
+  [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [10, 11.25, 0, 11.25, 0, 0, 0, 0, 0, 0, 0],
+  [11, 11.875, 0, 11.875, 0, 0, 0, 0, 0, 0, 0],
+  [12.5, 11.875, 0, 11.875, 11.25, 0, 0, 0, 0, 0, 0],
+  [13, 11.875, 11.25, 11.875, 11.25, 0, 0, 0, 0, 0, 0],
+  [14, 12.5, 11.875, 12.5, 11.875, 11.25, 0, 0, 0, 0, 0],
+  [14.5, 12.5, 11.875, 12.5, 12.5, 11.875, 11.5, 11.5, 11.5, 0, 0],
+  [15, 12.813, 12.188, 12.813, 12.5, 12.188, 11.833, 11.5, 11.5, 0, 0],
+  [15.5, 13.125, 12.5, 13.125, 12.5, 12.5, 12.167, 11.5, 11.5, 11.5, 0],
+  [16, 13.125, 12.813, 13.125, 12.813, 12.813, 12.5, 12.5, 12.5, 12.5, 0],
+  [16.5, 13.125, 13.125, 13.125, 13.125, 13.125, 12.708, 12.708, 12.708, 12.708, 11.5],
+  [19, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75, 13.75],
 ], 'gateClass');
 
 /** Collision priority: majors win, stones lose. */
@@ -442,7 +461,7 @@ export const LATCH_BOOST = 20;
 /* ---- layer defs ---------------------------------------------------------- */
 
 /**
- * The one symbol layer the seven types render through (icon + label in a
+ * The one symbol layer the eight types render through (icon + label in a
  * single symbol: collision treats the pair as a unit, `text-optional`
  * lets the icon survive where the label loses). The label text lives in
  * the feature's `label` property — rebuilt by the shared unit formatter on
@@ -469,7 +488,7 @@ export const NATURAL_LAYERS = [
       // 单层载七类，按 naturalClass 分支；两个输出都必须 literal 包裹，
       // 裸数组会被当成表达式、addLayer 静默拒绝。
       'text-offset': ['match', ['get', 'naturalClass'],
-        ['cave_entrance', 'spring', 'rock', 'stone'], ['literal', [0, 1.05]],
+        ['cave_entrance', 'spring', 'waterfall', 'rock', 'stone'], ['literal', [0, 1.05]],
         ['literal', [0, 0.6]]],
       'text-max-width': 9,
       'text-optional': true,
@@ -527,6 +546,14 @@ const ICON_PATHS = {
   // A box-filling single water droplet — the one water-source metaphor,
   // unblurred even at the smallest size.
   spring: { solid: [], lines: ['M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z'] },
+  // The waterfall — the OSM wiki's Waterfall-14 glyph (wiki.openstreetmap.org
+  // w/images/7/72/Waterfall-14.svg): falling streams over a wavy pool line,
+  // rescaled ×19/14 from its 14-unit grid and content-centered on this box.
+  // Filled like the summit family — the drawings' one non-Lucide shape.
+  waterfall: {
+    solid: ['m 3.179 16.071 c 0.87 0 2.482 1.357 3.257 1.357 0.726 0 2.436 -1.357 3.257 -1.357 s 2.532 1.357 3.257 1.357 c 0.871 0 2.477 -1.357 3.256 -1.357 0.87 -0.039 2.581 1.357 3.257 1.357 v 2.714 c -0.82 0 -2.484 -1.357 -3.257 -1.357 -0.772 0 -2.436 1.357 -3.256 1.357 -0.779 0 -2.436 -1.357 -3.257 -1.357 -0.827 0 -2.482 1.357 -3.257 1.357 -0.869 0 -2.435 -1.357 -3.257 -1.357 z m 0 -10.857 c 1.485 0 2.716 0.407 2.716 2.375 l -0.001 3.393 c 0 2.714 2.036 4.071 3.393 4.071 0 0 -0.679 -1.357 -0.679 -4.071 v -3.393 c 0 -1.242 -0.881 -1.775 -1.358 -2.375 1.485 0 2.716 0.407 2.716 2.375 v 3.393 c 0 2.714 2.036 4.071 3.393 4.071 0 0 -0.679 -1.357 -0.679 -4.071 l 0.136 -3.393 c 0.05 -1.241 -1.016 -1.775 -1.493 -2.375 1.483 0 2.714 0.407 2.714 2.375 v 3.393 c 0 2.714 2.036 4.071 3.393 4.071 0 0 -0.679 -1.357 -0.679 -4.071 v -3.393 c 0 -4.071 -4.071 -5.089 -5.429 -5.089 h -9.5 l 0.001 2.714 z'],
+    lines: [],
+  },
   // A faceted boulder with its facet line.
   rock: { solid: [], lines: ['M7.5 4.5 15 3l5 7.5-2.5 9-9.5 1L3 12z', 'M7.5 4.5 10 12l7.5 7'] },
   // A rounded pebble, visibly smaller and softer than the faceted rock.
@@ -590,7 +617,7 @@ export function rasterizeNaturalIcon(type, px = 48) {
   return paths ? rasterizeIcon(paths, px) : null;
 }
 
-/** @private Registers the seven sprite images (idempotent per style). */
+/** @private Registers the eight sprite images (idempotent per style). */
 function ensureNaturalImages(map) {
   for (const type of NATURAL_TYPES) {
     const imageId = `natural-${type}`;
@@ -603,25 +630,30 @@ function ensureNaturalImages(map) {
 /* ---- data feeds ------------------------------------------------------------ */
 
 /**
- * The Overpass query for the four tile-absent types over a bounding box
- * (south, west, north, east). Nodes only — the spec's point landforms. The
+ * The Overpass query for the five tile-absent types over a bounding box
+ * (south, west, north, east). Nodes only — the spec's point landforms.
+ * Waterfalls ride their `waterway=waterfall` tag with the
+ * `natural=waterfall` alias queried alongside it (the per-type clause
+ * table); every other class keeps the bare `natural=*` statement. The
  * `out` clause carries the element cap so a busy viewport is truncated
  * server-side, before it ever crosses the network.
  * @param {{s: number, w: number, n: number, e: number}} bbox
  */
 export function overpassQuery(bbox) {
   const box = `[bbox:${bbox.s},${bbox.w},${bbox.n},${bbox.e}]`;
-  const body = NATURAL_POI_TYPES.map((t) => `node["natural"="${t}"];`).join('');
+  const body = NATURAL_POI_TYPES.map((t) => OVERPASS_CLAUSES[t] ?? `node["natural"="${t}"];`).join('');
   return `[out:json][timeout:20]${box};(${body});out body ${OVERPASS_ELEMENT_CAP} qt;`;
 }
 
 /**
  * Pure Overpass response → feature models. Only nodes carrying one of the
- * four target natural values survive — every other tag value (and every
+ * five target classes survive — every other tag value (and every
  * non-target natural=*) is dropped here, before anything reaches a layer.
- * The element list is clamped to the cap before filtering (bounding the
- * parse of one response) and the result is clamped again after — the cap
- * is a hard bound on the model set either way.
+ * Waterfalls arrive through their `waterway=waterfall` tag (the
+ * `natural=waterfall` alias matches the same class); a foreign waterway
+ * value never becomes one. The element list is clamped to the cap before
+ * filtering (bounding the parse of one response) and the result is clamped
+ * again after — the cap is a hard bound on the model set either way.
  * @param {{ elements?: Array<{ type?: string, lat?: number, lon?: number, tags?: Record<string, string> }>} | null} json
  */
 export function parseOverpassElements(json) {
@@ -629,7 +661,8 @@ export function parseOverpassElements(json) {
   const out = [];
   for (const el of elements) {
     if (el.type !== 'node' || !Number.isFinite(el.lat) || !Number.isFinite(el.lon)) continue;
-    const natural = el.tags?.natural;
+    let natural = el.tags?.natural;
+    if (el.tags?.waterway === 'waterfall') natural = 'waterfall';
     if (!NATURAL_POI_TYPES.includes(natural)) continue;
     out.push({ type: natural, lon: el.lon, lat: el.lat, tags: { ...el.tags } });
   }
