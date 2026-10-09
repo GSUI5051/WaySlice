@@ -72,26 +72,25 @@ export function wireControls() {
   const overlaysButton = document.getElementById('btn-overlays');
   overlaysMenu = createMultiSelectMenu({
     button: overlaysButton,
-    // Wide screens: the open panel drops from the profile header row (covering
-    // the trigger line) over the chart's right edge. Positioned in DOCUMENT
-    // coordinates (absolute, not fixed) so the panel stays glued to the chart
-    // while the page scrolls. The height hugs its rows; the cap is the space
-    // down to the chart's x-axis, floored at 160px so a short window still
-    // gets a usable panel (which may then overlap the axis and scroll instead)
-    // — a tall chart (fullscreen, big monitors) must never stretch the panel
-    // into a mostly-empty sheet. Narrow desktop windows and phones return
-    // false and keep the default placement.
+    // Wide screens own their placement: the panel hangs below the Overlays
+    // button like every popover (right edge at the trigger), but positioned
+    // in DOCUMENT coordinates (absolute, not fixed) so it stays glued to the
+    // button while the page scrolls, and its height is capped at the VIEWPORT
+    // bottom. Deep browser zoom or a short window can leave less room below
+    // the trigger than the panel's natural height; without the cap the panel
+    // would run past the screen edge — the app shell clips there — putting
+    // the lower rows out of reach. The cap makes .menu-panel's overflow-y
+    // scroll the rows instead, driven by mouse wheel and touch swipe alike.
+    // The small floor keeps at least a couple of scrollable rows visible in
+    // the extreme case. Narrow screens return false and keep the default
+    // placement (the CSS bottom sheet).
     positionOverride: (panelEl) => {
       if (!isWideLayout()) return false;
-      const controlsRect = overlaysButton.closest('.profile-controls').getBoundingClientRect();
-      const chartRect = state.dom.canvas.getBoundingClientRect();
-      const scrollY = window.scrollY;
+      const btnRect = overlaysButton.getBoundingClientRect();
       panelEl.style.position = 'absolute';
-      panelEl.style.left = '';
-      panelEl.style.bottom = '';
-      panelEl.style.right = `${Math.max(8, document.documentElement.clientWidth - controlsRect.right)}px`;
-      panelEl.style.top = `${controlsRect.top + scrollY}px`;
-      panelEl.style.maxHeight = `${Math.max(160, chartRect.bottom - controlsRect.top - 6)}px`;
+      panelEl.style.top = `${btnRect.bottom + 6 + window.scrollY}px`;
+      panelEl.style.right = `${Math.max(8, document.documentElement.clientWidth - btnRect.right)}px`;
+      panelEl.style.maxHeight = `${Math.max(96, window.innerHeight - btnRect.bottom - 8)}px`;
       return true;
     },
     buildItems: () => {

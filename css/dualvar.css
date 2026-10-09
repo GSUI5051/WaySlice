@@ -103,7 +103,7 @@
    display:flex is scoped to [open]: an author display on the CLOSED dialog
    overrides the UA's closed-dialog display:none and lays the box out as a
    608px phantom in the page flow — that inflated document scrollHeight and
-   collapsed the overlays menu's positionOverride once already. */
+   collapsed the absolutely-positioned overlays popover once already. */
 @media (min-width: 721px) {
   #sheet:has(.seg-list),
   .sheet.dualvar {

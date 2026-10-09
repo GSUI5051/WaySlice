@@ -69,11 +69,12 @@
 .menu-panel-export .menu-item { justify-content: center; }
 .menu-panel-export .menu-item-label { flex: 0 1 auto; text-align: center; }
 
-/* Fit-content menus (the overlays popover): hug the longest item instead of
-   the shared 230px floor. Desktop only — narrow screens restyle the panel
-   into a full-width bottom sheet, where inset-inline must keep controlling
-   the width. Right-edge anchoring to the trigger is in menus.js. */
-@media (min-width: 721px) {
+/* Dropdown mode (wide layout): the basemap and overlays panels hug their
+   longest row instead of the shared 230px floor, so they resize with the
+   rendered content — every language renders at its own width. Bottom sheets
+   (single-column page) keep the full-width restyle, where inset-inline must
+   keep controlling the width. */
+@media (min-width: 1100px) {
   .menu-panel.menu-panel-fit {
     min-width: 0;
     width: max-content;
@@ -112,8 +113,9 @@
   background: var(--backdrop);
 }
 
-/* Narrow screens: menus become bottom sheets. */
-@media (max-width: 720px) {
+/* Single-column page (below the wide-layout breakpoint, layout.css): menus
+   render as bottom-sheet lists. The wide layout gets the anchored dropdown. */
+@media (max-width: 1099px) {
   .menu-panel {
     inset-inline: 0;
     inset-block: auto 0;

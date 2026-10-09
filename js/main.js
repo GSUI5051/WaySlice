@@ -94,10 +94,13 @@ function wireHeader() {
   // The author's story popup — same on-top-of-the-drawer pattern.
   initStoryDialog(document.getElementById('story-dialog'));
   // Basemap picker lives on the map itself, under the waypoint toggle.
+  // Dropdown mode hugs its longest row (menu-panel-fit); the bottom sheet
+  // stays full-width.
   createMenu({
     button: document.getElementById('btn-layers'),
     buildItems: buildMapSourceItems,
     onPick: pickMapSource,
+    panelClass: 'menu-panel-fit',
   });
   // Arrow wrappers: fitTrack takes an options object — a raw binding would
   // hand the click event to it.

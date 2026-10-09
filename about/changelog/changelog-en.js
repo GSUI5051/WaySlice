@@ -16,6 +16,15 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-10',
+      ps: [
+        'The overlays popup now opens as a dropdown right under the Overlays button, right-aligned with it. It used to pin itself to the toolbar row at the window\'s right edge, hanging over the metrics panel away from its own trigger.',
+        'Both the map-source picker and the overlays picker now follow the page layout. While the page shows its single-column layout the two open as a full-width list docked to the bottom of the screen with a backdrop, and on the wide layout they open as dropdowns. The map-source picker used to keep the dropdown form all the way down to 720 px, floating free of its button across the tablet range in between.',
+        'On the wide layout the overlays dropdown caps its height at the bottom of the viewport. Deep browser zoom or a short window used to let it run past the screen edge, where the app clips and the lower rows were out of reach; the rows now scroll inside the panel, driven by the mouse wheel and by touch swipes alike.',
+        'In dropdown mode both panels hug their longest row instead of a fixed width, so each language renders at its own width.',
+      ],
+    },
+    {
       h: '2026-10-09',
       ps: [
         'Waterfalls now join the natural landmarks, over satellite imagery and on the vector basemaps alike. OSM tags them waterway=waterfall rather than natural=waterfall, so the overlay queries that tag, with the rare natural=waterfall alias alongside it. The waterfall shares the spring\'s entry zoom, so the two water features appear together, and its icon is the OSM wiki\'s waterfall glyph, filled white like the summit icons.',

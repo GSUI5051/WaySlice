@@ -11,7 +11,10 @@
 import { icon } from './icons.js';
 import { isWideLayout } from '../utils/layout.js';
 
-const isNarrow = () => window.matchMedia('(max-width: 720px)').matches;
+/** Narrow = the outer page is in its single-column layout (below the 1100 px
+ *  wide-layout breakpoint, matching layout.css): menus render as bottom-sheet
+ *  lists there, and as anchored dropdowns on the wide layout. */
+const isNarrow = () => !isWideLayout();
 
 /** @private Shared trigger wiring for both menu factories: click toggles,
  *  ArrowDown / Enter / Space open from the closed state. */
@@ -228,12 +231,13 @@ export function createMenu({ button, buildItems, onPick, panelClass }) {
  * screens its only job is opening the flyout. Child picks go through the
  * same onToggle as top-level items.
  *
- * Desktop panels use the fit-content width (`.menu-panel-fit`): the popover
- * hugs its longest item instead of the shared 230px menu floor, right edge
- * pinned to the trigger. Narrow screens still get the full-width bottom sheet.
+ * Wide-screen panels use the fit-content width (`.menu-panel-fit`): the
+ * popover hugs its longest row instead of the shared 230px menu floor, so
+ * overlays and basemap resize with their rendered content. Bottom sheets
+ * (single-column page) stay full-width via CSS.
  *
  * `positionOverride(panelEl)` — optional wide-screen escape hatch. When it
- * returns true the built-in below-the-trigger positioning is skipped; the
+ * returns true the built-in below-the-trigger placement is skipped; the
  * caller owns `top`/`bottom`/`left`/`right` for that open. Narrow screens
  * should return false so the default (bottom sheet via CSS) still applies.
  */
@@ -427,9 +431,8 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
     panel.className = 'menu-panel menu-panel-fit';
     panel.setAttribute('role', 'menu');
     renderItems();
-    // Caller-owned placement (e.g. the profile's overlays panel dropping from
-    // its trigger row over the chart, height-capped before the x-axis, on
-    // wide screens).
+    // Caller-owned placement (the profile's overlays panel positions itself
+    // in document coordinates and caps its height at the viewport bottom).
     if (!positionOverride?.(panel)) placePanel(panel, button);
     document.body.appendChild(panel);
 
@@ -437,7 +440,9 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
 
     shell.beginOpen();
 
-    const first = panel.querySelector('.menu-item:not(:disabled)');
+    // The basemap picker's rule: land on the checked row, else the first.
+    const first = panel.querySelector('.menu-item[aria-checked="true"]:not(:disabled)') ||
+      panel.querySelector('.menu-item:not(:disabled)');
     first?.focus();
   }
 
