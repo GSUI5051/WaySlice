@@ -6,19 +6,16 @@
  * the x/y scales, grid and axes, and the drawing of every series from its
  * COMPLETE raw data. The renderer receives the full-resolution series —
  * zooming, the sector view and the x-axis mode act on the chart's scale
- * range (or swap cached arrays), never on the data. The one view-layer
- * stroke that re-draws the elevation (the sector accent) decimates its
- * Path2D to pixel columns on dense spans — uPlot's own ≥4-points-per-pixel
- * rule, a draw-time path optimization that never touches the data (see
- * buildAccentPath).
+ * range (or swap cached arrays), never on the data. The elevation series
+ * renders in the accent color at its own constant stroke width; the sector
+ * selection is expressed by the sector veils dimming the span outside the
+ * handles, never by re-drawing or re-weighting the curve.
  *
  * WaySlice keeps the business layers it always owned, drawn on its own
  * annotation canvas (#profile-canvas — the same element the pointer
  * handlers listen on, layered above uPlot): the per-overlay axis strip,
- * the sector highlight (the accent-colored redraw of the full-resolution
- * elevation path inside the sector), waypoint pins, and the hover/probe
- * crosshair. The DOM overlays (sector handles, masks, tooltip) keep their
- * existing architecture untouched.
+ * waypoint pins, and the hover/probe crosshair. The DOM overlays (sector
+ * handles, masks, tooltip) keep their existing architecture untouched.
  *
  * Chart lifecycle:
  *   No track         → no chart; uPlot is not even loaded (uplot-loader)
@@ -115,9 +112,6 @@ let appliedData = null;      // { xs, family, ele, hr, cad, temp, power }
 let appliedShows = '';       // visibility flags currently on the chart
 let appliedX = null;         // x window currently set on the chart scale
 let appliedKey = null;       // the last chartKey() handed to syncChart
-// Cached sector-accent paths (Path2D) — rebuilt only when the sector, view,
-// plot rect, track or axis mode changes; hover frames re-stroke for free.
-let accentCache = null;
 // Restrained failure state for the lazy uPlot load (uplot-loader).
 let errorEl = null;
 
@@ -488,7 +482,11 @@ function buildSeriesConfigs() {
       show: false,
       width: 1.5,
       spanGaps: true,
-      stroke: () => tokens.line,
+      // The elevation curve renders in the accent color at this constant
+      // stroke width in every state — the sector selection is expressed by
+      // the veils dimming the span outside the handles, never by re-coloring
+      // or re-weighting the curve.
+      stroke: () => tokens.accent,
       // Line only — the area fill below the curve was dropped by design
       // (user decision, 2026-10-03): the profile reads as a clean line,
       // the sector highlight carries the accent.
@@ -621,16 +619,14 @@ function monoFont() {
 // Annotation canvas — WaySlice's business layers over the uPlot chart.
 // ---------------------------------------------------------------------------
 
-/** @private One annotation pass: axis strip → sector highlight → waypoint
- *  pins → hover/probe crosshair → DOM sector overlays (the old sync()'s
- *  draw order above the chart layers). All positions derive from the same
- *  state.plot/xvToPx mapping the interaction layer uses, or from uPlot's
- *  y scales. */
+/** @private One annotation pass: axis strip → waypoint pins → hover/probe
+ *  crosshair → DOM sector overlays (the old sync()'s draw order above the
+ *  chart layers). All positions derive from the same state.plot/xvToPx
+ *  mapping the interaction layer uses, or from uPlot's y scales. */
 function drawAnnotation() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!state.track || !chart) return;
   drawOverlayStrip();
-  drawSectorAccent();
   drawWaypointPins();
   drawHoverCrosshair();
   placeMasks();
@@ -706,119 +702,6 @@ function drawOverlayStrip() {
     label(col.loText, yBottom);
     x += col.w + GAP;
   }
-}
-
-/** @private The sector highlight: the elevation path re-drawn in the accent
- *  color, clipped to the sector ∩ visible window — a pure view-layer
- *  statement about the SAME series uPlot drew (no second data pass; dense
- *  spans decimate the stroke path to pixel columns, never the data — see
- *  buildAccentPath). The path is cached per (sector, view, plot, track,
- *  mode) so hover frames only re-stroke. Line only: the area fill below
- *  the curve was dropped by design (user decision, 2026-10-03). */
-function drawSectorAccent() {
-  const { track, view, xs, plot } = state;
-  if (!track.hasElevation || !scalesCache?.ele) return;
-  const xEnd = xs[xs.length - 1];
-  const v0 = view ? view.start : 0;
-  const v1 = view ? view.end : xEnd;
-  const { start, end } = sectorStore.get();
-  const sA = Math.max(distToX(start, track, state.xMode), v0);
-  const sB = Math.min(distToX(end, track, state.xMode), v1);
-  if (!(sB > sA)) return;
-
-  const pxA = xvToPx(sA, view, xs, plot);
-  const pxB = xvToPx(sB, view, xs, plot);
-  const cacheKey = [
-    trackId(track), state.xMode, sA, sB, v0, v1,
-    plot.x0, plot.y0, plot.w, plot.h,
-  ].join('|');
-  if (!accentCache || accentCache.key !== cacheKey) {
-    accentCache = { key: cacheKey, stroke: buildAccentPath(sA, sB) };
-  }
-  if (!accentCache.stroke) return;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(pxA, plot.y0, pxB - pxA, plot.h);
-  ctx.clip();
-  ctx.strokeStyle = tokens.accent;
-  ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.stroke(accentCache.stroke);
-  ctx.restore();
-}
-
-/** Accent-path decimation threshold, in points per plot pixel — the same 4×
- *  rule uPlot's own linear() path builder applies to the series it draws
- *  (vendor/uplot/uPlot.esm.js). At or above it the accent path is built per
- *  PIXEL COLUMN (each column contributes its min and max y, then its exit y),
- *  so a dense span — Bruksleden's 92k points at full view — costs O(plot
- *  width) per frame instead of O(visible points) in both path building and
- *  rasterization; below it every point is kept, byte-identical to the raw
- *  polyline. The DATA is never touched — this is a draw-time statement about
- *  the same full-resolution series. */
-const ACCENT_DECIMATE_PPP = 4;
-
-/** @private Builds the accent stroke path — the elevation polyline across
- *  the sector span. Points one bracket outside each edge are included so
- *  the clip cuts clean vertical boundaries. Null readings bridge, exactly
- *  like uPlot's spanGaps. */
-function buildAccentPath(sA, sB) {
-  const { xs, view, plot } = state;
-  const ele = trackSeries(state.track).ele;
-  const [n0] = bracketX(sA, xs);
-  const [, n1] = bracketX(sB, xs);
-  const lo = Math.max(0, n0 - 1);
-  const hi = Math.min(xs.length - 1, n1 + 1);
-  const px = (v) => xvToPx(v, view, xs, plot);
-  const stroke = new Path2D();
-  let pen = false;
-  if (hi - lo < plot.w * ACCENT_DECIMATE_PPP) {
-    for (let i = lo; i <= hi; i++) {
-      const eleVal = ele[i];
-      if (eleVal == null) continue;
-      stroke.lineTo(px(xs[i]), pyOf(eleVal, 'ele'));
-      pen = true;
-    }
-    return pen ? stroke : null;
-  }
-  // Dense span: per-pixel-column min/max, uPlot-style. A column's vertical
-  // extent is preserved exactly (the min and max of every point in it), and
-  // the pen leaves the column at its last y so neighboring columns connect
-  // like the raw polyline does. Each emitted bar spans the extremes of its
-  // THREE-column neighborhood (the column's own and one column each side):
-  // uPlot assigns boundary-straddling points to its own rounded column and
-  // CONNECTS its bars with diagonals whose endpoints belong to neighboring
-  // columns — without the neighborhood union those segments can poke a few
-  // px past this stroke at steep transitions.
-  const cols = [];
-  for (let i = lo; i <= hi; i++) {
-    const eleVal = ele[i];
-    if (eleVal == null) continue;
-    const x = Math.floor(px(xs[i]));
-    const y = pyOf(eleVal, 'ele');
-    const last = cols[cols.length - 1];
-    if (!last || last.x !== x) cols.push({ x, minY: y, maxY: y, exitY: y });
-    else {
-      if (y < last.minY) last.minY = y;
-      if (y > last.maxY) last.maxY = y;
-      last.exitY = y;
-    }
-    pen = true;
-  }
-  for (let k = 0; k < cols.length; k++) {
-    const c = cols[k];
-    let loY = c.minY;
-    let hiY = c.maxY;
-    for (const j of [k - 1, k + 1]) {
-      if (j < 0 || j >= cols.length) continue;
-      if (cols[j].minY < loY) loY = cols[j].minY;
-      if (cols[j].maxY > hiY) hiY = cols[j].maxY;
-    }
-    stroke.lineTo(c.x, loY);
-    stroke.lineTo(c.x, hiY);
-    stroke.lineTo(c.x, c.exitY);
-  }
-  return pen ? stroke : null;
 }
 
 /** @private Waypoint annotations on the profile — the map's pins in profile
