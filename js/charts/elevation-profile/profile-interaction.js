@@ -244,7 +244,8 @@ export function refreshControls() {
  * leave the row, and everything that leaves moves as the REAL button node
  * into the overflow panel — same listeners, same aria, same state, nothing
  * duplicated; the panel only changes where a control renders, never what it
- * does. The classes are cumulative (minimum = emergency + overflow + compact),
+ * does, and its rows follow PANEL_ORDER rather than the row's DOM order.
+ * The classes are cumulative (minimum = emergency + overflow + compact),
  * so the CSS layers: icon-only from compact on, identity text and the axis
  * toggle compressed from emergency on.
  *
@@ -272,6 +273,10 @@ const LEVEL_ROW = [
   ['xmode', 'fit'],
   [],
 ];
+/** Panel rows top-to-bottom, independent of the row's DOM order: the axis
+ *  toggle leads whenever it is panelled, then Fit to sector, then snap,
+ *  then overlays before the analysis button. */
+const PANEL_ORDER = ['xmode', 'fit', 'snap', 'overlays', 'dualvar'];
 
 /** @private The row's reparentable controls, in row DOM order. */
 function movableControls() {
@@ -279,9 +284,9 @@ function movableControls() {
   return [
     ['xmode', xButtons.distance?.closest('.xmode-toggle')],
     ['snap', snapBtn],
-    ['dualvar', document.getElementById('btn-dual-variable')],
-    ['overlays', document.getElementById('btn-overlays')],
     ['fit', fitBtn],
+    ['overlays', document.getElementById('btn-overlays')],
+    ['dualvar', document.getElementById('btn-dual-variable')],
   ];
 }
 
@@ -293,13 +298,20 @@ function applyLevel(pane, i) {
   const { controls, overflowWrap, overflowPanel } = state.dom;
   overflowWrap.hidden = i < 2;
   const inRow = new Set(LEVEL_ROW[i]);
+  const panelled = [];
   for (const [key, el] of movableControls()) {
     if (!el) continue;
     if (inRow.has(key)) {
       if (el.parentElement !== controls) controls.insertBefore(el, overflowWrap);
-    } else if (el.parentElement !== overflowPanel) {
-      overflowPanel.appendChild(el);
+    } else {
+      panelled.push([key, el]);
     }
+  }
+  // appendChild also re-hosts nodes already in the panel, so walking the
+  // canonical order rebuilds the panel's row order on every level change.
+  for (const key of PANEL_ORDER) {
+    const hit = panelled.find(([k]) => k === key);
+    if (hit) overflowPanel.appendChild(hit[1]);
   }
 }
 

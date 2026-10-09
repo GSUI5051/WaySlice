@@ -19,6 +19,7 @@ export const CHANGELOG_EN = {
       h: '2026-10-09',
       ps: [
         'Waterfalls now join the natural landmarks, over satellite imagery and on the vector basemaps alike. OSM tags them waterway=waterfall rather than natural=waterfall, so the overlay queries that tag, with the rare natural=waterfall alias alongside it. The waterfall shares the spring\'s entry zoom, so the two water features appear together, and its icon is the OSM wiki\'s waterfall glyph, filled white like the summit icons.',
+        'The elevation profile\'s toolbar buttons now sit in a new order, in the row and in the More panel alike.',
       ],
     },
     {
