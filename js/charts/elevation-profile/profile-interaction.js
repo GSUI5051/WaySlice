@@ -273,10 +273,10 @@ const LEVEL_ROW = [
   ['xmode', 'fit'],
   [],
 ];
-/** Panel rows top-to-bottom, independent of the row's DOM order: the axis
- *  toggle leads whenever it is panelled, then Fit to sector, then snap,
+/** Panel rows top-to-bottom, mirroring the row's own DOM order: the axis
+ *  toggle leads whenever it is panelled, then snap, then Fit to sector,
  *  then overlays before the analysis button. */
-const PANEL_ORDER = ['xmode', 'fit', 'snap', 'overlays', 'dualvar'];
+const PANEL_ORDER = ['xmode', 'snap', 'fit', 'overlays', 'dualvar'];
 
 /** @private The row's reparentable controls, in row DOM order. */
 function movableControls() {
