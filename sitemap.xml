@@ -10,4 +10,14 @@
     <lastmod>2026-10-09</lastmod>
     <priority>0.5</priority>
   </url>
+  <url>
+    <loc>https://wayslice.com/about/privacy/privacy.html</loc>
+    <lastmod>2026-10-09</lastmod>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://wayslice.com/about/changelog/changelog.html</loc>
+    <lastmod>2026-10-09</lastmod>
+    <priority>0.3</priority>
+  </url>
 </urlset>

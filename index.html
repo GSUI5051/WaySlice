@@ -14,13 +14,21 @@
   <meta property="og:title" content="WaySlice — Track Sector Analyzer">
   <meta property="og:description" content="Telemetry for every way, sliced. An open-source analyzer for GPX, FIT, TCX, KML, and KMZ files which can slice any part of an outdoor activity, read the data as telemetry and examine the data behind every sector. Fully local, nothing is uploaded.">
   <meta property="og:url" content="https://wayslice.com/">
-  <meta property="og:image" content="https://wayslice.com/screenshots/overview.jpg">
-  <meta property="og:image:width" content="3072">
-  <meta property="og:image:height" content="1920">
+  <meta property="og:image" content="https://wayslice.com/screenshots/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="WaySlice interface: map sector, metrics panel and elevation profile">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="de_DE">
+  <meta property="og:locale:alternate" content="es_ES">
+  <meta property="og:locale:alternate" content="fr_FR">
+  <meta property="og:locale:alternate" content="it_IT">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="ko_KR">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="WaySlice — Track Sector Analyzer">
   <meta name="twitter:description" content="Telemetry for every way, sliced. An open-source analyzer for GPX, FIT, TCX, KML, and KMZ files which can slice any part of an outdoor activity, read the data as telemetry and examine the data behind every sector. Fully local, nothing is uploaded.">
-  <meta name="twitter:image" content="https://wayslice.com/screenshots/overview.jpg">
+  <meta name="twitter:image" content="https://wayslice.com/screenshots/og-image.jpg">
   <link rel="icon" href="icons/favicon.ico" type="image/x-icon">
   <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
@@ -71,25 +79,35 @@
   <link rel="stylesheet" href="css/map.css">
   <link rel="stylesheet" href="css/profile.css">
   <link rel="stylesheet" href="css/story.css">
+  <!-- Structured data (schema.org WebApplication) for search engines and
+       generative engines (GEO). Field set mirrors the WaySliceCN reference:
+       screenshot/alternateName/inLanguage/license/author/sameAs added, the
+       GitHub repository is public information. -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "WaySlice",
     "url": "https://wayslice.com/",
+    "screenshot": "https://wayslice.com/screenshots/og-image.jpg",
+    "alternateName": "Track Sector Analyzer",
     "description": "Telemetry for every way, sliced. An open-source analyzer for GPX, FIT, TCX, KML, and KMZ files which can slice any part of an outdoor activity, read the data as telemetry and examine the data behind every sector. Fully local, nothing is uploaded.",
-    "applicationCategory": "HealthApplication",
+    "applicationCategory": "SportsApplication",
     "operatingSystem": "Web",
     "browserRequirements": "Requires JavaScript",
     "isAccessibleForFree": true,
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "inLanguage": ["en", "de", "es", "fr", "it", "ja", "ko"],
+    "license": "https://spdx.org/licenses/MIT",
+    "author": { "@type": "Person", "name": "GSUI5051", "url": "https://github.com/GSUI5051/WaySlice" },
+    "sameAs": ["https://github.com/GSUI5051/WaySlice"],
     "featureList": [
       "Slice any sector of a GPX/FIT/TCX/KML/KMZ track on the map or elevation profile",
       "Sector metrics: 3D distance, elevation gain/loss, grades, pace, speed, GAP, VAM/VDM",
       "Heart-rate zones, auto sector split, dual-variable density analysis",
       "Export a sector as GPX, csv, txt or md",
       "Fully local: parsing and analysis run in the browser, nothing is uploaded"
-    ]
+    ],
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
   }
   </script>
 </head>

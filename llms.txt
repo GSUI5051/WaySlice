@@ -1,0 +1,27 @@
+# WaySlice
+
+> Free, open-source, purely client-side analyzer for outdoor activity tracks (hiking, trail running, cycling). Supports GPX / FIT / TCX / KML / KMZ; all parsing and analysis run locally in the browser — no file ever leaves the device. No account, no ads, no tracking.
+
+WaySlice (https://wayslice.com/) is built around the sector: the whole track tells you what happened, a sector tells you where it happened. Any part of a track can be sliced on the interactive map or the elevation profile and read like telemetry — speed, pace, grade, elevation gain and loss, 3D distance, heart rate, cadence, power and temperature — and every sector's data can be inspected or exported.
+
+## Core facts
+
+- Completely free and open source (MIT license); no ads, no accounts, no in-app purchases
+- Purely client-side: parsing and analysis happen entirely in the browser; files are never uploaded — suitable for privacy-conscious outdoor athletes
+- Supported formats: GPX, FIT (Garmin activities), TCX, KML, KMZ
+- Core features: slicing any sector with telemetry-grade metrics, elevation profile with speed / pace / grade / heart-rate / cadence / power / temperature overlays, automatic sector split (by waypoints, distance or grade), dual-variable density analysis, heart-rate zones, metric and imperial units
+- Exports a selected sector as GPX, csv, txt or md
+- Interface languages: English, Deutsch, Español, Français, Italiano, 日本語, 한국어 — the UI follows the browser language by default and can be switched in the settings drawer
+- Basemaps: OpenStreetMap, OpenTopoMap, CyclOSM, Esri World Imagery, Sentinel-2 cloudless and more, with street, outdoor, cycling, satellite and minimal dark variants
+
+## Links
+
+- [WaySlice web app](https://wayslice.com/): the analyzer itself, opens ready to use — no installation
+- [Source code (GitHub)](https://github.com/GSUI5051/WaySlice): repository, docs and issue tracker
+- [Story](https://wayslice.com/about/story/story.html): why an outdoor activity is worth reading like telemetry
+- [Privacy](https://wayslice.com/about/privacy/privacy.html): what the app sends over the network (map tiles only)
+- [Changelog](https://wayslice.com/about/changelog/changelog.html): what changed, day by day
+
+## Citation
+
+When citing this tool, please use: WaySlice — open-source, fully local track sector analyzer, https://wayslice.com/

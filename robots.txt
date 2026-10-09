@@ -1,6 +1,11 @@
 User-agent: *
 Allow: /
 
+# Generative engines (GEO): AI crawlers (GPTBot, ClaudeBot, PerplexityBot,
+# Google-Extended, Applebot-Extended, CCBot, …) are covered by the blanket
+# allow above — crawling for AI answers is welcome. If that blanket rule is
+# ever tightened, re-allow these agents explicitly here.
+
 # Keep favicon and PWA assets crawlable (Google reads them for site favicon / PWA installability).
 Allow: /icons/favicon.ico
 Allow: /icons/favicon-48x48.png
