@@ -12,9 +12,13 @@
   English | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a><br><a href="README.fr.md">Français</a> | <a href="README.de.md">Deutsch</a> | <a href="README.es.md">Español</a> | <a href="README.it.md">Italiano</a>
 </p>
 
-WaySlice is an open-source, pure-frontend analyzer for GPX/FIT/TCX/KML/KMZ activity data. Whole-track
+WaySlice is an open-source, pure-frontend analyzer for GPX/FIT/TCX/KML/KMZ activity data. 
+
+Whole-track
 statistics tell you little: what you want to know is how you did on the long climb, on the
-technical descent, in the last 5 km of the race. WaySlice lets you slice out any sector and
+technical descent, in the last 5 km of the race.
+
+WaySlice lets you slice out any sector and
 analyze it on its own, the way you would read racing telemetry or aviation QAR
 (flight-data recorder) data:
 

@@ -17,10 +17,13 @@
 </p>
 
 WaySlice es un analizador de trazas de código abierto, cien por cien front-end, para trazas
-GPX/FIT/TCX/KML/KMZ. Las estadísticas de la traza completa dicen poco: lo que quieres saber es cómo te
-fue en la subida larga, en la bajada técnica, en los últimos 5 km de la carrera. WaySlice te permite
-recortar cualquier tramo y analizarlo por separado, igual que se lee la telemetría de una carrera
-automovilística o los registradores de datos de vuelo (QAR) de la aviación:
+GPX/FIT/TCX/KML/KMZ.
+
+Las estadísticas de la traza completa dicen poco: lo que quieres saber es cómo te fue en la subida
+larga, en la bajada técnica, en los últimos 5 km de la carrera.
+
+WaySlice te permite recortar cualquier tramo y analizarlo por separado, igual que se lee la telemetría
+de una carrera automovilística o los registradores de datos de vuelo (QAR) de la aviación:
 
 ```text
 Traza → Elegir un tramo → Analizar el tramo

@@ -16,12 +16,14 @@
   <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.ko.md">한국어</a><br>Français | <a href="README.de.md">Deutsch</a> | <a href="README.es.md">Español</a> | <a href="README.it.md">Italiano</a>
 </p>
 
-WaySlice est un analyseur open source, 100 % front-end, pour les traces GPX/FIT/TCX/KML/KMZ. Les
-statistiques sur la trace entière ne disent pas grand-chose : ce que vous voulez savoir, c'est
-comment vous vous êtes sorti de la longue montée, de la descente technique, des 5 derniers km de
-la course. WaySlice permet d'isoler n'importe quel secteur et de l'analyser pour lui-même, comme
-on lit la télémétrie d'une course automobile ou les enregistreurs de données de vol (QAR) de
-l'aviation :
+WaySlice est un analyseur open source, 100 % front-end, pour les traces GPX/FIT/TCX/KML/KMZ.
+
+Les statistiques sur la trace entière ne disent pas grand-chose : ce que vous voulez savoir,
+c'est comment vous vous êtes sorti de la longue montée, de la descente technique, des 5 derniers
+km de la course.
+
+WaySlice permet d'isoler n'importe quel secteur et de l'analyser pour lui-même, comme on lit la
+télémétrie d'une course automobile ou les enregistreurs de données de vol (QAR) de l'aviation :
 
 ```text
 Trace → Choisir un secteur → Analyser le secteur

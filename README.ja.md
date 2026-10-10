@@ -16,7 +16,9 @@
   <a href="README.md">English</a> | 日本語 | <a href="README.ko.md">한국어</a><br><a href="README.fr.md">Français</a> | <a href="README.de.md">Deutsch</a> | <a href="README.es.md">Español</a> | <a href="README.it.md">Italiano</a>
 </p>
 
-WaySlice はオープンソースの純フロントエンド GPX/FIT/TCX/KML/KMZ トラックアナライザーです。トラック全体の統計ではわかりません。知りたいのは、あの長い登りはどれだけかかったか、テクニカルな下りでどれだけ攻められたか、レース最後の 5 km で失速していないか。WaySlice があれば、任意のセクターを切り出して、モータースポーツのテレメトリーや航空機の QAR（クイックアクセスレコーダー）データのように単独で分析できます:
+WaySlice はオープンソースの純フロントエンド GPX/FIT/TCX/KML/KMZ トラックアナライザーです。
+トラック全体の統計ではわかりません。知りたいのは、あの長い登りはどれだけかかったか、テクニカルな下りでどれだけ攻められたか、レース最後の 5 km で失速していないか。
+WaySlice があれば、任意のセクターを切り出して、モータースポーツのテレメトリーや航空機の QAR（クイックアクセスレコーダー）データのように単独で分析できます:
 
 ```text
 トラック → セクター選択 → セクター分析

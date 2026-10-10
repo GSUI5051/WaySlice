@@ -17,10 +17,12 @@
 </p>
 
 WaySlice ist ein Open-Source-Track-Analysator, der komplett im Browser läuft, für GPX/FIT/TCX/KML/KMZ-Tracks.
+
 Statistiken über den ganzen Track sagen wenig aus: Wissen willst du, wie du den langen Anstieg gemeistert
-hast, den technischen Abstieg, die letzten 5 km des Rennens. WaySlice schneidet dir jeden beliebigen
-Abschnitt heraus, den du für sich allein analysierst – so, wie man Renntelemetrie oder die
-Flugschreiberdaten (QAR) der Luftfahrt liest:
+hast, den technischen Abstieg, die letzten 5 km des Rennens.
+
+WaySlice schneidet dir jeden beliebigen Abschnitt heraus, den du für sich allein analysierst – so, wie man
+Renntelemetrie oder die Flugschreiberdaten (QAR) der Luftfahrt liest:
 
 ```text
 Track → Abschnitt wählen → Abschnitt analysieren
