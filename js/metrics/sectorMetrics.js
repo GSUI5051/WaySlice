@@ -141,6 +141,63 @@ export function minettiFactor(grade) {
 }
 
 /**
+ * Per-point grade over the panel's own gradient windows — the exact window
+ * mechanics the max/min grade statistics run (`step`'s trailing horizontal
+ * window: accumulate segment distance, read (ele − winEle) / winAcc once the
+ * trailing partial reaches GRADIENT_MIN_WINDOW_M, reset at
+ * GRADIENT_WINDOW_M) applied at every point instead of being reduced to
+ * max/min. The profile's tooltip/band grade reading reads this series, so
+ * its values are by construction values the panel's own method produces.
+ * @param {import('../types.js').Track} track
+ * @returns {Float64Array|null} fractions (0.053 = 5.3 %); NaN where no
+ *   ≥GRADIENT_MIN_WINDOW_M window has accumulated yet, null without elevation
+ */
+export function gradeSeries(track) {
+  if (!track.hasElevation) return null;
+  const points = track.points;
+  const out = new Float64Array(track.pointCount).fill(NaN);
+  let winAcc = 0;
+  let winEle = points[0].ele;
+  for (let i = 1; i < track.pointCount; i++) {
+    const ele = points[i].ele;
+    if (ele == null) continue;
+    // Same segment distance the panel's step() accumulates.
+    winAcc += Math.max(0, track.cumDist[i] - track.cumDist[i - 1]);
+    if (winAcc >= GRADIENT_MIN_WINDOW_M) {
+      out[i] = (ele - winEle) / winAcc;
+    }
+    if (winAcc >= GRADIENT_WINDOW_M) {
+      winAcc = 0;
+      winEle = ele;
+    }
+  }
+  return out;
+}
+
+/**
+ * Read-side fallback for the profile's grade reading: the ≤GRADIENT_MIN_WINDOW_M
+ * blind spot after every window reset carries no value of its own, and a
+ * hover there reads the NEAREST accumulated window (ties → the earlier
+ * window) — the reading always describes the 50 m window the point sits in.
+ * No new grade arithmetic; this only navigates gradeSeries' NaN gaps.
+ * @param {Float64Array|null} grades  gradeSeries(track) output
+ * @param {number} idx  nearest track point index
+ * @returns {number} fraction; NaN when the series has no reading at all
+ */
+export function gradeReadingAt(grades, idx) {
+  if (!grades) return NaN;
+  if (Number.isFinite(grades[idx])) return grades[idx];
+  const n = grades.length;
+  for (let d = 1; d < n; d++) {
+    const behind = idx - d;
+    if (behind >= 0 && Number.isFinite(grades[behind])) return grades[behind];
+    const ahead = idx + d;
+    if (ahead < n && Number.isFinite(grades[ahead])) return grades[ahead];
+  }
+  return NaN;
+}
+
+/**
  * Computes all metrics for [startDist, endDist] along the track.
  *
  * @param {import('../types.js').Track} track

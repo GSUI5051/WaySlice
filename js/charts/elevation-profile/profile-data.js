@@ -13,8 +13,9 @@
  * Contents:
  *   OVERLAY_METRICS / SPEED_FAMILY — the overlay definitions and the
  *     speed/pace/GAP family rule (one series, three views, one slot)
- *   buildCaches       — per-point x + speed caches for a track + axis mode
- *     (the speed series passes the shared cleanRecordedSpeeds from sectorMetrics)
+ *   buildCaches       — per-point x + speed + grade caches for a track + axis
+ *     mode (the speed series passes the shared cleaning rules from
+ *     sectorMetrics; grades are the panel's own 50 m gradient windows)
  *   overlayAvailability / overlayValueAt — what can be drawn and how to read it
  *   seriesExtremes    — full-resolution min/max of a series (no averaging)
  *   overlayExtremes / overlayYRange / eleYRange — the chart y scales, derived
@@ -28,6 +29,7 @@
 import { pointAtDistance } from '../../geo/interpolate.js';
 import {
   minettiFactor, cleanSpeedSeries, cleanComputedSpeeds, recordedSpeedImplausible,
+  gradeSeries,
 } from '../../metrics/sectorMetrics.js';
 import {
   formatPace, formatSpeed, formatBpm, formatRpm, formatTemp, formatPower,
@@ -124,7 +126,10 @@ export function buildCaches(track, xMode) {
       }
     }
   }
-  return { xs, speeds: speedsOut, gapSpeeds };
+  // Per-point grade over the panel's own 50 m gradient windows (sectorMetrics)
+  // — the tooltip/band's 坡度 reading. Null without elevation.
+  const grades = gradeSeries(track);
+  return { xs, speeds: speedsOut, gapSpeeds, grades };
 }
 
 /** @param {object} track  @param {object} caches  {speeds, gapSpeeds} */

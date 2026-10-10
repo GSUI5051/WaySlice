@@ -155,8 +155,10 @@ accent ring on the elevation curve, solid dot where the crosshair crosses the dr
 polyline — interpolated along the same segment the drawn line spans). While a touch probe
 is active it draws in the crosshair's place — same line and dots, anchored to the probe's
 data position; its readings render into the fixed telemetry band between the profile header and
-the chart — a fixed 2×4 slot grid, position / elevation / speed family / heart rate over
-cadence / temperature / power / empty: position and elevation always show; a sensor
+the chart — a fixed 2×4 slot grid, position / elevation / grade / speed family / heart
+rate over cadence / temperature / power: position, elevation and grade always show (the
+grade reads the nearest gradient window across the ≤20 m blind spots after each 50 m
+reset, and goes blank without elevation); a sensor
 slot shows its value while its overlay is enabled, a muted "Not selected" while the
 track carries the data but the overlay is off, and stays blank when the track lacks
 the sensor; an enabled slot without a reading shows an em dash. The heart-rate slot
@@ -338,8 +340,8 @@ replay at least:
   zone label only while the drawer's zone-band toggle is on, highlighted in its zone
   color while the highlight toggle is also on)
 - touch probe (mobile / touch): tap the chart → cursor line + the fixed telemetry band
-  between the profile header and the chart — a 2×4 grid of permanent slots: [position] [elevation] [speed/pace]
-  [heart rate] / [cadence] [temperature] [power] [empty]. Every slot is independently
+  between the profile header and the chart — a 2×4 grid of permanent slots: [position] [elevation] [grade] [speed/pace]
+  [heart rate] / [cadence] [temperature] [power]. Every slot is independently
   centered and never moves; position and elevation always show; a sensor slot shows
   its value while its overlay is enabled, a muted "Not selected" while the track
   carries the data but the overlay is off, and stays blank when the track lacks the

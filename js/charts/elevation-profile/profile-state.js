@@ -47,6 +47,7 @@ export const state = {
   xs: null,           // per-point x coordinate in the current mode
   speeds: null,       // per-point speed in m/s (null when unavailable)
   gapSpeeds: null,    // per-point grade-adjusted speed in m/s (null without elevation/time)
+  grades: null,       // per-point grade fraction over the panel's 50 m windows (null without elevation)
   profileWaypoints: [],  // track waypoints resolved onto the track: [{dist, name}]
 
   /** Chart view. */

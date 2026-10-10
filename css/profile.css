@@ -188,8 +188,8 @@
    including the `.is-probe` fallback above. The band is a FIXED 2×4 slot
    grid, never flowing text:
 
-     [position]   [elevation] [speed]  [heart rate]
-     [cadence]    [temp]      [power]  [empty]
+     [position]   [elevation] [grade]  [speed]
+     [heart rate] [cadence]   [temp]   [power]
 
    Every slot is permanently assigned and independently centered. Sensor
    slots have three states: the value while their overlay is enabled, a

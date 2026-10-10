@@ -1,6 +1,6 @@
 /** Sector metrics tests — the accuracy-critical core. */
 import { suite, test, assert } from './runner.js';
-import { computeSectorMetrics, minettiFactor } from '../js/metrics/sectorMetrics.js';
+import { computeSectorMetrics, minettiFactor, gradeSeries, gradeReadingAt } from '../js/metrics/sectorMetrics.js';
 import { segmentType, splitByWaypoints } from '../js/metrics/autoSegments.js';
 import { computeTrackStats } from '../js/metrics/trackStats.js';
 import { prepareTrack } from '../js/geo/track.js';
@@ -180,6 +180,81 @@ suite('metrics / gradient', () => {
     assert.truthy(m.netElevation < 0);
     assert.closeTo(m.avgGrade, m.gain / m.horizontalDistance, 1e-9);
     assert.truthy(m.avgGrade > 0);
+  });
+});
+
+suite('metrics / gradeSeries (profile grade reading)', () => {
+  test('constant slope: ≥20 m windows read the slope, shorter ones read NaN', () => {
+    // ~10.008 m segments at a constant 2 %: the trailing window records the
+    // slope from 20 m on, resets at 50 m, and the first ~10 m after each
+    // reset is too short again — NaN.
+    const track = prepared(eastTrack({ count: 40, lonStep: 0.00009, ele: (i) => i * 0.2 }));
+    const g = gradeSeries(track);
+    assert.truthy(Number.isNaN(g[0]), 'no window at the first point');
+    assert.truthy(Number.isNaN(g[1]), '10 m < the 20 m minimum window');
+    assert.closeTo(g[2], 0.4 / 20.0151, 5e-4);
+    assert.closeTo(g[5], 0.02, 5e-4); // the 50 m reset window — same slope throughout
+    assert.truthy(Number.isNaN(g[6]), 'first ~10 m after the 50 m reset');
+    assert.closeTo(g[7], 0.4 / 20.0151, 5e-4);
+  });
+
+  test('the panel grades every series value: on a uniform slope maxGrade matches', () => {
+    const track = prepared(eastTrack({ count: 40, lonStep: 0.00009, ele: (i) => i * 0.2 }));
+    const m = computeSectorMetrics(track, 0, track.totalDistance);
+    const g = gradeSeries(track);
+    let finite = 0;
+    for (let i = 0; i < track.pointCount; i++) {
+      if (Number.isNaN(g[i])) continue;
+      finite++;
+      assert.closeTo(g[i], m.maxGrade, 5e-4);
+      assert.closeTo(g[i], m.minGrade, 5e-4);
+    }
+    assert.truthy(finite > 20, `most points carry a reading, got ${finite}`);
+  });
+
+  test('a descent reads negative grades', () => {
+    const track = prepared(eastTrack({ count: 40, lonStep: 0.00009, ele: (i) => 80 - i * 0.2 }));
+    const g = gradeSeries(track);
+    assert.closeTo(g[2], -0.4 / 20.0151, 5e-4);
+  });
+
+  test('a track without elevation has no grade series', () => {
+    const track = prepared(eastTrack({ count: 40, lonStep: 0.00009 }));
+    assert.isNull(gradeSeries(track));
+    assert.isNull(buildCaches(track, 'distance').grades);
+  });
+
+  test('gradeReadingAt: the reset blind spot reads the nearest window, both directions', () => {
+    // ~8 m segments: 2 % up to the 50 m reset at i=7, then flat. Points 8
+    // (8 m) and 9 (16 m) sit in the new window's blind spot: point 8 is
+    // nearest the previous window (reads 2 %), point 9 is nearest the new
+    // one (reads 0 %).
+    const track = prepared(eastTrack({
+      count: 30, lonStep: 0.000072,
+      ele: (i) => (i <= 7 ? i * 0.16 : 7 * 0.16),
+    }));
+    const g = gradeSeries(track);
+    assert.truthy(Number.isNaN(g[8]) && Number.isNaN(g[9]), 'blind spot is NaN in the series');
+    assert.closeTo(gradeReadingAt(g, 8), 0.02, 5e-4);
+    assert.closeTo(gradeReadingAt(g, 9), 0.0, 5e-4);
+  });
+
+  test('gradeReadingAt: the track start reads forward; a too-short track reads NaN', () => {
+    const track = prepared(eastTrack({ count: 30, lonStep: 0.00009, ele: (i) => i * 0.2 }));
+    const g = gradeSeries(track);
+    assert.truthy(Number.isNaN(g[0]));
+    assert.closeTo(gradeReadingAt(g, 0), 0.02, 5e-4);
+    const short = prepared(eastTrack({ count: 3, lonStep: 0.00004, ele: (i) => i * 0.1 }));
+    const gs = gradeSeries(short);
+    assert.truthy(Number.isNaN(gradeReadingAt(gs, 1)), 'no ≥20 m window anywhere');
+  });
+
+  test('buildCaches exposes the series the tooltip and band read', () => {
+    const track = prepared(eastTrack({ count: 40, lonStep: 0.00009, ele: (i) => i * 0.2 }));
+    const caches = buildCaches(track, 'distance');
+    const g = gradeSeries(track);
+    assert.equal(caches.grades.length, g.length);
+    assert.closeTo(caches.grades[2], g[2], 1e-12);
   });
 });
 

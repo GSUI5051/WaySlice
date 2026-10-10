@@ -201,7 +201,7 @@ export function setProfileTrack(newTrack) {
   resetProbeReadout(); // the band returns to its idle hint for the new track
   // Rebuild the per-point caches before filtering the selected overlays. This
   // matters when the user loads a second file with different telemetry fields.
-  ({ xs: state.xs, speeds: state.speeds, gapSpeeds: state.gapSpeeds } =
+  ({ xs: state.xs, speeds: state.speeds, gapSpeeds: state.gapSpeeds, grades: state.grades } =
     buildCaches(state.track, state.xMode));
   rebuildProfileWaypoints();
   const avail = overlayAvailability(state.track, state);

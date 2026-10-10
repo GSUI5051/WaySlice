@@ -5,13 +5,13 @@
  *
  *  - Desktop hover (fine pointers): a single floating readout anchored to
  *    the chart body's bottom edge (the x axis): x position (distance or
- *    elapsed time), elevation, then the visible overlay readings
+ *    elapsed time), elevation, grade, then the visible overlay readings
  *    (HR/speed/cadence…) in their series colors.
  *  - Touch probe (coarse pointers): the FIXED telemetry band between the profile header and the chart
  *    (#profile-readout) — a 2×4 grid of permanent slots ([position]
- *    [elevation] [speed family] [heart rate] / [cadence] [temperature]
- *    [power] [empty]), each slot independently centered. Sensor slots have
- *    three states: value while the overlay is enabled, muted "Not selected"
+ *    [elevation] [grade] [speed family] / [heart rate] [cadence]
+ *    [temperature] [power]), each slot independently centered. Sensor slots
+ *    have three states: value while the overlay is enabled, muted "Not selected"
  *    while the track has the data but the overlay is off, blank when the
  *    track lacks the sensor. The band is part of the profile module itself
  *    (chart = context, band = exact values), so it can never cover the plot,
@@ -31,7 +31,8 @@ import { loadHeartRateSettings } from '../../metrics/heartRateSettings.js';
 import { getHeartRateDisplay } from '../../metrics/heartRateDisplay.js';
 import { computeZoneBounds, classifyHr } from '../../metrics/heartRateZones.js';
 import { t } from '../../language/language.js';
-import { formatDuration, formatDistanceShort, formatElevation } from '../../utils/format.js';
+import { formatDuration, formatDistanceShort, formatElevation, formatGrade } from '../../utils/format.js';
+import { gradeReadingAt } from '../../metrics/sectorMetrics.js';
 import { escapeHtml } from '../../utils/escapeHtml.js';
 import { state } from './profile-state.js';
 import { OVERLAY_METRICS, SPEED_FAMILY, distToX, xvToPx, formatOverlayValue } from './profile-data.js';
@@ -44,13 +45,16 @@ function probeBandVisible() {
 
 /**
  * The fixed band's two telemetry rows — a 2×4 grid of PERMANENT slots:
- * [position] [elevation] [speed family] [heart rate] / [cadence]
- * [temperature] [power] [empty]. Slots never move or re-flow, and every
- * sensor slot has three states:
+ * [position] [elevation] [grade] [speed family] / [heart rate] [cadence]
+ * [temperature] [power]. Slots never move or re-flow, and every sensor slot
+ * has three states:
  *   overlay enabled + reading      → the value in its series color
  *   data exists, overlay disabled  → a muted "Not selected" (t('notSelected'))
  *   the track lacks the sensor     → a blank slot
  * An enabled slot without a reading at the probed point renders an em dash.
+ * The grade slot is elevation-derived base info (no overlay toggle): the
+ * nearest 50 m window value (blind spots after a reset read their neighbor),
+ * blank without elevation.
  * The heart-rate slot is two-level: main value on top, its zone underneath.
  * The zone shows only while the drawer's show-HR-zones toggle is on (the
  * zone bands' gate — readout and profile always agree), and wears its
@@ -128,10 +132,18 @@ function renderProbeBand(pt, xText) {
   // (hrZoneLabel): display-toggle aware, zone-colored under highlight.
   const hrSub = hrZoneLabel(valueOf(track.points[idx].hr), 'readout-zone-hl')?.html ?? null;
   const eleVal = valueOf(pt.ele);
+  // Grade is elevation-derived base info: the nearest 50 m window value
+  // (the ≤20 m blind spots after each reset read their neighbor), an em dash
+  // only on tracks too short for any window, blank without elevation.
+  const gradeVal = state.grades ? valueOf(gradeReadingAt(state.grades, idx)) : null;
+  const gradeSlot = gradeVal != null
+    ? cell(formatGrade(gradeVal))
+    : state.grades ? dash : blank;
   dom.readout.classList.remove('is-idle');
   dom.readout.innerHTML = [
     cell(xText),
     eleVal != null ? cell(formatElevation(eleVal)) : dash,
+    gradeSlot,
     speedSlot,
     sensor('hr', track.points[idx].hr, track.hasHr, hrSub),
     sensor('cad', track.points[idx].cad, track.hasCad),
@@ -184,7 +196,7 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
   // Every reading is tagged with its row for the floating probe fallback's
   // MOBILE layout (coarse-pointer devices render the fixed slot grid
   // instead):
-  //   row 0 — [distance/time] [elevation]
+  //   row 0 — [distance/time] [elevation] [grade]
   //   row 1 — [speed family] (speed / pace / GAP share one slot)
   //   row 2 — [heart rate]
   //   row 3 — [cadence] [temperature] [power]
@@ -197,11 +209,21 @@ export function showTooltipAt(dist, xv = null, name = null, opts = null) {
   // Waypoint pin hovers lead with the pin's own name (raw file data — escaped).
   if (name) push(0, `<span style="color: var(--map-waypoint); font-weight: 600">${escapeHtml(name)}</span>`);
   push(0, `<span>${xText}</span>`);
+  // Nearest track point to the hover position carries the overlay readings.
+  const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
   if (track.hasElevation && pt.ele != null) {
     push(0, `<span>${formatElevation(pt.ele)}</span>`);
   }
-  // Nearest track point to the hover position carries the overlay readings.
-  const idx = pt.t < 0.5 ? pt.i : Math.min(pt.i + 1, track.pointCount - 1);
+  // Grade sits right after elevation: the panel's own 50 m gradient window
+  // value at this point. Points in a reset's ≤20 m blind spot read the
+  // nearest accumulated window (gradeReadingAt); the tooltip omits the grade
+  // only on tracks without elevation.
+  if (state.grades) {
+    const gv = gradeReadingAt(state.grades, idx);
+    if (Number.isFinite(gv)) {
+      push(0, `<span>${formatGrade(gv)}</span>`);
+    }
+  }
   const defs = new Map(OVERLAY_METRICS.map((d) => [d.id, d]));
   for (const id of selectedOverlays) {
     const def = defs.get(id);
