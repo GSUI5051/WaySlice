@@ -26,6 +26,7 @@ export const CHANGELOG_EN = {
         'Outside a selected sector the chart curves and grid lines now dim to 25 percent opacity in the light theme and 15 percent in the dark, in their own colors, and the translucent veils that used to darken everything outside the handles are gone. The axes, tick labels and zone bands keep full strength everywhere, and the curves stay at one constant stroke width through the boundary.',
         'The hovered heart-rate zone band deepens again while the pointer or the touch probe moves across zones, and the zone bands appear and disappear again with the zone toggles in the settings drawer. They draw inside the chart redraw cycle, which hover moves and toggles no longer reached since the chart moved to uPlot.',
         'The sector handles no longer block hover telemetry. Moving the pointer across a handle shows the crosshair and its readings there like everywhere else on the chart. A boundary drag starts when the pointer is pressed inside a handle\'s hit area and stays locked until the button is released, with the hover crosshair out of the way while the drag runs.',
+        'The elevation profile now zooms in deeper. The narrowest visible window is 100 m of track in distance mode and 1 minute in time mode, down from 1 km and 20 minutes. The wheel, the pinch gesture and the Focus button share the floors, so a fit to a short sector can follow it that much closer.',
       ],
     },
     {

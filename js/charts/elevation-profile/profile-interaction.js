@@ -37,9 +37,9 @@ import {
 } from '../viewport-gestures.js';
 
 // Wheel-zoom floors (fine pointers only): at max zoom the visible window
-// spans 1 km of track in distance mode, 20 minutes in time mode.
-const MIN_VIEW_M = 1000;
-const MIN_VIEW_MS = 20 * 60_000;
+// spans 100 m of track in distance mode, 1 minute in time mode.
+const MIN_VIEW_M = 100;
+const MIN_VIEW_MS = 60_000;
 // Waypoint snap radius in screen pixels around the dragged handle.
 const SNAP_RADIUS_PX = 30;
 
