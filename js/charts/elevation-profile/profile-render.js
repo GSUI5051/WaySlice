@@ -703,8 +703,9 @@ function refreshTokens() {
     waypoint: token('--map-waypoint'),
     handleBorder: token('--map-handle-border'),
     // The curves' and grid lines' opacity OUTSIDE the selected sector
-    // (clamped; a missing or malformed token falls back to the CSS default).
-    dimAlpha: Number.isFinite(dim) ? Math.min(Math.max(dim, 0), 1) : 0.7,
+    // (clamped; a missing or malformed token falls back to the light value —
+    // the token itself carries the per-theme tuning).
+    dimAlpha: Number.isFinite(dim) ? Math.min(Math.max(dim, 0), 1) : 0.25,
     zone: [1, 2, 3, 4, 5].map((i) => token(`--hr-zone-${i}`)),
   };
   for (const [prop, key] of Object.entries(TEXT_TOKEN)) {

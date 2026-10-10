@@ -63,10 +63,10 @@
   --profile-line: #7c8894;
   /* The elevation-profile telemetry curves' AND grid lines' opacity OUTSIDE
      the selected sector (inside it they draw at full strength; applied per
-     stroke in the uPlot draw, so axes/ticks/labels are untouched). Chosen
-     from 0.6/0.7/0.8 trials in both themes — verify against screenshots
-     before changing. */
-  --profile-series-dim: 0.7;
+     stroke in the uPlot draw, so axes/ticks/labels are untouched). Per-theme
+     values measured from the user's reference screenshots (light 0.25,
+     dark 0.15 effective). */
+  --profile-series-dim: 0.25;
 
   /* Dual-variable density ramp — low → high density, one ramp per theme.
      Zero density is forced fully transparent by the renderer; these two
@@ -137,8 +137,9 @@
   /* Lightened from #4d5763 (2.38:1) to clear the same 3:1 floor: 3.17:1
      on the chart surface, the only background the curve renders on. */
   --profile-line: #5f6a76;
-  /* Same dim as the light theme — verified readable on the dark plot. */
-  --profile-series-dim: 0.7;
+  /* Measured from the dark reference screenshot — much lower than the light
+     theme's dim for the same de-emphasis read on the dark plot. */
+  --profile-series-dim: 0.15;
 
   /* Dual-variable density ramp — the dark theme's brighter accent reads as
      a glow on the dark plot, mirroring the light theme's deep ramp. */
