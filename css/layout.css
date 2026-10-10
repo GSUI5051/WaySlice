@@ -33,6 +33,10 @@
   font-size: 15px;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  /* Nothing in the header's measured line may shrink: the compression
+     controller (js/ui/headerFit.js) reads overflow from real geometry, so
+     width pressure must overflow, not squash content. */
+  flex: none;
 }
 
 .brand-name { font-size: inherit; font-weight: inherit; }
@@ -84,7 +88,16 @@
 
 .file-chip .file-chip-info:hover { color: var(--foreground); }
 
-.file-chip.is-compact { padding: 4px; overflow: visible; }
+.file-chip.is-compact {
+  padding: 4px;
+  overflow: visible;
+  /* The compact chip is a rigid square, one family with the route-source
+     notice (.route-note): once degraded to the lone (i) button it may not
+     be squeezed by the flexbox — width pressure overflows into the
+     compression levels instead. Full mode stays shrinkable: that shrink is
+     what the measured full-vs-info flip reads. */
+  flex: none;
+}
 .file-chip.is-compact #file-name,
 .file-chip.is-compact #file-meta { display: none; }
 .file-chip.is-compact .file-chip-info { display: inline-flex; }
@@ -108,6 +121,12 @@
   font-weight: 600;
 }
 .file-chip-popover .file-chip-pop-row + .file-chip-pop-row { margin-block-start: 2px; }
+
+/* The route warning folded into the popover at the emergency level: the
+   triangle wears the same alarm red as the marker square it replaces
+   (--series-hr, identical in both themes), at the marker's own ink size. */
+.file-chip-popover .file-chip-pop-alert { color: var(--series-hr); }
+.file-chip-popover .file-chip-pop-alert .icon { width: 16px; height: 16px; }
 
 /* The route-source notice — a lone warning square shown only for degraded
    route GPX files (js/ui/routeNote.js), shaped after the chip's compact
@@ -149,12 +168,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* Same no-shrink contract as .brand: the compression controller measures
+     this row's right edge against the header's content box, which stays
+     honest only while the row overflows instead of compressing. The file
+     chip is the one shrinkable item and re-decides its own mode inside the
+     controller's walk. */
+  flex: none;
 }
 
 /* One height for every header action: the primary buttons define it (`.btn`'s
    34px) and the icon-only settings trigger follows it. Stated here so a control
    added to this row later cannot drift off it — this outranks `.btn-small`. */
-.header-actions .btn { height: 34px; }
+.header-actions > .btn { height: 34px; flex: none; }
 
 /* The GitHub link wears the settings trigger's box but not its width — a 4.4:1
    lockup cannot live in a 34 px square, so the bare-mark state takes the square
@@ -181,6 +206,128 @@ html[data-theme="light"] #btn-github:not(.is-loaded) .gh-lockup.gh-light,
 html[data-theme="dark"] #btn-github:not(.is-loaded) .gh-lockup.gh-dark,
 html[data-theme="light"] #btn-github.is-loaded .gh-mark.gh-light,
 html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block; }
+
+/* The .gh-label exists for the compression panels only — the row's link is
+   identified by its logo (or its aria-label), the panel's row needs the
+   word. */
+#btn-github .gh-label { display: none; }
+
+/* Header compression — three measured levels, the top bar's counterpart of
+   the profile toolbar's controller (js/ui/headerFit.js, cf.
+   refreshControlsFit). Cumulative classes on #app-header:
+
+     full → is-compact → is-overflow → is-minimum
+
+   is-compact folds the GitHub + Support links into one ellipsis trigger,
+   is-overflow additionally folds Export / Auto slice / Import track into a
+   second, primary-chrome trigger, and is-minimum folds everything —
+   Settings included — into a single trigger. Each fold's trigger keeps the
+   folded group's own chrome, so the row's color story survives the fold in
+   both themes. Level rules only hide row buttons or let JS move whole
+   buttons into the panels — nothing wraps, shrinks, truncates or overlaps
+   (see the no-shrink contract on .brand / .header-actions). */
+
+/* Each trigger exists exactly at its own reach — the classes are
+   cumulative, so "at" means its class present and the next level's absent;
+   the links trigger serves its own fold AND level 2's pair. */
+#app-header:not(.is-compact) #more-links,
+#app-header.is-minimum #more-links,
+#app-header:not(.is-overflow) #more-actions,
+#app-header.is-minimum #more-actions,
+#app-header:not(.is-minimum) #more-all { display: none; }
+
+/* The child combinator scopes the hides to the ROW: the same nodes, once
+   panelled, are the panel's content and must render there. */
+#app-header.is-compact > .header-actions > #btn-github,
+#app-header.is-compact > .header-actions > #btn-support,
+#app-header.is-overflow > .header-actions > #btn-export,
+#app-header.is-overflow > .header-actions > #btn-auto-segments,
+#app-header.is-overflow > .header-actions > #btn-open,
+#app-header.is-minimum > .header-actions > #btn-settings { display: none; }
+
+/* Level 4 — emergency: the route-source notice square is the last furniture
+   to go. Its warning lives on inside the chip's compact popover (built in
+   ui/fileChip.js when this class is present), wearing the same alarm red. */
+#app-header.is-emergency > #route-note { display: none; }
+
+.header-more { position: relative; display: inline-flex; flex: none; }
+.header-more[hidden],
+.header-more-panel[hidden] { display: none; }
+
+/* The panels (#header-panels, body level — see index.html): fixed bottom
+   sheets at every width, the app's narrow-screen menu idiom applied
+   unconditionally because the triggers only exist in compressed states.
+   One shared backdrop (js/ui/headerFit.js) sits under them; the z pair is
+   the menus' own. */
+.header-more-panel {
+  position: fixed;
+  inset-inline: 0;
+  inset-block: auto 0;
+  z-index: var(--z-menu);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  padding-block-end: calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  box-shadow: var(--shadow-2);
+}
+
+/* Panel rows are the REAL buttons restyled into menu rows: full width,
+   label always visible — whatever level folded them and whatever the phone
+   block below says — with the button's own icon leading. The rules here
+   come after the is-loaded rules on purpose (the tie on #btn-support is
+   order-decided); the two-id GitHub rules outrank the theme × state rules
+   whatever order the blocks land in. */
+#header-panels .header-more-panel .btn {
+  width: 100%;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--radius-s);
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 13.5px;
+  gap: 9px;
+  white-space: normal;
+  /* a folded .btn-primary must not brighten its (now transparent) row */
+  filter: none;
+}
+#header-panels .header-more-panel .btn:hover:not(:disabled),
+#header-panels .header-more-panel .btn:focus-visible { background: var(--surface-hover); }
+
+/* panel rows always read as text … */
+#header-panels .header-more-panel .btn span:not(.btn-icon-slot) { display: inline; }
+/* … the settings row's label among them: its span is .visually-hidden for
+   the row's icon-only face. */
+#header-panels .header-more-panel .btn .visually-hidden {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* The Support row keeps the link's Ko-fi pink (icon and label — the color
+   token is identical in both themes). Declared after the row rule so it
+   wins the tie. */
+#header-panels .header-more-panel #btn-support { color: var(--support-pink); }
+
+/* The GitHub row reads as the bare mark + the word "GitHub" — the lockup
+   would double the label. */
+#header-panels .header-more-panel #btn-github .gh-label { display: inline; }
+
+html[data-theme="light"] #header-panels .header-more-panel #btn-github .gh-lockup,
+html[data-theme="dark"] #header-panels .header-more-panel #btn-github .gh-lockup { display: none; }
+
+html[data-theme="light"] #header-panels .header-more-panel #btn-github .gh-mark.gh-light,
+html[data-theme="dark"] #header-panels .header-more-panel #btn-github .gh-mark.gh-dark { display: block; }
 
 /* Settings drawer trigger — the single entry point for map / theme /
    language / units on every viewport. */

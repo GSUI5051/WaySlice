@@ -157,6 +157,10 @@
           <img class="gh-logo gh-lockup gh-dark" src="icons/GitHub_Lockup_White.svg" alt="" width="416" height="95">
           <img class="gh-logo gh-mark gh-light" src="icons/GitHub_Invertocat_Black.svg" alt="" width="98" height="96">
           <img class="gh-logo gh-mark gh-dark" src="icons/GitHub_Invertocat_White.svg" alt="" width="98" height="96">
+          <!-- Panel-only label: the compression panel (below) presents this
+               link as a bottom-sheet row, where the bare mark would be
+               unnamed ink. -->
+          <span class="gh-label">GitHub</span>
         </a>
         <!-- Support (Ko-fi) link. Same data-state forms as the GitHub link:
              heart + label while the header is bare, 34 px icon-only square
@@ -168,6 +172,18 @@
           <span class="btn-icon-slot" data-icon="heart"></span>
           <span data-i18n="support">Support</span>
         </a>
+        <!-- Compression level 1 (js/ui/headerFit.js): GitHub + Support fold
+             into this ellipsis trigger; its panel (in #header-panels, at the
+             body level so it can out-stack the shared backdrop) hosts the
+             REAL links as bottom-sheet rows — same nodes, listeners and
+             state, nothing duplicated. -->
+        <div id="more-links" class="header-more" hidden>
+          <button type="button" id="btn-more-links" class="btn btn-icon"
+                  aria-expanded="false" aria-controls="panel-more-links"
+                  data-i18n-aria="moreControls" data-i18n-title="moreControls">
+            <span class="btn-icon-slot" data-icon="ellipsis"></span>
+          </button>
+        </div>
         <button type="button" id="btn-export" class="btn btn-primary" hidden
                 data-i18n-aria="export">
           <span class="btn-icon-slot" data-icon="file-down"></span>
@@ -178,6 +194,16 @@
           <span class="btn-icon-slot" data-icon="scissors-line-dashed"></span>
           <span data-i18n="autoSegments">Auto split</span>
         </button>
+        <!-- Compression level 2: Export / Auto slice / Import track fold into
+             this second trigger, wearing the primary chrome of the group it
+             folds. -->
+        <div id="more-actions" class="header-more" hidden>
+          <button type="button" id="btn-more-actions" class="btn btn-icon btn-primary"
+                  aria-expanded="false" aria-controls="panel-more-actions"
+                  data-i18n-aria="moreControls" data-i18n-title="moreControls">
+            <span class="btn-icon-slot" data-icon="ellipsis"></span>
+          </button>
+        </div>
         <button type="button" id="btn-open" class="btn btn-primary"
                 data-i18n-aria="openTrack">
           <span class="btn-icon-slot" data-icon="folder-open"></span>
@@ -188,6 +214,15 @@
           <span class="btn-icon-slot" data-icon="settings"></span>
           <span class="visually-hidden" data-i18n="settings">Settings</span>
         </button>
+        <!-- Compression level 3: everything, Settings included, folds into
+             this single trigger. -->
+        <div id="more-all" class="header-more" hidden>
+          <button type="button" id="btn-more-all" class="btn btn-icon btn-primary"
+                  aria-expanded="false" aria-controls="panel-more-all"
+                  data-i18n-aria="moreControls" data-i18n-title="moreControls">
+            <span class="btn-icon-slot" data-icon="ellipsis"></span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -305,6 +340,21 @@
         </div>
       </aside>
     </main>
+  </div>
+
+  <!-- The header compression panels (js/ui/headerFit.js) live OUTSIDE the
+       header on purpose: #app-header is its own stacking context (the
+       --z-header flex item), so a fixed panel inside it could never
+       out-stack the shared menu backdrop. At the body level they are the
+       menus' peers — same z pair, same backdrop — and they host the REAL
+       buttons the level controller folds out of the row. -->
+  <div id="header-panels">
+    <div id="panel-more-links" class="header-more-panel" hidden role="group"
+         data-i18n-aria="moreControls"></div>
+    <div id="panel-more-actions" class="header-more-panel" hidden role="group"
+         data-i18n-aria="moreControls"></div>
+    <div id="panel-more-all" class="header-more-panel" hidden role="group"
+         data-i18n-aria="moreControls"></div>
   </div>
 
   <dialog id="sheet" class="sheet" aria-labelledby="sheet-title">

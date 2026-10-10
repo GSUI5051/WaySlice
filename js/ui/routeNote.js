@@ -66,6 +66,16 @@ function refreshNoteLabel() {
   btn.title = t('routeSourceNote');
 }
 
+/**
+ * True while a route-source track is loaded — the state in which the
+ * warning square shows (or, at the header's emergency level, the state in
+ * which the square is folded away and the chip's popover carries the
+ * warning in its place; see ui/headerFit.js and ui/fileChip.js).
+ */
+export function routeNoteActive() {
+  return !!btn && !btn.hidden;
+}
+
 /** @private Closes the open popover, if any. Safe to call when closed. */
 function closeNote() {
   notePop.close();

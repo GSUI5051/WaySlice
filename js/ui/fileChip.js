@@ -19,12 +19,17 @@
  * resizes, the phone media flip, buttons gaining/losing labels).
  */
 import { createHintPopover } from './hint-popover.js';
+import { routeNoteActive } from './routeNote.js';
+import { icon } from './icons.js';
+import { t } from '../language/language.js';
 
 /** Sub-pixel rounding slack for the fits/doesn't-fit read, px. @private */
 const MEASURE_SLACK_PX = 1;
 
 /** @type {HTMLElement|null} the chip pill */
 let chip = null;
+/** @type {HTMLElement|null} the header — kept for the emergency-level check */
+let headerEl = null;
 /** @type {HTMLElement|null} the name / meta spans and the info button */
 let nameEl = null;
 let metaEl = null;
@@ -40,7 +45,8 @@ const chipPop = createHintPopover({ variantClass: 'file-chip-popover', align: 'l
  * from boot; content updates arrive through setFileChipContent().
  * @param {HTMLElement} headerEl  the header — observed for size changes
  */
-export function initFileChip(headerEl) {
+export function initFileChip(headerElement) {
+  headerEl = headerElement;
   chip = document.getElementById('file-chip');
   nameEl = document.getElementById('file-name');
   metaEl = document.getElementById('file-meta');
@@ -99,8 +105,25 @@ function refreshFileChipMode() {
 }
 
 /**
+ * Re-decides the chip's mode from the current header layout. Exported for
+ * the header's compression controller (ui/headerFit.js): its level changes
+ * alter the action row's width without any header resize, so the chip must
+ * re-measure outside its ResizeObserver — once per level inside the
+ * controller's walk. The popover closes first: the anchor rect goes stale
+ * with the layout, exactly as in the geometry handler above.
+ */
+export function remeasureFileChip() {
+  closeFileChipPopover();
+  refreshFileChipMode();
+}
+
+/**
  * Opens the compact popover: the three facts on their own lines —
- * left-aligned under the chip, per the shared factory's positioning.
+ * left-aligned under the chip, per the shared factory's positioning. At the
+ * header's emergency level the route-source warning folds in here (the
+ * marker square is hidden by the level's CSS): the alarm triangle, then the
+ * full notice sentence — the same two facts the marker's own popover
+ * carried.
  * @private
  */
 function openFileChipPopover() {
@@ -111,6 +134,16 @@ function openFileChipPopover() {
       row.className = `file-chip-pop-row${extra}`;
       row.textContent = text;
       pop.appendChild(row);
+    }
+    if (routeNoteActive() && headerEl?.classList.contains('is-emergency')) {
+      const alertRow = document.createElement('div');
+      alertRow.className = 'file-chip-pop-row file-chip-pop-alert';
+      alertRow.innerHTML = icon('triangle-alert');
+      const noteRow = document.createElement('div');
+      noteRow.className = 'file-chip-pop-row';
+      noteRow.textContent = t('routeSourceNote');
+      pop.appendChild(alertRow);
+      pop.appendChild(noteRow);
     }
   });
 }
