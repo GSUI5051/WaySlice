@@ -15,8 +15,17 @@
     <polygon points="110,560 300,300 540,620 740,520 914,700 914,1120 110,1120" fill="#b3450a"/>
     <!-- front ridge (brand accent) -->
     <polygon points="110,780 470,380 700,850 815,690 914,920 914,1120 110,1120" fill="#e8590c"/>
-    <!-- GPX track line crossing the ridges -->
-    <polyline points="140,820 280,660 430,780 560,620 700,760 830,640 884,700"
+    <!-- GPX track line crossing the ridges: the span between the sector
+         handles wears the map track blue from the app palette, the ends
+         stay white. The split points are the segment midpoints the dots
+         sit on. -->
+    <polyline points="140,820 280,660 355,720"
+              fill="none" stroke="#ffffff" stroke-opacity="0.94" stroke-width="56"
+              stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="355,720 430,780 560,620 700,760 765,700"
+              fill="none" stroke="#3d76f0" stroke-opacity="0.94" stroke-width="56"
+              stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="765,700 830,640 884,700"
               fill="none" stroke="#ffffff" stroke-opacity="0.94" stroke-width="56"
               stroke-linecap="round" stroke-linejoin="round"/>
     <!-- sector start handle (green) -->
