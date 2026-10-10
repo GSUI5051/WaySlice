@@ -1,11 +1,12 @@
 /** Elevation-profile data tests: speed-series smoothing + cache rules +
- *  the fit-to-sector window math + the full-resolution chart scale ranges
- *  (the uPlot renderer's inputs) + the lazy uPlot loader's caching rule. */
+ *  the fit-to-sector window math + the selection dimming steps + the
+ *  full-resolution chart scale ranges (the uPlot renderer's inputs) + the
+ *  lazy uPlot loader's caching rule. */
 import { suite, test, assert } from './runner.js';
 import * as profileData from '../js/charts/elevation-profile/profile-data.js';
 import {
   buildCaches, seriesExtremes, overlayExtremes, overlayYRange, bandScaleRange,
-  eleYRange, sectorFitWindow, FIT_SECTOR_FRACTION,
+  eleYRange, sectorFitWindow, sectorDimSteps, FIT_SECTOR_FRACTION,
 } from '../js/charts/elevation-profile/profile-data.js';
 import { loadUPlot } from '../js/charts/elevation-profile/uplot-loader.js';
 import { niceStepForUnit, niceTimeStep } from '../js/charts/ticks.js';
@@ -452,5 +453,81 @@ suite('axis grid ladders / unit- and duration-aware rounding', () => {
     assert.equal(niceTimeStep(3600), 3600, 'exactly 1 h');
     assert.equal(niceTimeStep(5000), 7200, 'the old 1:23:20 grid → 2 h');
     assert.equal(niceTimeStep(90000), 2 * 86400, 'past a day → the 1/2/5 day ladder');
+  });
+});
+
+/* Selection dimming steps (sectorDimSteps) --------------------------------------
+   The curves' dim→full→dim stroke steps for a partial sector selection: the
+   plan the renderer turns into one gradient stroke, so the steps must land
+   where the handles stand and survive boundaries outside a zoomed window. */
+
+suite('profile / selection dimming steps (sectorDimSteps)', () => {
+  const SPAN = 800;
+
+  test('a sector covering the whole extent plans a plain stroke', () => {
+    assert.deepEqual(sectorDimSteps(0, SPAN, SPAN), { mode: 'inside' });
+    // Boundaries beyond both edges cover everything visible too.
+    assert.deepEqual(sectorDimSteps(-50, SPAN + 50, SPAN), { mode: 'inside' });
+  });
+
+  test('a sector missing the extent entirely plans a uniformly dim stroke', () => {
+    assert.deepEqual(sectorDimSteps(-200, -10, SPAN), { mode: 'outside' });
+    assert.deepEqual(sectorDimSteps(SPAN + 10, SPAN + 200, SPAN), { mode: 'outside' });
+  });
+
+  test('a sector inside the extent steps at its exact edges', () => {
+    const plan = sectorDimSteps(200, 600, SPAN);
+    assert.equal(plan.mode, 'steps');
+    assert.equal(plan.steps.length, 2);
+    assert.closeTo(plan.steps[0].at, 0.25, 1e-12);
+    assert.equal(plan.steps[0].to, 'full');
+    assert.closeTo(plan.steps[1].at, 0.75, 1e-12);
+    assert.equal(plan.steps[1].to, 'dim');
+  });
+
+  test('a sector end left of the zoomed window: one full→dim step at its end', () => {
+    const plan = sectorDimSteps(-500, 300, SPAN);
+    assert.equal(plan.mode, 'steps');
+    assert.equal(plan.steps.length, 1);
+    assert.closeTo(plan.steps[0].at, 300 / SPAN, 1e-12);
+    assert.equal(plan.steps[0].to, 'dim');
+  });
+
+  test('a sector end right of the zoomed window: one dim→full step at its start', () => {
+    const plan = sectorDimSteps(300, 2000, SPAN);
+    assert.equal(plan.mode, 'steps');
+    assert.equal(plan.steps.length, 1);
+    assert.closeTo(plan.steps[0].at, 300 / SPAN, 1e-12);
+    assert.equal(plan.steps[0].to, 'full');
+  });
+
+  test('boundaries between two samples keep their sub-pixel fraction', () => {
+    // A boundary that falls between data points must land between them on
+    // screen too — the plan is pure pixel math, never snapped to samples.
+    const plan = sectorDimSteps(200.37, 600.86, SPAN);
+    assert.equal(plan.mode, 'steps');
+    assert.closeTo(plan.steps[0].at, 200.37 / SPAN, 1e-12);
+    assert.closeTo(plan.steps[1].at, 600.86 / SPAN, 1e-12);
+  });
+
+  test('a sector narrower than one pixel still yields ascending distinct steps', () => {
+    const plan = sectorDimSteps(10.2, 10.8, SPAN);
+    assert.equal(plan.mode, 'steps');
+    assert.truthy(plan.steps[0].at < plan.steps[1].at, 'ascending');
+  });
+
+  test('degenerate inputs never plan steps', () => {
+    assert.deepEqual(sectorDimSteps(300, 300, SPAN), { mode: 'outside' });
+    assert.deepEqual(sectorDimSteps(400, 300, SPAN), { mode: 'outside' });
+    assert.deepEqual(sectorDimSteps(0, SPAN, 0), { mode: 'outside' });
+  });
+
+  test('every step offset stays within the gradient domain', () => {
+    for (const [s, e] of [[-1e6, 1e6], [-10, 400], [400, 1e6], [0, 1], [799, 801]]) {
+      const plan = sectorDimSteps(s, e, SPAN);
+      for (const step of plan.steps ?? []) {
+        assert.truthy(step.at >= 0 && step.at <= 1, `offset in [0,1] for ${s}..${e}`);
+      }
+    }
   });
 });

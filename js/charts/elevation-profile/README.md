@@ -14,10 +14,11 @@ vendored ES module in `vendor/uplot/`, lazy-loaded on the first track — see
 `uplot-loader.js`): elevation line, metric overlay curves (heart rate, speed/pace/GAP,
 cadence, temperature, power), heart-rate zone bands, grid and axes. uPlot always draws the
 COMPLETE raw series — zooming and the sector view act on the chart's x scale range, never
-on the data. The DATA stays full-resolution end to end; the one view-layer stroke that
-re-draws the elevation (the sector accent on the annotation canvas) decimates its Path2D
-to pixel columns on dense spans — uPlot's own series-path rule, never touching the data
-(see the sector highlight below). WaySlice
+on the data. The DATA stays full-resolution end to end; the sector selection dims the
+curves AND the grid lines OUTSIDE the selected span through their own strokes (one
+gradient stroke of one cached path each — no second pass, no overlay mask, never touching
+the data; see the selection
+dimming below). WaySlice
 owns the business layers: the sector selection, hover crosshair, waypoint pins, the
 per-overlay axis strip (drawn on its own annotation canvas above the chart) and the
 map-linked interactions. It used to be one ~1500-line file; it is now a system of
@@ -49,8 +50,8 @@ the plot and never shifts the layout when readings come and go (see
 |---|---|---|
 | `index.js` | Orchestrator: DOM assembly, external event surface, track lifecycle, resize handling | `initProfile`, `setProfileTrack` |
 | `profile-state.js` | The one chart instance's shared mutable state (`state`) + `isWideLayout` | `state`, `isWideLayout` |
-| `profile-data.js` | Pure computation: per-point caches, full-resolution scale ranges, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `seriesExtremes`, `overlayExtremes`, `overlayYRange`, `eleYRange`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
-| `profile-render.js` | The uPlot chart lifecycle (lazy create, setData/setScale/setSize updates) + the annotation canvas pass (axis strip, sector highlight, waypoint pins, crosshair), `scheduleSync`, handle/mask positioning | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels`, `invalidateChartStyle` |
+| `profile-data.js` | Pure computation: per-point caches, full-resolution scale ranges, coordinate conversions, overlay definitions & toggle rule. No DOM, no sibling imports | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `seriesExtremes`, `overlayExtremes`, `overlayYRange`, `eleYRange`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `sectorDimSteps`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
+| `profile-render.js` | The uPlot chart lifecycle (lazy create, setData/setScale/setSize updates) + the annotation canvas pass (axis strip, waypoint pins, crosshair), the selection dimming (curves and grid lines step to `--profile-series-dim` outside the sector through one gradient stroke each), `scheduleSync`, handle positioning | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels`, `invalidateChartStyle` |
 | `uplot-loader.js` | The lazy loader for the vendored uPlot ES module: one cached download promise (reset on failure, retryable), the vendor CSS link | `loadUPlot` |
 | `profile-interaction.js` | The three input pathways (header controls, canvas pointer — hover/select/zoom + the touch probe gestures, sector handles) + toast + waypoint snapping. The touch pinch/pan/double-tap state machine is NOT here: it is the shared `js/charts/viewport-gestures.js` the dual-variable chart runs too. Never draws | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshControlsFit`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | The hover tooltip and the touch probe's readout DOM + content | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |
@@ -78,9 +79,9 @@ Everything the modules share lives in the `state` object (`profile-state.js`). A
 one module uses stays a module-private `let` — check before moving a field in.
 
 `state.dom` (assembled once during initialization: `index.js` fills the queried nodes and
-`initRender` creates the masks and binds canvas/ctx; `wireControls` fills `snapBtn`):
+`initRender` binds canvas/ctx; `wireControls` fills `snapBtn`):
 `root`, `canvas`, `ctx`, `chart` (the uPlot host), `tooltip`, `readout` (the probe's band, outside root),
-`handles.{start,end}`, `masks.{left,right}`, `xButtons.{distance,time}`, `snapBtn`.
+`handles.{start,end}`, `xButtons.{distance,time}`, `snapBtn`.
 
 Chart data: `track`, `xs` (per-point x in the current axis mode), `speeds`, `gapSpeeds`,
 `profileWaypoints`. The `speeds`/`gapSpeeds` caches always pass through a source-based clean:
@@ -135,12 +136,21 @@ the area fill below the curve was dropped by design, user decision 2026-10-03), 
 for tracks without elevation — the flat dashed reference line (`draw` hook, above the
 series). uPlot's cursor and legend are disabled: it binds no pointer listeners.
 
+**Selection dimming (inside the same uPlot draw):** with a partial sector selected, every
+telemetry series strokes through `selectionStroke` — the plain series color inside the
+sector span, `--profile-series-dim` outside it, stepped by a horizontal CanvasGradient
+whose stops sit at the handle positions (mapped through the same `xvToPx` conversion as
+everything else). The elevation grid rows (the ele axis's native grid, one path per draw)
+and the hand-drawn x grid verticals share the same gradient, so the grid fades with the
+curves; a vertical line simply takes the gradient's color at its own x. One stroke of the
+ONE cached path each: the curves stay continuous across the boundaries, no second pass or
+overlay can double-draw anything, and the axes, ticks, tick labels, zone bands and hover/
+legend layers keep their strength everywhere. A whole-track selection strokes plain; since
+uPlot re-evaluates every stroke on each draw, handle drags re-derive the style from live
+state — `chartKey` carries the sector span so the moves reach the chart.
+
 **Annotation half (the `#profile-canvas` pass, after the chart):** overlay axis strip →
-sector highlight (the elevation path re-drawn in the accent color,
-clipped to sector ∩ window; dense spans — ≥4 points per plot pixel, uPlot's own
-series-path rule — decimate the Path2D to per-pixel-column min/max so a pan frame
-costs O(plot width), never touching the data; the cache rebuilds only on
-sector/view/plot/track changes) → waypoint pins → hover/probe crosshair (hairline, surface-filled dot with an
+waypoint pins → hover/probe crosshair (hairline, surface-filled dot with an
 accent ring on the elevation curve, solid dot where the crosshair crosses the drawn HR
 polyline — interpolated along the same segment the drawn line spans). While a touch probe
 is active it draws in the crosshair's place — same line and dots, anchored to the probe's
@@ -154,8 +164,8 @@ is two-level — value on top, zone underneath — and all slots center their co
 so single-line slots stay vertically centered in the taller row (`#profile-readout`,
 coarse-pointer devices; fine-pointer devices keep the floating fallback box capped
 at half the screen width, rows breaking between readings, never inside one).
-`placeMasks()` and `positionHandles()` close the pass (the sector veil and handle DOM
-elements position from the same plot rect).
+`positionHandles()` closes the pass (the handle DOM elements position from the same plot
+rect).
 
 Rules baked into this pass:
 
@@ -177,18 +187,20 @@ Rules baked into this pass:
   highlight — and no highlight without the drawer's
   highlight toggle either (`js/metrics/heartRateDisplay.js`): it needs the band toggle on,
   and its stored choice survives while the bands are hidden.
-- Draw order matters: zone bands → overlay lines → elevation line → highlight → hover.
+- Draw order matters: zone bands → overlay lines → elevation line → hover. The selection
+  dimming is not a layer: it is each series' own stroke color stepping at the handles.
 - Chart update granularity: view change → `setScale('x')` only; overlay toggle → `show`
-  flags; track/x-mode → `setData` with the swapped caches; theme → per-draw color
-  functions (a plain redraw); resize → `setSize` (never destroy/recreate). Hover frames
-  touch only the annotation canvas — uPlot is not asked to redraw.
+  flags; track/x-mode → `setData` with the swapped caches; sector → a plain redraw
+  (`chartKey` carries the span); theme → per-draw color functions (a plain redraw);
+  resize → `setSize` (never destroy/recreate). Hover frames touch only the annotation
+  canvas — uPlot is not asked to redraw.
 - A failed uPlot download surfaces a muted note inside `#profile-body`
   (`t('profileChartError')`) plus a console error; the loader resets its cached promise so
   the NEXT explicit render trigger retries — nothing retries in a loop, and nothing else
   in the app is affected.
 - The annotation pass reads chart state without mutating it. Its output is determined by
   `state`, `sectorStore` and the current theme tokens (`getComputedStyle`), and its writes
-  go to the annotation canvas plus the render-owned DOM (masks, handles) and, via
+  go to the annotation canvas plus the render-owned DOM (handles) and, via
   `showTooltipAt`, the tooltip. It is deterministic per frame, but not a pure function —
   it draws.
 
@@ -223,7 +235,7 @@ conversion, add it there as a pure function with explicit parameters.
 - Colors come from CSS design tokens (`--series-*`, `--hr-zone-*`), snapshotted per
   render pass for theme switches.
 - Insert at the correct z-order slot (chart hooks: zone bands beneath / reference line
-  above; annotation pass: strip → highlight → pins → crosshair); update the layer list
+  above; annotation pass: strip → pins → crosshair); update the layer list
   in this README.
 
 ### Add an interactive control
@@ -260,7 +272,7 @@ conversion, add it there as a pure function with explicit parameters.
 1. `profile-data.js` stays pure: explicit parameters, no DOM, no `state` import. If a
    function needs state, it belongs elsewhere (or the state is passed in).
 2. `profile-render.js` never imports `profile-interaction.js`; interaction never draws.
-   The renderer touches only its own DOM assets (canvas, masks, handles); the one call it
+   The renderer touches only its own DOM assets (canvas, handles); the one call it
    makes into another module's DOM is `drawHover → showTooltipAt` (tooltip).
 3. Overlay family rule: speed/pace/GAP are one series with one slot. In
    `applyOverlayToggle` a sibling variant **replaces** the selected one even when all slots
@@ -276,10 +288,9 @@ conversion, add it there as a pure function with explicit parameters.
    per-pixel-column sampler (bucketing by canvas width, per-column min/max/mean) as a
    "uPlot adapter": the suite pins `sampleElevation`/`sampleOverlay` to `undefined`, and
    any new pixel-width-dependent data path is a regression, not an optimization.
-   The annotation layer's sector-accent STROKE is not a data path: on dense spans
-   (≥ 4 points per plot pixel — uPlot's own series-path rule) it decimates its
-   Path2D to per-pixel-column min/max while the series it re-colors stays
-   full-resolution (see `buildAccentPath`).
+   The sector selection is no exception: it lives in the STROKES (the series and the grid
+   lines share one gradient over their cached paths), never in a data copy, a second draw
+   pass or an overlaying mask.
 7. Canvas caching: during development the browser may serve stale modules — the project
    has no build step and the dev server sends no explicit caching directives, so browsers
    can apply heuristic caching. Hard-reload via CDP `Page.reload {ignoreCache: true}`

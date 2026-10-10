@@ -45,8 +45,8 @@ DOM 契約：`#profile-body` の中に `#profile-chart`（uPlot のホスト。�
 |---|---|---|
 | `index.js` | オーケストレーション：DOM 組み立て、外部イベント、トラックのライフサイクル、リサイズ処理 | `initProfile`、`setProfileTrack` |
 | `profile-state.js` | チャートインスタンス 1 個分の共有ミュータブル状態（`state`）+ `isWideLayout` | `state`、`isWideLayout` |
-| `profile-data.js` | 純粋計算：ポイント別キャッシュ、フルレゾリューションのスケール範囲、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`seriesExtremes`、`overlayExtremes`、`overlayYRange`、`eleYRange`、`distToX`、`xToDist`、`clientXtoX`、`xvToPx`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle`、`sectorFitWindow`、`FIT_SECTOR_FRACTION` |
-| `profile-render.js` | uPlot チャートのライフサイクル（遅延生成、setData / setScale / setSize による更新）+ アノテーション canvas の描画パス（軸ストリップ、セクターハイライト、ウェイポイントピン、十字線）、`scheduleSync`、ハンドル / マスク配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`refreshHandleLabels`、`invalidateChartStyle` |
+| `profile-data.js` | 純粋計算：ポイント別キャッシュ、フルレゾリューションのスケール範囲、座標変換、オーバーレイ定義とトグル規則。DOM なし・兄弟モジュールに非依存 | `OVERLAY_METRICS`、`SPEED_FAMILY`、`buildCaches`、`overlayAvailability`、`overlayValueAt`、`seriesExtremes`、`overlayExtremes`、`overlayYRange`、`eleYRange`、`distToX`、`xToDist`、`clientXtoX`、`xvToPx`、`sectorDimSteps`、`speedToPace`、`formatOverlayValue`、`applyOverlayToggle`、`sectorFitWindow`、`FIT_SECTOR_FRACTION` |
+| `profile-render.js` | uPlot チャートのライフサイクル（遅延生成、setData / setScale / setSize による更新）+ アノテーション canvas の描画パス（軸ストリップ、ウェイポイントピン、十字線）、選択範囲の薄色化（セクターの外側で系列とグリッド線を `--profile-series-dim` まで落とすグラデーション描画 各 1 回）、`scheduleSync`、ハンドル配置 | `initRender`、`scheduleSync`、`sync`、`resizeCanvas`、`refreshHandleLabels`、`invalidateChartStyle` |
 | `uplot-loader.js` | ベンダーした uPlot ES モジュールの遅延ローダー：ダウンロード Promise を 1 つだけキャッシュ（失敗時はリセットして再試行可）、ベンダー CSS のリンクも注入 | `loadUPlot` |
 | `profile-interaction.js` | 3 つの入力経路（ヘッダーコントロール、キャンバスポインター——ホバー / ドラッグ選択 / ズームとタッチプローブのジェスチャ、セクターハンドル）+ toast + ウェイポイントスナップ。タッチのピンチ/パン/ダブルタップの状態機械はここにはありません（双変数チャートも動かす共有モジュール `js/charts/viewport-gestures.js` です）。描画はしない | `wireControls`、`wirePointer`、`wireHandles`、`refreshControls`、`refreshControlsFit`、`refreshSnapToggle`、`unpinWaypoint` |
 | `profile-tooltip.js` | ホバー tooltip とタッチプローブ読み取りの DOM と内容 | `showTooltipAt`、`hideTooltip`、`resetProbeReadout` |
@@ -74,8 +74,8 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 フィールドを移動する前に確認してください。
 
 `state.dom`（初期化中に一度だけ組み立てる：`index.js` が取得したノードを代入し、`initRender` が
-マスクを作成して canvas/ctx をバインド、`wireControls` が `snapBtn` を代入）：`root`、`canvas`、
-`ctx`、`chart`（uPlot ホスト）、`tooltip`、`readout`（プローブのバンド。root の外）、`handles.{start,end}`、`masks.{left,right}`、
+canvas/ctx をバインド、`wireControls` が `snapBtn` を代入）：`root`、`canvas`、
+`ctx`、`chart`（uPlot ホスト）、`tooltip`、`readout`（プローブのバンド。root の外）、`handles.{start,end}`、
 `xButtons.{distance,time}`、`snapBtn`。
 
 チャートデータ：`track`、`xs`（現在の軸モードでのポイント別 x）、`speeds`、`gapSpeeds`、
@@ -128,10 +128,16 @@ state       → 依存なし（このディレクトリ内では。../utils/layo
 標高のないトラック用の平らな破線参照線（`draw` フック。系列の**上**）。uPlot の cursor と
 legend は無効化してあり、ポインターイベントのリスナーは 1 つもバインドされません。
 
+**選択範囲の薄色化（同じ uPlot 描画の中で）：** 部分的なセクターが選択されているとき、すべての
+テレメトリ系列は `selectionStroke` を通って描かれます——セクター区間の内側は系列本来の色、
+外側は `--profile-series-dim`、境界はハンドル位置（他の全要素と同じ `xvToPx` 変換で求める）に
+置いた水平 CanvasGradient のステップ。キャッシュされた 1 本のパスを 1 回ストロークするだけ：
+曲線は境界をまたいで連続し、2 回描きやオーバーレイで二重に描かれることはありません。標高グリッド行（ele 軸のネイティブグリッド）と手描きの x グリッド縦線は同じグラデーションを共有し、曲線と一緒に薄くなります——縦線は自分の x 位置のグラデーション色を取るだけ。軸・目盛り・目盛りラベル・ゾーンバンド・ホバー/凡例レイヤーはどこでも強度を保ちます。全トラック選択なら普通の色でストローク。
+uPlot は毎回の描画で全系列の stroke を再評価するので、ハンドルドラッグは `chartKey`
+（セクター区間を含む）経由でこの形式を実況状態から再導出します。
+
 **アノテーション半分（`#profile-canvas` の描画パス。チャートの後）：** オーバーレイ軸
-ストリップ → セクターハイライト（フルレゾリューションの標高パスをアクセント色で描き直し、
-セクター ∩ ウィンドウでクリップ。Path2D キャッシュはセクター / ビュー / プロット / トラック変更時
-だけ再構築）→ ウェイポイントピン → ホバー / プローブ十字線（細線、標高曲線上のサーフェス色
+ストリップ → ウェイポイントピン → ホバー / プローブ十字線（細線、標高曲線上のサーフェス色
 塗り・アクセント縁の点、十字線と描画済み心拍曲線の交点の塗りつぶし点——交点は描画線がまたぐ
 区間に沿って補間される）。タッチプローブがアクティブな間はプローブがこれに取って代わり
 ——同じ線と点を、プローブのデータ位置にアンカーして描きます。読み取りはヘッダーとチャートの間にある
@@ -143,7 +149,7 @@ legend は無効化してあり、ポインターイベントのリスナーは 
 するため、単一行のスロットは高くなった行の中で垂直中央に保たれる（粗いポインターの端末。正確な
 ポインターの端末は従来の浮遊ボックスのままで、幅は画面の半分まで、オーバーレイが多いときは
 読み取りの間で折り返し、1 つの読み取りが分割されることはない）。
-`placeMasks()` と `positionHandles()` がパスを閉じます（セクターベールとハンドルの DOM は
+`positionHandles()` がパスを閉じます（ハンドルの DOM は
 同じプロット矩形から配置される）。
 
 このパスに組み込まれたルール：
@@ -165,9 +171,11 @@ legend は無効化してあり、ポインターイベントのリスナーは 
   ないときは強調しません。設定ドロワーのハイライトトグルがオフのときも強調しません
   （`js/metrics/heartRateDisplay.js`）：ハイライトは表示トグルがオンであることを前提とし、
   バンド非表示中もそのチェック状態は保持されます。
-- 描画順序は壊せない：ゾーンバンド → オーバーレイ曲線 → 標高ライン → セクターハイライト → ホバー。
+- 描画順序は壊せない：ゾーンバンド → オーバーレイ曲線 → 標高ライン → ホバー。選択範囲の
+  薄色化はレイヤーではなく、各系列とグリッド線自身のストローク色がハンドル位置でステップするもの。
 - チャート更新の粒度：ビュー変更 → `setScale('x')` のみ。オーバーレイ切替 → `show` フラグ。
-  トラック / x 軸モード → キャッシュを差し替えて `setData`。テーマ → 描画ごとの色関数
+  トラック / x 軸モード → キャッシュを差し替えて `setData`。セクター → 再描画のみ
+  （`chartKey` が区間を保持）。テーマ → 描画ごとの色関数
   （再描画のみ）。リサイズ → `setSize`（破棄 / 再生成はしない）。ホバーフレームは
   アノテーション canvas だけに触れ、uPlot には再描画を求めない。
 - uPlot のダウンロードに失敗したら、`#profile-body` 内に控えめな注意文
@@ -176,7 +184,7 @@ legend は無効化してあり、ポインターイベントのリスナーは 
   アプリの他の部分への影響もありません。
 - アノテーションパスはチャート状態を読むだけで変更しない。出力は `state`、`sectorStore`、
   現在のテーマトークン（`getComputedStyle`）で決まり、書き込み先はアノテーション canvas と
-  render 所有の DOM（マスク、ハンドル）、および `showTooltipAt` 経由の tooltip に限られる。
+  render 所有の DOM（ハンドル）、および `showTooltipAt` 経由の tooltip に限られる。
   フレームごとに決定論的だが、**純粋関数ではない**——描画する。
 
 ## 座標変換
@@ -208,7 +216,7 @@ legend は無効化してあり、ポインターイベントのリスナーは 
 - 色は CSS デザイントークン（`--series-*`、`--hr-zone-*`）から。描画パスごとに
   スナップショットを取る。
 - 正しい z 順序スロットに挿入し（チャートフック：ゾーンバンドは下 / 参照線は上。
-  アノテーションパス：ストリップ → ハイライト → ピン → 十字線）、この README の
+  アノテーションパス：ストリップ → ピン → 十字線）、この README の
   レイヤー一覧も更新する。
 
 ### インタラクティブなコントロールの追加
@@ -245,7 +253,7 @@ legend は無効化してあり、ポインターイベントのリスナーは 
 1. `profile-data.js` は純粋関数を保つ：明示的パラメータ、DOM なし、`state` を import しない。
    状態が必要な関数は別の場所に属する（または状態を引数で渡す）。
 2. `profile-render.js` は `profile-interaction.js` を import しない。interaction は描画しない。
-   レンダラーが触るのは自分の DOM 資産（canvas、マスク、ハンドル）のみ。別モジュールの DOM に
+   レンダラーが触るのは自分の DOM 資産（canvas、ハンドル）のみ。別モジュールの DOM に
    対する唯一の呼び出しは `drawHover → showTooltipAt`（tooltip）。
 3. オーバーレイファミリー規則：速度 / ペース / GAP は 1 つの系列・1 つのスロット。
    `applyOverlayToggle` では、兄弟バリアントがスロット満杯でも**置き換え**を行う（sibling チェックを
@@ -261,6 +269,9 @@ legend は無効化してあり、ポインターイベントのリスナーは 
    としてピクセル列単位のサンプラー（canvas 幅によるバケット化、列ごとの min / max / 平均）を
    再導入してはならない。スイートは `sampleElevation` / `sampleOverlay` が `undefined` であること
    を固定しており、ピクセル幅依存の新しいデータ経路は最適化ではなくリグレッション。
+   セクター選択も例外ではない——それは系列とグリッド線の STROKE（それぞれキャッシュされた
+   1 本のパス上のグラデーション）に宿り、データのコピー、2 回描き、覆いかぶさるマスクには
+   決してしないこと。
 7. Canvas キャッシュ：開発中はブラウザーが古いモジュールを返すことがある——プロジェクトに
    ビルド工程がなく、開発サーバーは明示的なキャッシュディレクティブを送らないため、ブラウザーが
    ヒューリスティックキャッシュを適用しうる。変更が反映されないと疑う前に CDP の

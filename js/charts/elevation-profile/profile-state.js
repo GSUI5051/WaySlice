@@ -33,7 +33,6 @@ export const state = {
     tooltip: null,
     readout: null,     // the touch probe's fixed telemetry band (outside root)
     handles: { start: null, end: null },
-    masks: { left: null, right: null },
     xButtons: { distance: null, time: null },
     controls: null,    // the header's .profile-controls row (hidden pre-track)
     snapBtn: null,

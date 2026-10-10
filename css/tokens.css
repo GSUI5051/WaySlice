@@ -61,7 +61,12 @@
      The deepened slate reads 3.49:1 on surface, 3.62:1 on the elevated
      tooltip sheet. */
   --profile-line: #7c8894;
-  --sector-mask-brightness: 0.72;  /* transparent mask over the area outside the sector handles */
+  /* The elevation-profile telemetry curves' AND grid lines' opacity OUTSIDE
+     the selected sector (inside it they draw at full strength; applied per
+     stroke in the uPlot draw, so axes/ticks/labels are untouched). Chosen
+     from 0.6/0.7/0.8 trials in both themes — verify against screenshots
+     before changing. */
+  --profile-series-dim: 0.7;
 
   /* Dual-variable density ramp — low → high density, one ramp per theme.
      Zero density is forced fully transparent by the renderer; these two
@@ -132,7 +137,8 @@
   /* Lightened from #4d5763 (2.38:1) to clear the same 3:1 floor: 3.17:1
      on the chart surface, the only background the curve renders on. */
   --profile-line: #5f6a76;
-  --sector-mask-brightness: 0.55;  /* transparent mask over the area outside the sector handles */
+  /* Same dim as the light theme — verified readable on the dark plot. */
+  --profile-series-dim: 0.7;
 
   /* Dual-variable density ramp — the dark theme's brighter accent reads as
      a glow on the dark plot, mirroring the light theme's deep ramp. */

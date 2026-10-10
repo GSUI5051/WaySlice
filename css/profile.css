@@ -118,20 +118,6 @@
   box-shadow: 0 0 0 2px var(--focus);
 }
 
-/* Transparent mask layers dimming the area outside the sector handles —
-   a translucent theme-tinted veil with a brightness filter, not a grey
-   fill. Sits above the canvas but below handles and tooltip; the sector
-   between the handles stays untouched. Position/size are set from
-   elevationProfile.js (plot x span, same MARGIN values as the handles). */
-.profile-mask {
-  position: absolute;
-  inset-block: 10px 22px;
-  background: color-mix(in srgb, var(--background) 62%, transparent);
-  backdrop-filter: brightness(var(--sector-mask-brightness));
-  pointer-events: none;
-  z-index: 3;
-}
-
 /* The hover readout. The node lives inside #profile-body and is
    absolutely positioned there, so it tracks the workspace scroll natively
    (no scroll-driven repositioning). It anchors its bottom edge to the chart

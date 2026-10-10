@@ -43,8 +43,8 @@ initProfile 참조).
 |---|---|---|
 | `index.js` | 오케스트레이션: DOM 조립, 외부 이벤트, 트랙 라이프사이클, 리스즈 처리 | `initProfile`, `setProfileTrack` |
 | `profile-state.js` | 차트 인스턴스 하나의 공유 가변 상태(`state`) + `isWideLayout` | `state`, `isWideLayout` |
-| `profile-data.js` | 순수 계산: 포인트별 캐시, 전체 해상도 스케일 범위, 좌표 변환, 오버레이 정의와 토글 규칙. DOM 없음, 형제 모듈 비의존 | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `seriesExtremes`, `overlayExtremes`, `overlayYRange`, `eleYRange`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
-| `profile-render.js` | uPlot 차트 라이프사이클(지연 생성, setData / setScale / setSize 갱신) + 어노테이션 캔버스 패스(축 스트립, 구간 하이라이트, 웨이포인트 핀, 십자선), `scheduleSync`, 핸들 / 마스크 배치 | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels`, `invalidateChartStyle` |
+| `profile-data.js` | 순수 계산: 포인트별 캐시, 전체 해상도 스케일 범위, 좌표 변환, 오버레이 정의와 토글 규칙. DOM 없음, 형제 모듈 비의존 | `OVERLAY_METRICS`, `SPEED_FAMILY`, `buildCaches`, `overlayAvailability`, `overlayValueAt`, `seriesExtremes`, `overlayExtremes`, `overlayYRange`, `eleYRange`, `distToX`, `xToDist`, `clientXtoX`, `xvToPx`, `sectorDimSteps`, `speedToPace`, `formatOverlayValue`, `applyOverlayToggle`, `sectorFitWindow`, `FIT_SECTOR_FRACTION` |
+| `profile-render.js` | uPlot 차트 라이프사이클(지연 생성, setData / setScale / setSize 갱신) + 어노테이션 캔버스 패스(축 스트립, 웨이포인트 핀, 십자선), 선택 범위 흐림(구간 바깥에서 시리즈와 그리드 선을 `--profile-series-dim`까지 낮추는 그라디언트 스트로크 각 1회), `scheduleSync`, 핸들 배치 | `initRender`, `scheduleSync`, `sync`, `resizeCanvas`, `refreshHandleLabels`, `invalidateChartStyle` |
 | `uplot-loader.js` | 벤더한 uPlot ES 모듈의 지연 로더: 다운로드 프라미스를 하나만 캐시(실패 시 리셋해 재시도 가능), 벤더 CSS 링크도 주입 | `loadUPlot` |
 | `profile-interaction.js` | 세 입력 경로(헤더 컨트롤, 캔버스 포인터 — 호버 / 드래그 선택 / 줌과 터치 프로브 제스처, 구간 핸들) + toast + 웨이포인트 스냅. 터치의 핀치/이동/두 번 탭 상태 머신은 여기 없습니다(이변수 차트도 함께 쓰는 공용 모듈 `js/charts/viewport-gestures.js`입니다). 그리지 않음 | `wireControls`, `wirePointer`, `wireHandles`, `refreshControls`, `refreshControlsFit`, `refreshSnapToggle`, `unpinWaypoint` |
 | `profile-tooltip.js` | 호버 툴팁과 터치 프로브 읽기의 DOM과 내용 | `showTooltipAt`, `hideTooltip`, `resetProbeReadout` |
@@ -70,9 +70,9 @@ state       → 이 디렉터리 내 의존 없음(../utils/layout에서 isWideL
 모듈 간 공유되는 모든 것은 `state` 객체(`profile-state.js`)에 있습니다. 단일 모듈만 사용하는
 것은 그 모듈의 private `let`으로 남습니다——필드를 옮기기 전에 확인하세요.
 
-`state.dom`(초기화 중 한 번 조립: `index.js`가 조회한 노드를 채우고, `initRender`가 마스크를
-만들어 canvas/ctx를 바인딩, `wireControls`가 `snapBtn`을 채움): `root`, `canvas`, `ctx`, `chart`(uPlot 호스트),
-`tooltip`, `readout`(프로브의 밴드. root 바깥), `handles.{start,end}`, `masks.{left,right}`,
+`state.dom`(초기화 중 한 번 조립: `index.js`가 조회한 노드를 채우고, `initRender`가
+canvas/ctx를 바인딩, `wireControls`가 `snapBtn`을 채움): `root`, `canvas`, `ctx`, `chart`(uPlot 호스트),
+`tooltip`, `readout`(프로브의 밴드. root 바깥), `handles.{start,end}`,
 `xButtons.{distance,time}`, `snapBtn`.
 
 차트 데이터: `track`, `xs`(현재 축 모드의 포인트별 x), `speeds`, `gapSpeeds`,
@@ -122,9 +122,18 @@ tap 판정, 차트 밖 tap 기록)를 소유.
 (`draw` 훅. 시리즈 **위**). uPlot의 cursor와 legend는 비활성화되어 있어 포인터 이벤트
 리스너를 하나도 바인딩하지 않습니다.
 
-**어노테이션 부분(`#profile-canvas` 패스. 차트 다음):** 오버레이 축 스트립 → 구간 하이라이트
-(전체 해상도 표고 경로를 액센트 색으로 다시 그려 구간 ∩ 윈도우로 클립. Path2D 캐시는 구간 /
-뷰 / 플롯 / 트랙 변경 때만 재구축) → 웨이포인트 핀 → 호버 / 프로브 십자선(가는 선, 표고 곡선 위의
+**선택 범위 흐림(같은 uPlot 그리기 안에서):** 부분 구간이 선택되어 있으면 모든 텔레메트리
+시리즈는 `selectionStroke`을 거쳐 그려집니다——구간 안은 시리즈 본래 색, 바깥은
+`--profile-series-dim`, 경계는 핸들 위치(모든 요소와 같은 `xvToPx` 변환)에 놓인 수평
+CanvasGradient의 단차. 캐시된 하나의 경로를 한 번 스트로크할 뿐이므로: 곡선은 경계를 가로질러
+연속하고, 두 번 그리기나 오버레이로 이중으로 그려지지 않습니다. 표고 그리드 행(ele 축의 네이티브
+그리드)과 손으로 그리는 x 그리드 세로선은 같은 그라디언트를 공유해 곡선과 함께 흐려집니다——세로선은
+자신의 x 위치의 그라디언트 색을 취할 뿐입니다. 축·눈금·눈금 라벨·존 밴드·호버/범례 레이어는
+어디서든 강도를 유지합니다. 전체 트랙 선택은 평범한 색으로 스트로크합니다. uPlot은 그릴 때마다
+모든 시리즈의 stroke를 다시 평가하므로, 핸들 드래그는 구간을 지니는 `chartKey`를 통해 이
+스타일을 실시간 상태에서 다시 유도합니다.
+
+**어노테이션 부분(`#profile-canvas` 패스. 차트 다음):** 오버레이 축 스트립 → 웨이포인트 핀 → 호버 / 프로브 십자선(가는 선, 표고 곡선 위의
 서페이스 색 채움 · 액센트 테두리 점, 십자선과 그려진 심박 곡선의 교점 채움 점——교점은 그려진 선이
 가로지르는 구간을 따라 보간됨). 터치 프로브가 활성화되어 있으면 프로브가 이를 대신합니다——같은 선과
 점을 프로브의 데이터 위치에 앵커해 그립니다. 읽기는 헤더와 차트 사이의 고정 텔레메트리 밴드
@@ -137,7 +146,7 @@ tap 판정, 차트 밖 tap 기록)를 소유.
 (거친 포인터 기기. 정밀 포인터 기기는 기존의 플로팅 박스를
 유지하며 너비는 화면의 절반까지, 오버레이가 많으면 읽기 단위 사이에서 줄을 바꾸며 하나의 읽기가
 분할되지 않음).
-`placeMasks()`와 `positionHandles()`가 패스를 닫습니다(구간 베일과 핸들 DOM은 같은 플롯
+`positionHandles()`가 패스를 닫습니다(핸들 DOM은 같은 플롯
 사각형에서 배치됨).
 
 이 패스에 내장된 규칙:
@@ -158,9 +167,11 @@ tap 판정, 차트 밖 tap 기록)를 소유.
   경로를 사용하므로 항상 일치합니다. 검사 대상이 없으면 강조하지 않습니다. 설정 드로어의 하이라이트
   토글이 꺼져 있어도 강조하지 않습니다(`js/metrics/heartRateDisplay.js`): 하이라이트는 표시
   토글이 켜져 있어야 하며, 밴드가 숨어 있는 동안에도 그 체크 상태는 유지됩니다.
-- 그리기 순서는 깨뜨릴 수 없습니다: 존 밴드 → 오버레이 곡선 → 표고 라인 → 구간 하이라이트 → 호버.
+- 그리기 순서는 깨뜨릴 수 없습니다: 존 밴드 → 오버레이 곡선 → 표고 라인 → 호버. 선택 범위 흐림은
+  레이어가 아니라 각 시리즈와 그리드 선 자신의 스트로크 색이 핸들 위치에서 단차를 이루는 것입니다.
 - 차트 갱신의 단위: 뷰 변경 → `setScale('x')`만. 오버레이 토글 → `show` 플래그.
-  트랙 / x축 모드 → 캐시를 교체해 `setData`. 테마 → 그리기 때마다 평가되는 색 함수(다시 그리기만).
+  트랙 / x축 모드 → 캐시를 교체해 `setData`. 구간 → 다시 그리기만(`chartKey`가 구간을 지음).
+  테마 → 그리기 때마다 평가되는 색 함수(다시 그리기만).
   리사이즈 → `setSize`(파괴 / 재생성 없음). 호버 프레임은 어노테이션 캔버스만 건드리고 uPlot에는
   다시 그리기를 요청하지 않습니다.
 - uPlot 다운로드 실패 시 `#profile-body` 안에 절제된 안내문(`t('profileChartError')`)과 콘솔
@@ -168,7 +179,7 @@ tap 판정, 차트 밖 tap 기록)를 소유.
   루프로 재시도하지 않고, 앱의 다른 부분에 영향을 주지 않습니다.
 - 어노테이션 패스는 차트 상태를 읽기만 하고 수정하지 않습니다. 출력은 `state`, `sectorStore`,
   현재 테마 토큰(`getComputedStyle`)으로 결정되며, 쓰기 대상은 어노테이션 캔버스와 render 소유
-  DOM(마스크, 핸들), 그리고 `showTooltipAt` 경유의 tooltip으로 한정됩니다. 프레임별로
+  DOM(핸들), 그리고 `showTooltipAt` 경유의 tooltip으로 한정됩니다. 프레임별로
   결정론적이지만 **순수 함수는 아닙니다**——그리기 때문입니다.
 
 ## 좌표 변환
@@ -198,7 +209,7 @@ tap 판정, 차트 밖 tap 기록)를 소유.
   `xvToPx` / `pyOf` 경유——차트 캔버스에서 픽셀 위치를 읽지 않습니다.
 - 색은 CSS 디자인 토큰(`--series-*`, `--hr-zone-*`)에서. 렌더 패스마다 스냅샷을 찍음.
 - 올바른 z 순서 슬롯에 삽입하고(차트 훅: 존 밴드는 아래 / 참조선은 위. 어노테이션 패스:
-  스트립 → 하이라이트 → 핀 → 십자선), 이 README의 레이어 목록도 갱신.
+  스트립 → 핀 → 십자선), 이 README의 레이어 목록도 갱신.
 
 ### 인터랙티브 컨트롤 추가
 
@@ -234,7 +245,7 @@ tap 판정, 차트 밖 tap 기록)를 소유.
 1. `profile-data.js`는 순수 함수 유지: 명시적 파라미터, DOM 없음, `state` import 없음. 함수에
    상태가 필요하면 다른 곳에 속합니다(또는 상태를 인자로 전달).
 2. `profile-render.js`는 `profile-interaction.js`를 import하지 않습니다. interaction는 그리지
-   않습니다. 렌더러가 만지는 것은 자신의 DOM 자산(canvas, 마스크, 핸들)뿐입니다. 다른 모듈의
+   않습니다. 렌더러가 만지는 것은 자신의 DOM 자산(canvas, 핸들)뿐입니다. 다른 모듈의
    DOM에 대한 유일한 호출은 `drawHover → showTooltipAt`(tooltip)입니다.
 3. 오버레이 패밀리 규칙: 속도 / 페이스 / GAP은 하나의 시리즈, 하나의 슬롯. `applyOverlayToggle`에서
    형제 변형은 슬롯이 가득해도 **대체**합니다(sibling 검사가 슬롯 상한 검사보다 먼저여야 함).
@@ -248,7 +259,9 @@ tap 판정, 차트 밖 tap 기록)를 소유.
 6. 전체 해상도 유지: 차트 렌더러는 완전한 원본 시리즈를 받습니다——"uPlot 어댑터"라는 이름의
    픽셀 열 단위 샘플러(캔버스 폭 기준 버킷팅, 열별 min / max / 평균)를 다시 도입하지 마세요.
    스위트는 `sampleElevation` / `sampleOverlay`가 `undefined`임을 고정하며, 픽셀 폭 의존의 새
-   데이터 경로는 최적화가 아니라 회귀입니다.
+   데이터 경로는 최적화가 아니라 회귀입니다. 구간 선택도 예외가 아닙니다——그것은 시리즈와 그리드 선의
+   STROKE(각각 캐시된 하나의 경로 위의 그라디언트)에 살며, 데이터 복사, 두 번 그리기,
+   덮개 마스크로 구현하지 않습니다.
 7. Canvas 캐시: 개발 중 브라우저가 오래된 모듈을 반환할 수 있습니다——프로젝트에 빌드 단계가 없고
    개발 서버는 명시적 캐시 디렉티브를 보내지 않아 브라우저가 휴리스틱 캐싱을 적용할 수 있습니다.
    변경이 반영되지 않았다고 의심되기 전에 CDP `Page.reload {ignoreCache: true}`로 강제 리로드.

@@ -7,15 +7,19 @@
  * COMPLETE raw data. The renderer receives the full-resolution series —
  * zooming, the sector view and the x-axis mode act on the chart's scale
  * range (or swap cached arrays), never on the data. The elevation series
- * renders in the accent color at its own constant stroke width; the sector
- * selection is expressed by the sector veils dimming the span outside the
- * handles, never by re-drawing or re-weighting the curve.
+ * renders in the accent color at its own constant stroke width. The sector
+ * selection is expressed in the curves THEMSELVES: every telemetry series
+ * strokes at full opacity inside the sector span and steps to
+ * --profile-series-dim outside it, and the grid lines share the same
+ * gradient (one gradient stroke of one path each — no second pass, no
+ * overlay mask), while the axes, ticks, labels, zone bands and labels keep
+ * their strength everywhere.
  *
  * WaySlice keeps the business layers it always owned, drawn on its own
  * annotation canvas (#profile-canvas — the same element the pointer
  * handlers listen on, layered above uPlot): the per-overlay axis strip,
  * waypoint pins, and the hover/probe crosshair. The DOM overlays (sector
- * handles, masks, tooltip) keep their existing architecture untouched.
+ * handles, tooltip) keep their existing architecture untouched.
  *
  * Chart lifecycle:
  *   No track         → no chart; uPlot is not even loaded (uplot-loader)
@@ -35,7 +39,7 @@
  * uPlot never re-ranges — so chart scales and the metrics list always read
  * the same raw numbers.
  */
-import { sectorStore } from '../../sector/sectorStore.js';
+import { sectorStore, isEntireTrack } from '../../sector/sectorStore.js';
 import { pointAtDistance } from '../../geo/interpolate.js';
 import { loadHeartRateSettings } from '../../metrics/heartRateSettings.js';
 import { getHeartRateDisplay } from '../../metrics/heartRateDisplay.js';
@@ -47,7 +51,7 @@ import {
 import { state } from './profile-state.js';
 import {
   OVERLAY_METRICS, SPEED_FAMILY, overlayExtremes, overlayYRange, eleYRange,
-  bandScaleRange, distToX, xToDist, xvToPx, formatOverlayValue,
+  bandScaleRange, distToX, xToDist, xvToPx, formatOverlayValue, sectorDimSteps,
 } from './profile-data.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
 import { niceStep, niceStepForUnit, niceTimeStep } from '../ticks.js';
@@ -92,7 +96,6 @@ const TEXT_TOKEN = {
 let ctx = null;
 let canvas = null;
 let handles = null;
-let masks = null;
 let chartHost = null;
 
 /** The uPlot instance once the first track render created it. */
@@ -115,14 +118,11 @@ let appliedKey = null;       // the last chartKey() handed to syncChart
 // Restrained failure state for the lazy uPlot load (uplot-loader).
 let errorEl = null;
 
-/** Binds the canvas-side DOM assets and creates the sector veils. */
+/** Binds the canvas-side DOM assets. */
 export function initRender() {
   ({ canvas, ctx } = state.dom);
   chartHost = state.dom.chart;
   handles = state.dom.handles;
-  masks = state.dom.masks;
-  masks.left = createMask();
-  masks.right = createMask();
 }
 
 /** Style stamp — bumped on theme/units/language changes so the next render
@@ -217,15 +217,17 @@ async function renderNow() {
 
 /** @private Everything that decides whether the chart (not the annotation
  *  canvas) needs re-syncing: scales (track/mode/family), series visibility,
- *  view window, style. The raw data arrays are re-checked by reference
- *  inside syncChart itself. */
+ *  view window, style, and the sector span (the curves dim outside it). The
+ *  raw data arrays are re-checked by reference inside syncChart itself. */
 function chartKey() {
   const sc = ensureScales();
+  const sector = sectorStore.get();
   return [
     sc.stamp,
     computeShows(sc).key,
     state.view ? `${state.view.start}|${state.view.end}` : 'full',
     styleStamp,
+    isEntireTrack(sector) ? 'full' : `${sector.start}|${sector.end}`,
   ].join('|');
 }
 
@@ -425,7 +427,11 @@ function createChart(uPlot) {
         scale: 'ele',
         side: 3, // left — the three data-anchored elevation rows
         stroke: () => tokens.text,
-        grid: { stroke: () => tokens.grid },
+        // The elevation grid rows dim outside the sector with the curves —
+        // one horizontal gradient stroke over the whole row set (uPlot draws
+        // an axis's grid as a single path), so each row fades exactly where
+        // the curves do and steps at the same handle positions.
+        grid: { stroke: (u) => selectionStroke(u, tokens.grid) },
         ticks: { show: false },
         font: monoFont(),
         gap: 8,
@@ -459,7 +465,9 @@ function createChart(uPlot) {
 
 /** @private Series configs in draw order (overlays beneath elevation).
  *  Stroke/fill are FUNCTIONS re-evaluated on every draw, so a theme change
- *  is just a redraw with the existing geometry. */
+ *  is just a redraw with the existing geometry — and every series flows
+ *  through the same selectionStroke rule, so any series added here dims
+ *  outside the sector automatically. */
 function buildSeriesConfigs() {
   const overlaySeries = (id, scaleKey, token) => ({
     label: id,
@@ -467,7 +475,7 @@ function buildSeriesConfigs() {
     show: false,
     width: 1.5,
     spanGaps: true,
-    stroke: () => tokens[token],
+    stroke: (u) => selectionStroke(u, tokens[token]),
     points: { show: () => false },
   });
   return [
@@ -483,17 +491,74 @@ function buildSeriesConfigs() {
       width: 1.5,
       spanGaps: true,
       // The elevation curve renders in the accent color at this constant
-      // stroke width in every state — the sector selection is expressed by
-      // the veils dimming the span outside the handles, never by re-coloring
-      // or re-weighting the curve.
-      stroke: () => tokens.accent,
+      // stroke width in every state; the selection dims it like every other
+      // series (outside the sector only — never re-colored or re-weighted).
+      stroke: (u) => selectionStroke(u, tokens.accent),
       // Line only — the area fill below the curve was dropped by design
-      // (user decision, 2026-10-03): the profile reads as a clean line,
-      // the sector highlight carries the accent.
+      // (user decision, 2026-10-03): the profile reads as a clean line.
       fill: null,
       points: { show: () => false },
     },
   ];
+}
+
+/** @private Hex/rgb token color → the same color at `alpha`. Unknown formats
+ *  pass through unchanged (the curve then simply keeps full strength) — the
+ *  theme tokens are plain hex in both themes, so this is a safety net. */
+function withAlpha(color, alpha) {
+  let m = /^#([0-9a-f]{6})$/i.exec(color);
+  if (m) {
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  }
+  m = /^rgba?\(([^)]+)\)$/i.exec(color);
+  if (m) {
+    const parts = m[1].split(/[,\s/]+/).filter(Boolean);
+    return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+  }
+  return color;
+}
+
+/** @private Sector boundary distance → stroke-space (device) px, through the
+ *  same distance→x→pixel conversion as the handles and the crosshair. */
+function sectorEdgePx(dist) {
+  return xvToPx(distToX(dist, state.track, state.xMode), state.view, state.xs, state.plot) * pxRatio;
+}
+
+/**
+ * Stroke style for one telemetry series (and the grid lines) under the
+ * current selection: the plain color while the sector covers the whole
+ * track (or nothing is loaded), the dimmed color when the sector misses the
+ * visible window, else a horizontal gradient holding the color inside the
+ * sector span and stepping to --profile-series-dim on either side of it.
+ * ONE stroke of the ONE path uPlot already builds — a curve stays
+ * continuous through the boundaries (a hard color step under the handle
+ * bar; no gap, seam, second pass or double-draw), the steps land between
+ * samples exactly where the handles stand, and a grid line takes the
+ * gradient's color at its own x so it dims only outside the sector. The
+ * axes, ticks, tick labels, zone bands and hover/legend layers never pass
+ * through here and keep their strength everywhere.
+ *
+ * uPlot re-evaluates every stroke on each draw, so selection moves, zoom,
+ * resize and theme flips re-derive the style from live state for free — no
+ * extra redraw plumbing beyond chartKey carrying the sector span.
+ */
+function selectionStroke(u, color) {
+  if (!state.track || isEntireTrack()) return color;
+  const { start, end } = sectorStore.get();
+  const plan = sectorDimSteps(sectorEdgePx(start), sectorEdgePx(end), u.ctx.canvas.width);
+  if (plan.mode === 'inside') return color;
+  const dimColor = withAlpha(color, tokens.dimAlpha);
+  if (plan.mode === 'outside') return dimColor;
+  const g = u.ctx.createLinearGradient(0, 0, u.ctx.canvas.width, 0);
+  for (const step of plan.steps) {
+    // Same-offset stop pairs make a hard step; insertion order picks which
+    // color the gradient pads OUTSIDE the pair with (dim on the left of a
+    // full step, full on the left of a dim step).
+    g.addColorStop(step.at, step.to === 'full' ? dimColor : color);
+    g.addColorStop(step.at, step.to === 'full' ? color : dimColor);
+  }
+  return g;
 }
 
 /** @private Re-applies data / visibility / scales / view to the chart. Runs
@@ -589,6 +654,7 @@ function chartPxRatio() {
 function refreshTokens() {
   const css = getComputedStyle(document.documentElement);
   const token = (name) => css.getPropertyValue(name).trim();
+  const dim = Number.parseFloat(token('--profile-series-dim'));
   tokens = {
     line: token('--profile-line'),
     accent: token('--accent'),
@@ -603,6 +669,9 @@ function refreshTokens() {
     power: token('--series-power'),
     waypoint: token('--map-waypoint'),
     handleBorder: token('--map-handle-border'),
+    // The curves' and grid lines' opacity OUTSIDE the selected sector
+    // (clamped; a missing or malformed token falls back to the CSS default).
+    dimAlpha: Number.isFinite(dim) ? Math.min(Math.max(dim, 0), 1) : 0.7,
     zone: [1, 2, 3, 4, 5].map((i) => token(`--hr-zone-${i}`)),
   };
   for (const [prop, key] of Object.entries(TEXT_TOKEN)) {
@@ -620,7 +689,7 @@ function monoFont() {
 // ---------------------------------------------------------------------------
 
 /** @private One annotation pass: axis strip → waypoint pins → hover/probe
- *  crosshair → DOM sector overlays (the old sync()'s draw order above the
+ *  crosshair → DOM sector handles (the old sync()'s draw order above the
  *  chart layers). All positions derive from the same state.plot/xvToPx
  *  mapping the interaction layer uses, or from uPlot's y scales. */
 function drawAnnotation() {
@@ -629,7 +698,6 @@ function drawAnnotation() {
   drawOverlayStrip();
   drawWaypointPins();
   drawHoverCrosshair();
-  placeMasks();
   positionHandles();
 }
 
@@ -1026,7 +1094,10 @@ function drawXGrid(u) {
   const { left, top, width, height } = u.bbox; // device px
   const hasRows = state.track?.hasElevation && !!scalesCache?.ele;
   const y0 = hasRows ? u.valToPos(state.track.eleMax, 'ele', true) : top; // device px, absolute
-  c.strokeStyle = tokens.grid;
+  // The same selection gradient the series and the elevation rows stroke
+  // with: a vertical line takes the gradient's color at its own x, so a
+  // tick outside the sector dims with everything else under it.
+  c.strokeStyle = selectionStroke(u, tokens.grid);
   // Same width the native grid draws (uPlot's default 2, scaled the same
   // way) — the hand-drawn verticals must be indistinguishable from the
   // horizontal rows uPlot still draws itself.
@@ -1123,38 +1194,6 @@ export function resizeCanvas() {
       h: Math.max(10, rect.height - MARGIN.top - MARGIN.bottom),
     };
   }
-}
-
-/** @private One transparent veil over the area outside the sector handles
- *  (see .profile-mask in profile.css). */
-function createMask() {
-  const m = document.createElement('div');
-  m.className = 'profile-mask';
-  m.hidden = true;
-  state.dom.root.appendChild(m);
-  return m;
-}
-
-/** @private Positions the DOM masks around the sector x span (plot-clipped). */
-function placeMasks() {
-  if (!state.track) return;
-  const { x0, w } = state.plot;
-  const xOf = (v) => xvToPx(v, state.view, state.xs, state.plot);
-  const { start, end } = sectorStore.get();
-  const sPx = Math.min(Math.max(xOf(distToX(start, state.track, state.xMode)), x0), x0 + w);
-  const ePx = Math.min(Math.max(xOf(distToX(end, state.track, state.xMode)), x0), x0 + w);
-  const place = (mask, left, right) => {
-    const width = right - left;
-    if (width <= 1) {
-      mask.hidden = true;
-      return;
-    }
-    mask.hidden = false;
-    mask.style.left = `${left}px`;
-    mask.style.width = `${width}px`;
-  };
-  place(masks.left, x0, sPx);
-  place(masks.right, ePx, x0 + w);
 }
 
 /** @private Positions the DOM handles + their ARIA values. */

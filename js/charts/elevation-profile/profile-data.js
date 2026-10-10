@@ -288,8 +288,8 @@ export function clientXtoX(clientX, rect, plot, view, xs) {
  * The draw-side inverse of `clientXtoX`: raw x in the CURRENT axis domain →
  * canvas-space pixel, mapped through the visible zoom window. Single source
  * of truth for every x→pixel conversion — series drawing, hover crosshair,
- * sector masks and handles, waypoint lines and the probe's cursor line must
- * all agree with the rendered positions.
+ * sector handles and the selection dimming steps, waypoint lines and the
+ * probe's cursor line must all agree with the rendered positions.
  * @param {number} xv  raw x value
  * @param {{start:number, end:number}|null} view  visible window, null = full track
  * @param {Float64Array|null} xs  per-point x cache (window bound when fitted)
@@ -300,6 +300,34 @@ export function xvToPx(xv, view, xs, plot) {
   const v0 = view ? view.start : 0;
   const v1 = view ? view.end : (xs && xs.length ? xs[xs.length - 1] : 0);
   return plot.x0 + ((xv - v0) / Math.max(v1 - v0, 1e-9)) * plot.w;
+}
+
+/**
+ * Where the telemetry curves' dim→full→dim color steps fall when a PARTIAL
+ * sector is selected: the curves keep full opacity inside the sector span
+ * and step down to --profile-series-dim outside it. Pure pixel math over
+ * the caller's stroke extent — boundaries may sit between two samples or
+ * outside a zoomed window, and the steps follow the handles exactly because
+ * the caller maps distances through the same xvToPx conversion as every
+ * drawn overlay.
+ * @param {number} sPx  sector start in stroke-space px (unclamped)
+ * @param {number} ePx  sector end in stroke-space px (unclamped)
+ * @param {number} span stroke extent in the same space (canvas width)
+ * @returns {{mode:'inside'}|{mode:'outside'}|
+ *           {mode:'steps',steps:{at:number,to:'full'|'dim'}[]}}
+ *   inside  — the sector covers the whole extent: stroke the plain color
+ *   outside — the sector misses it entirely: stroke the dimmed color
+ *   steps   — hard color-step offsets over [0, 1] of the extent, ascending;
+ *     `to` names the color RIGHT of the step (gradients pad the left side
+ *     with the first stop's color, so one-step plans stay correct too)
+ */
+export function sectorDimSteps(sPx, ePx, span) {
+  if (!(span > 0) || !(ePx > sPx) || sPx >= span || ePx <= 0) return { mode: 'outside' };
+  if (sPx <= 0 && ePx >= span) return { mode: 'inside' };
+  const steps = [];
+  if (sPx > 0) steps.push({ at: sPx / span, to: 'full' });
+  if (ePx < span) steps.push({ at: ePx / span, to: 'dim' });
+  return { mode: 'steps', steps };
 }
 
 /** Sector share of the fit-to-sector window width — the handles land at
