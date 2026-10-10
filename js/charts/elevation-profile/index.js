@@ -40,7 +40,7 @@ import { state, isWideLayout } from './profile-state.js';
 import { buildCaches, distToX, overlayAvailability } from './profile-data.js';
 import {
   initRender, resizeCanvas, sync, scheduleSync, refreshHandleLabels,
-  invalidateChartStyle,
+  invalidateChartStyle, invalidateZoneBands,
 } from './profile-render.js';
 import {
   wireControls, wirePointer, wireHandles, refreshControls,
@@ -154,11 +154,19 @@ export function initProfile(rootEl) {
     scheduleSync();
   });
   // Zone edits (mode / boundaries / base heart rates) change the bands
-  // behind the HR curve.
-  on('hrzones:changed', () => scheduleSync());
+  // behind the HR curve. Both events need the chart-stamp bump on top of the
+  // sync: the bands draw inside uPlot's draw cycle, and these events alone
+  // would only repaint the annotation canvas.
+  on('hrzones:changed', () => {
+    invalidateZoneBands();
+    scheduleSync();
+  });
   // So do the drawer's display toggles (bands visibility, hover highlight):
   // js/metrics/heartRateDisplay.js emits 'hrzones:display' on every change.
-  on('hrzones:display', () => scheduleSync());
+  on('hrzones:display', () => {
+    invalidateZoneBands();
+    scheduleSync();
+  });
 
   if ('ResizeObserver' in window) {
     const resize = () => {

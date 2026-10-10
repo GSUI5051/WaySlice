@@ -186,12 +186,18 @@ Rules baked into this pass:
   tooltip's zone label, so highlight and label always agree; nothing inspected, no
   highlight — and no highlight without the drawer's
   highlight toggle either (`js/metrics/heartRateDisplay.js`): it needs the band toggle on,
-  and its stored choice survives while the bands are hidden.
+  and its stored choice survives while the bands are hidden. The bands draw inside uPlot's
+  draw cycle, which a hover move alone does not reach — the renderer re-classifies the
+  inspected zone on every render pass and bumps `zoneStamp` (in `chartKey`) when it
+  changes, so crossing a band boundary costs exactly one chart redraw; the
+  `hrzones:display` / `hrzones:changed` events bump the stamp outright (toggles and zone
+  edits must repaint the bands too).
 - Draw order matters: zone bands → overlay lines → elevation line → hover. The selection
   dimming is not a layer: it is each series' own stroke color stepping at the handles.
 - Chart update granularity: view change → `setScale('x')` only; overlay toggle → `show`
   flags; track/x-mode → `setData` with the swapped caches; sector → a plain redraw
-  (`chartKey` carries the span); theme → per-draw color functions (a plain redraw);
+  (`chartKey` carries the span); zone toggle/edit or a hovered zone-band change → a plain
+  redraw (`zoneStamp`); theme → per-draw color functions (a plain redraw);
   resize → `setSize` (never destroy/recreate). Hover frames touch only the annotation
   canvas — uPlot is not asked to redraw.
 - A failed uPlot download surfaces a muted note inside `#profile-body`

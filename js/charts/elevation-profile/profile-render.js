@@ -139,6 +139,34 @@ export function invalidateChartStyle() {
   axesRecalcPending = true;
 }
 
+/** Zone-band redraw stamp — bumped when the DEEPENED (hovered) band changes
+ *  or the zone display toggles/edits. The bands draw inside uPlot's draw
+ *  cycle, and a hover move alone only repaints the annotation canvas, so
+ *  without this the active band would never re-render (the highlight died
+ *  in the uPlot refactor, where the bands left the per-frame pass). */
+let zoneStamp = 0;
+let activeZone = null;
+export function invalidateZoneBands() {
+  zoneStamp++;
+}
+
+/** @private Recomputes the currently highlighted zone (the same reading path
+ *  and gates drawZoneBands uses) and bumps the stamp when it changed — so a
+ *  hover crossing a zone boundary costs exactly one chart redraw, not one
+ *  per pointer move. */
+function refreshZoneHighlight() {
+  let zone = null;
+  const display = getHeartRateDisplay();
+  if (display.showZones && display.highlight && state.track) {
+    const bounds = computeZoneBounds(loadHeartRateSettings());
+    if (bounds) zone = hrHoverZone(bounds, state.probe ? state.probe.dist : state.hoverDist);
+  }
+  if (zone !== activeZone) {
+    activeZone = zone;
+    zoneStamp++;
+  }
+}
+
 /** rAF-batched redraw. */
 let syncPending = false;
 export function scheduleSync() {
@@ -202,6 +230,9 @@ async function renderNow() {
       return;
     }
   }
+  // The deepened hovered band lives in uPlot's draw cycle — detect a zone
+  // change here so crossing a band boundary costs one chart redraw.
+  refreshZoneHighlight();
   const key = chartKey();
   if (key !== appliedKey) {
     try {
@@ -217,8 +248,9 @@ async function renderNow() {
 
 /** @private Everything that decides whether the chart (not the annotation
  *  canvas) needs re-syncing: scales (track/mode/family), series visibility,
- *  view window, style, and the sector span (the curves dim outside it). The
- *  raw data arrays are re-checked by reference inside syncChart itself. */
+ *  view window, style, the sector span (the curves dim outside it), and the
+ *  zone-band highlight stamp. The raw data arrays are re-checked by
+ *  reference inside syncChart itself. */
 function chartKey() {
   const sc = ensureScales();
   const sector = sectorStore.get();
@@ -228,6 +260,7 @@ function chartKey() {
     state.view ? `${state.view.start}|${state.view.end}` : 'full',
     styleStamp,
     isEntireTrack(sector) ? 'full' : `${sector.start}|${sector.end}`,
+    zoneStamp,
   ].join('|');
 }
 
