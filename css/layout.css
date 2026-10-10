@@ -185,7 +185,7 @@
    lockup cannot live in a 34 px square, so the bare-mark state takes the square
    and the lockup state sizes to its logo. Both marks render ~13.5 px tall,
    which is the ink height of the header's other 16 px icons. */
-#btn-github { padding-inline: 10px; }
+#btn-github { padding-inline: 10px; text-decoration: none; }
 
 #btn-github.is-loaded { width: 34px; padding: 0; justify-content: center; }
 
@@ -322,6 +322,12 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
 /* The GitHub row reads as the bare mark + the word "GitHub" — the lockup
    would double the label. */
 #header-panels .header-more-panel #btn-github .gh-label { display: inline; }
+
+/* The mark wears the Lucide icon box: 16px wide, matching .btn-icon-slot
+   .icon, so the label's left edge lands where every other row's text starts
+   and the glyph rides the midline the other rows' icons share. The 13.5px
+   ink is untouched — the SVG letterboxes it centered inside the wider box. */
+#header-panels .header-more-panel #btn-github .gh-mark { width: 16px; }
 
 html[data-theme="light"] #header-panels .header-more-panel #btn-github .gh-lockup,
 html[data-theme="dark"] #header-panels .header-more-panel #btn-github .gh-lockup { display: none; }
