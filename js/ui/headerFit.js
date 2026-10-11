@@ -43,7 +43,10 @@
  * menu idiom), and close on an outside pointerdown, Escape, or any level
  * change. Like the profile panel they stay open while their rows act: the
  * sheet is a disclosure (aria-expanded + aria-controls), and the Export
- * row's format menu anchors to the very button this panel is hosting.
+ * row's format menu anchors to the very button this panel is hosting. On
+ * narrow widths that menu is a second, shorter bottom sheet, so while it is
+ * up the hosting sheet steps aside (setHeaderPanelSuppressed) and returns
+ * when it closes.
  *
  * Runs on header resizes (the ResizeObserver), on language changes and on
  * track loads — a track reveals Export / Auto slice and squares the two
@@ -183,6 +186,23 @@ function closePanel() {
   openName = null;
   backdrop?.remove();
   backdrop = null;
+}
+
+/**
+ * While a panel row's own submenu is open (the Export row's format menu),
+ * the hosting sheet steps aside: on narrow widths both render as bottom
+ * sheets, the sheet is the taller one, and it would poke out from under the
+ * shorter menu. The sheet stays OPEN — this only toggles its visibility, the
+ * trigger's aria-expanded and the shared backdrop are untouched — so it
+ * returns when the submenu closes. A panel that closes for real while the
+ * submenu is up (outside press, Escape, a level change — all routed through
+ * closePanel) is not resurrected: with no open panel this is a no-op in
+ * both directions. Wide widths anchor the submenu over the sheet and never
+ * call this.
+ */
+export function setHeaderPanelSuppressed(suppress) {
+  if (!openName) return;
+  panels[openName].hidden = !!suppress;
 }
 
 /**

@@ -13,8 +13,9 @@ import { isWideLayout } from '../utils/layout.js';
 
 /** Narrow = the outer page is in its single-column layout (below the 1100 px
  *  wide-layout breakpoint, matching layout.css): menus render as bottom-sheet
- *  lists there, and as anchored dropdowns on the wide layout. */
-const isNarrow = () => !isWideLayout();
+ *  lists there, and as anchored dropdowns on the wide layout. Callers that
+ *  host menus inside their own bottom sheets branch on it too. */
+export const isNarrowLayout = () => !isWideLayout();
 
 /** @private Shared trigger wiring for both menu factories: click toggles,
  *  ArrowDown / Enter / Space open from the closed state. */
@@ -70,7 +71,7 @@ function showBackdrop(onClick) {
  *  tabs at all. Narrow screens skip this (CSS turns the panel into a full
  *  bottom sheet). */
 function placePanel(panel, button) {
-  if (isNarrow()) return;
+  if (isNarrowLayout()) return;
   const rect = button.getBoundingClientRect();
   panel.style.visibility = 'hidden';
   panel.style.left = '0';
@@ -104,15 +105,21 @@ function focusAdjacent(options, key) {
  *   buildItems: () => MenuItem[],
  *   onPick: (value: string) => void,
  *   panelClass?: string,
+ *   onOpenChanged?: (open: boolean) => void,
  * }} cfg
  * @returns {{close: () => void}}
  *
  * `panelClass` appends a class to the popover panel for menu-specific styling
  * (e.g. the export menu centers its rows).
  *
+ * `onOpenChanged` reports every open → true (after the panel is in the DOM
+ * and focused) and every close → false (after the panel is gone). Callers
+ * whose menu can open from inside their own bottom sheet use it to step that
+ * sheet aside while the menu is up.
+ *
  * @typedef {{kind:'label', label:string}|{kind:'option', value:string, label:string, icon?:string, hint?:string, checked?:boolean, disabled?:boolean}} MenuItem
  */
-export function createMenu({ button, buildItems, onPick, panelClass }) {
+export function createMenu({ button, buildItems, onPick, panelClass, onOpenChanged }) {
   let panel = null;
   let backdrop = null;
 
@@ -199,12 +206,13 @@ export function createMenu({ button, buildItems, onPick, panelClass }) {
     placePanel(panel, button);
     document.body.appendChild(panel);
 
-    if (isNarrow()) backdrop = showBackdrop(close);
+    if (isNarrowLayout()) backdrop = showBackdrop(close);
 
     shell.beginOpen();
 
     const focusTarget = selectedOption || firstOption;
     if (focusTarget) focusTarget.focus();
+    onOpenChanged?.(true);
   }
 
   function close() {
@@ -213,6 +221,7 @@ export function createMenu({ button, buildItems, onPick, panelClass }) {
     panel = null;
     backdrop?.remove();
     backdrop = null;
+    onOpenChanged?.(false);
   }
 
   return { close };
@@ -436,7 +445,7 @@ export function createMultiSelectMenu({ button, buildItems, onToggle, positionOv
     if (!positionOverride?.(panel)) placePanel(panel, button);
     document.body.appendChild(panel);
 
-    if (isNarrow()) backdrop = showBackdrop(close);
+    if (isNarrowLayout()) backdrop = showBackdrop(close);
 
     shell.beginOpen();
 

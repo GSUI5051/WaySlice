@@ -28,7 +28,8 @@ import { sectorStore, isEntireTrack } from '../sector/sectorStore.js';
 import { computeSectorMetrics } from '../metrics/sectorMetrics.js';
 import { computeHeartRateZoneStats, zoneSharePct } from '../metrics/heartRateStats.js';
 import { zoneDisplayRange } from '../metrics/heartRateZones.js';
-import { createMenu } from '../ui/menus.js';
+import { createMenu, isNarrowLayout } from '../ui/menus.js';
+import { setHeaderPanelSuppressed } from '../ui/headerFit.js';
 import { t } from '../language/language.js';
 import { getUnitSystem, metersToMiles } from '../units/units.js';
 import {
@@ -361,6 +362,11 @@ export function initExport(button) {
       { kind: 'option', value: 'gpx', label: t('exportGpx') },
     ],
     onPick: (format) => exportAs(format),
+    // When the button lives in a compressed header's bottom sheet, narrow
+    // widths render the format menu as a second, shorter sheet on top of it —
+    // the host must step aside while the menu is up or its extra rows poke
+    // out. Wide widths anchor the menu over the sheet; nothing to hide there.
+    onOpenChanged: (open) => setHeaderPanelSuppressed(open && isNarrowLayout()),
   });
 }
 
