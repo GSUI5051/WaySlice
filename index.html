@@ -149,7 +149,8 @@
       <div class="header-actions">
         <!-- GitHub link. One of these four logo files shows at a time — the
              lockup while the header is bare, the bare mark once a track is
-             loaded, black on the light theme and white on the dark one (the
+             loaded or once the measured icons level drops the labels,
+             black on the light theme and white on the dark one (the
              rules live in layout.css under #btn-github). -->
         <a id="btn-github" class="btn" href="https://github.com/GSUI5051/WaySlice"
            target="_blank" rel="noopener noreferrer" aria-label="GitHub">
@@ -164,15 +165,15 @@
         </a>
         <!-- Support (Ko-fi) link. Same data-state forms as the GitHub link:
              heart + label while the header is bare, 34 px icon-only square
-             once a track is loaded, icon-only on phones (rules in
-             layout.css under #btn-support). -->
+             once a track is loaded or the measured icons level drops the
+             labels (rules in layout.css under #btn-support). -->
         <a id="btn-support" class="btn" href="https://ko-fi.com/gsui5051"
            target="_blank" rel="noopener noreferrer"
            data-i18n-aria="support">
           <span class="btn-icon-slot" data-icon="heart"></span>
           <span data-i18n="support">Support</span>
         </a>
-        <!-- Compression level 1 (js/ui/headerFit.js): GitHub + Support fold
+        <!-- is-compact fold (js/ui/headerFit.js): GitHub + Support fold
              into this ellipsis trigger; its panel (in #header-panels, at the
              body level so it can out-stack the shared backdrop) hosts the
              REAL links as bottom-sheet rows — same nodes, listeners and
@@ -194,7 +195,7 @@
           <span class="btn-icon-slot" data-icon="scissors-line-dashed"></span>
           <span data-i18n="autoSegments">Auto split</span>
         </button>
-        <!-- Compression level 2: Export / Auto slice / Import track fold into
+        <!-- is-overflow fold: Export / Auto slice / Import track fold into
              this second trigger, wearing the primary chrome of the group it
              folds. -->
         <div id="more-actions" class="header-more" hidden>
@@ -214,7 +215,7 @@
           <span class="btn-icon-slot" data-icon="settings"></span>
           <span class="visually-hidden" data-i18n="settings">Settings</span>
         </button>
-        <!-- Compression level 3: everything, Settings included, folds into
+        <!-- is-minimum fold: everything, Settings included, folds into
              this single trigger. -->
         <div id="more-all" class="header-more" hidden>
           <button type="button" id="btn-more-all" class="btn btn-icon btn-primary"

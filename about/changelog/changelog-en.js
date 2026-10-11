@@ -16,6 +16,14 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-11',
+      ps: [
+        'The top bar now compresses in two more steps before it starts folding buttons into menus: the brand name yields to the logo mark alone first, then Export, Auto split and Import track turn icon-only while the GitHub and Support links shrink to 34 px icon squares, whether or not a track is loaded.',
+        'Where the name hides and where the labels drop are measured from the header\'s actual width, like every other step, so both move with the language: German, whose labels run much longer than the English ones, keeps its labels until the row truly runs out of room. A fixed 720 px width and a touch-phone check used to decide both. Labels came off while the row still had room for them, and a landscape phone lost its labels no matter how much room it had.',
+        'The header\'s spacing no longer changes with the window width. Below 720 px the top bar used to tighten its padding and gaps, which nudged the brand icon, the file chip and the route warning square a few pixels sideways each time the window crossed the boundary. Now the compression steps alone change what the row shows, and they fold or show whole buttons instead of squeezing anything.',
+      ],
+    },
+    {
       h: '2026-10-10',
       ps: [
         'The overlays popup now opens as a dropdown right under the Overlays button, right-aligned with it. It used to pin itself to the toolbar row at the window\'s right edge, hanging over the metrics panel away from its own trigger.',

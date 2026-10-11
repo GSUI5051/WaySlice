@@ -1,11 +1,16 @@
 /**
  * Header compression — the top bar's measured level controller, the
  * counterpart of the profile toolbar's refreshControlsFit
- * (charts/elevation-profile/profile-interaction.js). Four cumulative
- * folds on #app-header:
+ * (charts/elevation-profile/profile-interaction.js). Six cumulative folds
+ * on #app-header:
  *
- *   full → is-compact → is-overflow → is-minimum → is-emergency
+ *   full → is-brandless → is-icons → is-compact → is-overflow → is-minimum
+ *        → is-emergency
  *
+ *   brandless the wordmark yields; the logo alone identifies the app;
+ *   icons     Export / Auto slice / Import track drop their labels and the
+ *             GitHub + Support links square down to their marks, in both
+ *             data states;
  *   compact   the GitHub + Support links fold into one ellipsis trigger
  *             wearing the plain button chrome the links share;
  *   overflow  Export / Auto slice / Import track additionally fold into a
@@ -16,10 +21,14 @@
  *             lives on inside the chip's compact popover (ui/fileChip.js),
  *             the last visible furniture past the single trigger.
  *
- * Like the profile controller it MEASURES: walk the levels, apply each one
- * (the classes plus the row/panel split), re-decide the file chip's mode
- * for the level's action-row width, and keep the first level whose row fits
- * the header's content box. The probe is the actions row's right edge
+ * None of the six points is keyed to a width or a pointer type — including
+ * where the name hides and where the labels drop, the two folds a fixed
+ * media query used to pin to phones and got wrong for long languages
+ * (German labels need far more room than English ones). Like the profile
+ * controller it MEASURES: walk the levels, apply each one (the classes
+ * plus the row/panel split), re-decide the file chip's mode for the
+ * level's action-row width, and keep the first level whose row fits the
+ * header's content box. The probe is the actions row's right edge
  * against the header's padding edge — an engine-independent overflow test
  * that stays honest because nothing in the row may shrink (the flex: none
  * contract in layout.css) and the chip, the one shrinkable item, re-decides
@@ -45,7 +54,7 @@ import { on } from '../core/events.js';
 import { remeasureFileChip } from './fileChip.js';
 
 /** Cumulative level classes; index = level. @private */
-const LEVEL_CLASSES = [null, 'is-compact', 'is-overflow', 'is-minimum', 'is-emergency'];
+const LEVEL_CLASSES = [null, 'is-brandless', 'is-icons', 'is-compact', 'is-overflow', 'is-minimum', 'is-emergency'];
 
 /** The header's movable controls, in canonical row DOM order, with the wrap
  *  each one is inserted before when it returns to the row. @private */
@@ -70,10 +79,10 @@ const PANEL_ORDER = {
 
 /** @private Where a control renders at a level: the row, or a panel name. */
 function hostOf(key, level) {
-  if (level >= 3) return 'all';
-  if (key === 'github' || key === 'support') return level >= 1 ? 'links' : 'row';
+  if (level >= 5) return 'all';
+  if (key === 'github' || key === 'support') return level >= 3 ? 'links' : 'row';
   if (key === 'settings') return 'row';
-  return level >= 2 ? 'actions' : 'row';
+  return level >= 4 ? 'actions' : 'row';
 }
 
 /** @private Module-singleton DOM, bound by initHeaderFit. */
@@ -113,12 +122,13 @@ function applyLevel(level) {
       if (hit) panels[name].appendChild(hit[1]);
     }
   }
-  // The links trigger serves its own fold AND hosts level 2's pair; the
-  // single all-trigger replaces both from the minimum level on (emergency
-  // keeps it — it is the last control the header has).
-  wraps.links.hidden = level < 1 || level >= 3;
-  wraps.actions.hidden = level !== 2;
-  wraps.all.hidden = level < 3;
+  // The links trigger serves its own fold AND keeps hosting the pair
+  // through the overflow level; the single all-trigger replaces both from
+  // the minimum level on (emergency keeps it — it is the last control the
+  // header has).
+  wraps.links.hidden = level < 3 || level >= 5;
+  wraps.actions.hidden = level !== 4;
+  wraps.all.hidden = level < 5;
 }
 
 /** @private True while the actions row sits inside the header's content box.
