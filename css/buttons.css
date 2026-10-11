@@ -19,13 +19,14 @@
 .btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
 .btn:active:not(:disabled) { background: var(--surface-muted); }
 
-/* Coarse-pointer hit-area extension: a transparent ::after pads these 34px
+/* Coarse-pointer hit-area extension: a transparent ::after pads these 32px
    buttons' touch targets to ≥44px (WCAG 2.5.8 only asks 24px; 44px is the
    touch convention) with the visual size unchanged. inset is relative to the
-   padding box and the 1px border eats 1px per side, hence the 6px. The
-   profile head's buttons are the 30px-tall group-wrapped set, so its rows
-   compensate vertically with 8px (28px padding box + 2×8 = 44px), while 5px
-   horizontally only needs to span the row's gaps. Hit-testing favors the
+   padding box and the 1px border eats 1px per side, hence the 7px (30px
+   padding box + 2×7 = 44px). The profile head's buttons are the 30px-tall
+   group-wrapped set, so its rows compensate vertically with 8px (28px
+   padding box + 2×8 = 44px), while 5px horizontally only needs to span the
+   row's gaps. Hit-testing favors the
    topmost painter — a later sibling's own box beats an earlier sibling's
    extension — so extensions only cover the seams between buttons and
    adjacent clear space, never swapping which button a tap lands on. The
@@ -37,7 +38,8 @@
   #map-fit .btn,
   #map-tools .btn,
   .profile-head .btn { position: relative; }
-  #app-header .btn::after,
+  /* The header row is the 32px family, the map stacks the 34px squares. */
+  #app-header .btn::after { content: ""; position: absolute; inset: -7px; }
   #map-fit .btn::after,
   #map-tools .btn::after { content: ""; position: absolute; inset: -6px; }
   .profile-head .btn::after { content: ""; position: absolute; inset: -8px -5px; }
@@ -54,6 +56,17 @@
 .btn-icon { width: 34px; padding: 0; justify-content: center; }
 .btn-small { height: 28px; padding: 0 10px; font-size: 12px; }
 .btn-large { height: 40px; padding: 0 18px; font-size: 14px; }
+
+/* The header row unifies every control — these buttons, the .btn-icon
+   triggers, the links' mark squares and the left side's chip / route-note
+   squares and logo tile (layout.css) — at one 32px outer height. 32 is a
+   multiple of 4, so the painted height is an integer number of device
+   pixels at the 100 / 125 / 150 / 200% display scales (32/40/48/64 px);
+   any other height sheds half a pixel of edge ink at 125% (a 30px box
+   paints 37.5 physical px, a 34px box 42.5). Scoped to the header: the map
+   tools keep their 34px squares and the profile head its own set. */
+#app-header .btn { height: 32px; }
+#app-header .btn-icon { width: 32px; }
 
 .btn-ghost { border-color: transparent; background: transparent; }
 .btn-ghost:hover:not(:disabled) { background: var(--surface-hover); border-color: transparent; }

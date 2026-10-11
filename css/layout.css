@@ -30,19 +30,32 @@
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 18px;
   letter-spacing: -0.01em;
   white-space: nowrap;
   /* Nothing in the header's measured line may shrink: the compression
      controller (js/ui/headerFit.js) reads overflow from real geometry, so
      width pressure must overflow, not squash content. */
   flex: none;
+  /* Explicit outer height, one family with the whole 32px header row
+     (css/buttons.css) — pinned, not inherited from the logo tile's box, so
+     the brand block measures 32px at every display scale like everything
+     else in the line. */
+  height: 32px;
 }
 
-.brand-name { font-size: inherit; font-weight: inherit; }
+/* The name's line box is pinned to the family's 32px height (half-leading
+   centers the text exactly where flex centering put it) — an explicit box
+   instead of a content-driven one. */
+.brand-name { font-size: inherit; font-weight: inherit; line-height: 32px; }
 
 .brand-icon { display: inline-flex; }
-.brand-icon img { width: 22px; height: 22px; display: block; }
+/* One family with the whole header row: the logo tile, the chip's compact
+   info square, the route-source notice and every .btn share the 32px outer
+   height (css/buttons.css). 32 is a multiple of 4 — the painted height is
+   an integer number of device pixels at the 100/125/150/200% display
+   scales, so no control sheds half a pixel of edge ink at 125%. */
+.brand-icon img { width: 32px; height: 32px; display: block; }
 
 .file-chip {
   display: inline-flex;
@@ -51,6 +64,14 @@
   min-width: 0;
   flex: 0 1 auto;
   overflow: hidden;
+  /* Explicit outer height, one family with the whole 32px header row
+     (css/buttons.css) — full mode included. Chromium snaps 1px borders to
+     whole device pixels on fractional display scales, and a
+     content+padding+border sum would shed that snap into the outer box; a
+     pinned border-box stays 32px at every scale, the snap landing
+     invisibly in the text's content box. Width stays shrinkable in full
+     mode: that shrink is what the measured full-vs-info flip reads. */
+  height: 32px;
   padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-s);
@@ -89,13 +110,15 @@
 .file-chip .file-chip-info:hover { color: var(--foreground); }
 
 .file-chip.is-compact {
-  padding: 4px;
+  /* Explicit outer square, one family with .route-note and the .btn row
+     (css/buttons.css); the 32px height comes from the base .file-chip
+     rule. Once degraded to the lone (i) button it may not be squeezed by
+     the flexbox — width pressure overflows into the compression levels
+     instead. Full mode stays shrinkable: that shrink is what the measured
+     full-vs-info flip reads. */
+  width: 32px;
+  padding: 5px;
   overflow: visible;
-  /* The compact chip is a rigid square, one family with the route-source
-     notice (.route-note): once degraded to the lone (i) button it may not
-     be squeezed by the flexbox — width pressure overflows into the
-     compression levels instead. Full mode stays shrinkable: that shrink is
-     what the measured full-vs-info flip reads. */
   flex: none;
 }
 .file-chip.is-compact #file-name,
@@ -139,7 +162,12 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  padding: 4px;
+  /* Explicit outer square, same reason as the compact chip above: a pinned
+     border-box stays 32px under Chromium's device-pixel border snapping
+     where the padding+content+border sum would read 31.6px at 125%. */
+  width: 32px;
+  height: 32px;
+  padding: 5px;
   border: 1px solid var(--border);
   border-radius: var(--radius-s);
   background: var(--surface-muted);
@@ -155,12 +183,13 @@
 
 .route-note:hover { color: var(--series-hr-text); }
 
-/* Coarse-pointer hit-area extension: the same 12px transparent margin the
-   chip's info button gains, visually unchanged; the marker sits in clear
-   header space, so the extension covers no neighboring control. */
+/* Coarse-pointer hit-area extension: the 32px square's 30px padding box
+   gains 7px of transparent margin per side to 44px, visually unchanged;
+   the marker sits in clear header space, so the extension covers no
+   neighboring control. */
 @media (hover: none) and (pointer: coarse) {
   .route-note { position: relative; }
-  .route-note::after { content: ""; position: absolute; inset: -12px; }
+  .route-note::after { content: ""; position: absolute; inset: -7px; }
 }
 
 .header-actions {
@@ -177,27 +206,27 @@
 }
 
 /* One height for every header action: the primary buttons define it (`.btn`'s
-   34px) and the icon-only settings trigger follows it. Stated here so a control
+   32px) and the icon-only settings trigger follows it. Stated here so a control
    added to this row later cannot drift off it — this outranks `.btn-small`. */
-.header-actions > .btn { height: 34px; flex: none; }
+.header-actions > .btn { height: 32px; flex: none; }
 
 /* The GitHub link wears the settings trigger's box but not its width — a 4.4:1
-   lockup cannot live in a 34 px square, so the bare-mark state takes the square
+   lockup cannot live in a 32 px square, so the bare-mark state takes the square
    and the lockup state sizes to its logo. Both marks render ~13.5 px tall,
    which is the ink height of the header's other 16 px icons. */
 #btn-github { padding-inline: 10px; text-decoration: none; }
 
-#btn-github.is-loaded { width: 34px; padding: 0; justify-content: center; }
+#btn-github.is-loaded { width: 32px; padding: 0; justify-content: center; }
 
 #btn-github .gh-logo { display: none; height: 13.5px; width: auto; }
 
 /* Support (Ko-fi) link — heart + label in the Ko-fi pink, wearing the same
-   forms as the GitHub link: full heart+label while the header is bare, a 34 px
+   forms as the GitHub link: full heart+label while the header is bare, a 32 px
    icon-only square once a track is loaded or once the measured icons level
    drops the labels (see the is-icons rules above). */
 #btn-support { color: var(--support-pink); padding-inline: 10px; text-decoration: none; }
 
-#btn-support.is-loaded { width: 34px; padding: 0; justify-content: center; }
+#btn-support.is-loaded { width: 32px; padding: 0; justify-content: center; }
 
 #btn-support.is-loaded span:not(.btn-icon-slot) { display: none; }
 
@@ -264,7 +293,7 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
    data states. Every selector carries the #app-header … .header-actions
    run on purpose: these rules hold two ids each, so without the inline
    restriction they would leak into the compression panels (body-level,
-   outside #app-header) and squash their GitHub / Support rows into 34 px
+   outside #app-header) and squash their GitHub / Support rows into 32 px
    squares. A button that enters a panel sits outside the selector and
    naturally returns to its full-width text row. */
 #app-header.is-icons .header-actions .btn-primary span:not(.btn-icon-slot),
@@ -272,7 +301,7 @@ html[data-theme="dark"] #btn-github.is-loaded .gh-mark.gh-dark { display: block;
 #app-header.is-icons .header-actions .btn-primary { padding-inline: 10px; }
 #app-header.is-icons .header-actions #btn-github,
 #app-header.is-icons .header-actions #btn-support {
-  width: 34px; padding: 0; justify-content: center;
+  width: 32px; padding: 0; justify-content: center;
 }
 
 html[data-theme="light"] #app-header.is-icons #btn-github .gh-lockup.gh-light,

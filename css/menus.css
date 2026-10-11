@@ -114,11 +114,15 @@
 }
 
 /* Single-column page (below the wide-layout breakpoint, layout.css): menus
-   render as bottom-sheet lists. The wide layout gets the anchored dropdown. */
+   render as bottom-sheet lists. The wide layout gets the anchored dropdown.
+   min-width: 0 releases the dropdown floor so the inset pair keeps setting
+   the width even when the viewport is narrower than that floor — otherwise
+   the panel overflows and its top-end corner lands off-screen. */
 @media (max-width: 1099px) {
   .menu-panel {
     inset-inline: 0;
     inset-block: auto 0;
+    min-width: 0;
     max-height: 72vh;
     border-radius: var(--radius-l) var(--radius-l) 0 0;
     border-block-start: 1px solid var(--border);
