@@ -151,6 +151,19 @@
 .file-chip-popover .file-chip-pop-alert { color: var(--series-hr); }
 .file-chip-popover .file-chip-pop-alert .icon { width: 16px; height: 16px; }
 
+/* Both folded icon rows advance exactly like a text line: the 16px ink is
+   centered inside one 1.45em line box (the popover's own line-height), so
+   the plain 2px row margin stays the whole gap. An inline SVG aligned to
+   the text baseline in a bare line box grows the box by its descent and
+   leaves that dead space under the glyph — the gap under the icon read
+   ~3x wider than between text rows. */
+.file-chip-popover .file-chip-pop-alert,
+.file-chip-popover .file-chip-pop-cadence {
+  display: flex;
+  align-items: center;
+  height: 1.45em;
+}
+
 /* The cadence notice folded in beside it: the (i) wears the accent color of
    the square it replaces (js/ui/cadenceNote.js), same ink size. */
 .file-chip-popover .file-chip-pop-cadence { color: var(--accent); }
