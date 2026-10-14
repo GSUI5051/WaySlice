@@ -200,6 +200,32 @@ suite('export / gpx', () => {
       await setLanguage(saved);
     }
   });
+
+  test('single-leg track: gpxtpx:cad exports the converted display value', () => {
+    // §5 ruling: the exported file carries ONE convention — the displayed
+    // one. Points and the summary rows must multiply by the same factor.
+    const track = fullTrack();
+    track.cadenceConvention = 'single';
+    track.cadenceFactor = 2;
+    const text = buildGpxExport(track, { start: 0, end: track.totalDistance });
+    assert.truthy(text.includes('<gpxtpx:cad>160</gpxtpx:cad>'), '80 × 2 on the first point');
+    assert.truthy(text.includes('<gpxtpx:cad>168</gpxtpx:cad>'), '84 × 2 on the last point');
+    assert.truthy(!text.includes('<gpxtpx:cad>80</gpxtpx:cad>'), 'no raw value leaks');
+    // The text exports' summary rows read the same converted metrics.
+    const m = computeSectorMetrics(track, 0, track.totalDistance);
+    const txt = buildTxtExport(track, m, { start: 0, end: track.totalDistance });
+    assert.truthy(txt.split('\n').some((l) => l.startsWith('Average Cadence\t')), 'cadence row present');
+    const cadRow = txt.split('\n').find((l) => l.startsWith('Average Cadence\t'));
+    assert.truthy(cadRow.includes('spm'), `step-per-minute unit on a single-leg track: ${cadRow}`);
+    // Factor absent/1: raw values, rpm wording.
+    const rawTrack = fullTrack();
+    const rawText = buildGpxExport(rawTrack, { start: 0, end: rawTrack.totalDistance });
+    assert.truthy(rawText.includes('<gpxtpx:cad>80</gpxtpx:cad>'));
+    const rawM = computeSectorMetrics(rawTrack, 0, rawTrack.totalDistance);
+    const rawTxt = buildTxtExport(rawTrack, rawM, { start: 0, end: rawTrack.totalDistance });
+    const rawRow = rawTxt.split('\n').find((l) => l.startsWith('Average Cadence\t'));
+    assert.truthy(rawRow.includes('rpm'), `rpm wording without the conversion: ${rawRow}`);
+  });
 });
 
 suite('export / filename', () => {

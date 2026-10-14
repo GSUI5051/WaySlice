@@ -56,6 +56,7 @@ const lang_ja = {
   unitFth: 'ft/h',
   unitBpm: 'bpm',
   unitRpm: 'rpm',
+  unitSpm: 'spm',
   unitW: 'W',
   system: 'システムに従う',
   light: 'ライト',
@@ -208,6 +209,11 @@ const lang_ja = {
   cadence: 'ケイデンス',
   avgCadence: '平均ケイデンス',
   maxCadence: '最大ケイデンス',
+  // Labels for files whose cadence field is the single-leg cycle rate (×2
+  // converted) — steps per minute, not crank rpm. English keeps Cadence.
+  cadenceStep: 'ケイデンス',
+  avgCadenceStep: '平均ケイデンス',
+  maxCadenceStep: '最大ケイデンス',
   avgPower: '平均パワー',
   maxPower: '最大パワー',
   avgTemp: '平均温度',
@@ -222,6 +228,8 @@ const lang_ja = {
   noElevationData: '標高データなし',
   noTimestampData: '時刻データなし',
   routeSourceNote: 'このGPXは記録されたトラックポイントではなくルートポイントで構成されています。時刻・心拍数などのアクティビティデータは利用できません。',
+  cadenceConventionNote: 'このファイルのケイデンスは片脚の回転数として記録されています。値は 2 倍に換算され、1 分あたりの歩数として表示されます。',
+  cadenceConventionUnknown: 'このファイルには歩幅データがないため、ケイデンスの集計方法を判定できません。値はデバイスの記録どおりに表示されます。',
 
   // Heart Rate Zones
   hrZones: '心拍ゾーン',

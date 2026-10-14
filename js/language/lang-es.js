@@ -63,6 +63,7 @@ const lang_es = {
   unitFth: 'ft/h',
   unitBpm: 'ppm',
   unitRpm: 'rpm',
+  unitSpm: 'spm',
   unitW: 'W',
   system: 'Sistema',
   light: 'Claro',
@@ -215,6 +216,11 @@ const lang_es = {
   cadence: 'Cadencia',
   avgCadence: 'Cadencia media',
   maxCadence: 'Cadencia máxima',
+  // Labels for files whose cadence field is the single-leg cycle rate (×2
+  // converted) — steps per minute, not crank rpm. English keeps Cadence.
+  cadenceStep: 'Cadencia',
+  avgCadenceStep: 'Cadencia media',
+  maxCadenceStep: 'Cadencia máxima',
   avgPower: 'Potencia media',
   maxPower: 'Potencia máxima',
   avgTemp: 'Temperatura media',
@@ -229,6 +235,8 @@ const lang_es = {
   noElevationData: 'Sin datos de altitud',
   noTimestampData: 'Sin datos de marca de tiempo',
   routeSourceNote: 'Este GPX contiene puntos de ruta en lugar de puntos de traza grabados. El tiempo, la frecuencia cardíaca y otros datos de actividad no están disponibles.',
+  cadenceConventionNote: 'Este archivo registra la cadencia como ciclos de una sola pierna. Los valores se convierten (×2) y se muestran en pasos por minuto.',
+  cadenceConventionUnknown: 'Este archivo no tiene datos de longitud de zancada, por lo que no se puede determinar la convención de la cadencia. Los valores se muestran tal como los grabó el dispositivo.',
 
   // Heart Rate Zones
   hrZones: 'Zonas de frecuencia cardíaca',

@@ -10,7 +10,11 @@
  * @property {number|null} [ele]               Elevation in meters (missing when the source has none).
  * @property {number|null} [time]              Unix timestamp in milliseconds (missing when the source has none).
  * @property {number|null} [hr]                Heart rate, bpm.
- * @property {number|null} [cad]               Cadence, rpm.
+ * @property {number|null} [cad]               Cadence as recorded by the source — rpm for rides,
+ *                                             but running/hiking watches often write single-leg
+ *                                             cycle counts (half the step rate); the display
+ *                                             convention lives on Track.cadenceFactor, this
+ *                                             field always stays the raw recorded value.
  * @property {number|null} [power]             Power, watts.
  * @property {number|null} [temp]              Temperature, °C.
  * @property {number|null} [speed]             Speed, m/s.
@@ -46,6 +50,10 @@
  * @property {'track'|'route'} [sourceType]    'route' when the points are <rtept> route points
  *                                             (degraded GPX route source: no time, no sensors);
  *                                             'track' otherwise (the default when absent).
+ * @property {{convention: 'single'|'double'|'unknown', factor: number}} [cadence]
+ *                                             Cadence convention verdict — FIT only (the only
+ *                                             format whose records carry step_length); absent
+ *                                             from every other parser (the default is 'unknown').
  */
 
 /**
@@ -74,6 +82,13 @@
  * @property {'track'|'route'} [sourceType]    'route' when the points are GPX route points
  *                                             (degraded source: hasTime/hasHr/… are false by
  *                                             construction); 'track' otherwise.
+ * @property {'single'|'double'|'unknown'} [cadenceConvention]  What the file's cadence
+ *                                             field counts: 'single' = single-leg cycles,
+ *                                             real step rate is ×2; 'double' = steps already;
+ *                                             'unknown' = undeterminable (non-FIT sources
+ *                                             included) — raw values display as recorded.
+ * @property {number} [cadenceFactor]          Multiplier applied to cadence readings on read
+ *                                             side (2 for 'single', else 1 — always stamped).
  * @property {(number|null)[]|null} [eleOriginal] The file's original elevations, captured
  *                                             once before the first DEM correction and kept
  *                                             until Restore empties it (null = nothing

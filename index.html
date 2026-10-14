@@ -146,6 +146,16 @@
               aria-expanded="false">
         <span class="btn-icon-slot" data-icon="triangle-alert"></span>
       </button>
+      <!-- Cadence-convention notice: a lone (i) square for tracks whose
+           cadence reading depends on the file's convention — single-leg FIT
+           files (converted ×2) and files the convention could not be judged
+           for (raw values shown). Same pill family as the route note; the
+           two sentences live in the language packs (js/ui/cadenceNote.js
+           owns visibility and which one shows). -->
+      <button type="button" id="cadence-note" class="route-note cadence-note" hidden
+              aria-expanded="false">
+        <span class="btn-icon-slot" data-icon="info"></span>
+      </button>
       <div class="header-actions">
         <!-- GitHub link. One of these four logo files shows at a time — the
              lockup while the header is bare, the bare mark once a track is

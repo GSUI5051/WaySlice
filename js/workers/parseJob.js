@@ -17,11 +17,15 @@ import { ParseError, PARSE_ERROR_KEYS } from '../parsers/parseError.js';
  */
 export async function runParseJob(buffer, fileName) {
 	const format = detectFormat(fileName, buffer);
-	const { points, waypoints, sourceType = 'track' } = await parseTrackFile(buffer, format);
+	const { points, waypoints, sourceType = 'track', cadence = null } = await parseTrackFile(buffer, format);
 	if (points.length < 2) throw new ParseError(PARSE_ERROR_KEYS.noTrack);
 	const track = prepareTrack(points, fileName.replace(/\.[^.]+$/, ''), waypoints);
 	// Always stamped so the source kind is explicit on every Track: 'route'
 	// marks the degraded GPX <rtept> source, 'track' everything else.
 	track.sourceType = sourceType;
+	// Cadence convention: only the FIT parser can judge it (its records carry
+	// step_length); every other format stays 'unknown' → raw values, factor 1.
+	track.cadenceConvention = cadence?.convention ?? 'unknown';
+	track.cadenceFactor = cadence?.factor ?? 1;
 	return track;
 }

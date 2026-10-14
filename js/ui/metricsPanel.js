@@ -12,6 +12,7 @@ import { computeSectorMetrics } from '../metrics/sectorMetrics.js';
 import { computeHeartRateZoneStats, zoneSharePct } from '../metrics/heartRateStats.js';
 import { zoneDisplayRange } from '../metrics/heartRateZones.js';
 import { t } from '../language/language.js';
+import { avgCadenceLabel, maxCadenceLabel } from '../units/units.js';
 import { on, emit } from '../core/events.js';
 import { icon } from './icons.js';
 import { createHintPopover } from './hint-popover.js';
@@ -19,7 +20,7 @@ import {
   formatDistance, formatSignedElevation, formatElevation, formatGrade,
   formatPace, formatSpeed, formatDuration, formatDateTime,
   formatSectorRangeBounds,
-  formatVam, formatBpm, formatBpmRange, formatPercent, formatRpm,
+  formatVam, formatBpm, formatBpmRange, formatPercent, formatCadence,
   formatTemp, formatPower,
 } from '../utils/format.js';
 
@@ -218,8 +219,8 @@ function detailsHtml(track, m, start, end) {
         <div class="metric-group-title">${t('fitnessGroup')}</div>
         ${row(t('avgHr'), formatBpm(m.avgHr ?? NaN), m.avgHr == null, t('fitnessPauseNote'))}
         ${row(t('maxHr'), formatBpm(m.maxHr ?? NaN), m.maxHr == null, t('fitnessPauseNote'))}
-        ${row(t('avgCadence'), formatRpm(m.avgCad ?? NaN), m.avgCad == null, t('fitnessPauseNote'))}
-        ${row(t('maxCadence'), formatRpm(m.maxCad ?? NaN), m.maxCad == null, t('fitnessPauseNote'))}
+        ${row(avgCadenceLabel(track), formatCadence(m.avgCad ?? NaN, track), m.avgCad == null, t('fitnessPauseNote'))}
+        ${row(maxCadenceLabel(track), formatCadence(m.maxCad ?? NaN, track), m.maxCad == null, t('fitnessPauseNote'))}
         ${row(t('avgPower'), formatPower(m.avgPower ?? NaN), m.avgPower == null, t('fitnessPauseNote'))}
         ${row(t('maxPower'), formatPower(m.maxPower ?? NaN), m.maxPower == null, t('fitnessPauseNote'))}
         ${row(t('avgTemp'), formatTemp(m.avgTemp ?? NaN), m.avgTemp == null, t('fitnessOutlierNote'))}

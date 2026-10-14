@@ -15,6 +15,7 @@ import { initMetricsPanel } from './ui/metricsPanel.js';
 import { initUpload } from './ui/upload.js';
 import { initFileChip, setFileChipContent } from './ui/fileChip.js';
 import { initRouteNote } from './ui/routeNote.js';
+import { initCadenceNote } from './ui/cadenceNote.js';
 import { initHeaderFit } from './ui/headerFit.js';
 import { initExport } from './export/exporter.js';
 import { initAutoSegments } from './ui/autoSegments.js';
@@ -63,6 +64,7 @@ async function boot() {
   });
   initFileChip(document.getElementById('app-header'));
   initRouteNote();
+  initCadenceNote();
   initHeaderFit();
   initExport(document.getElementById('btn-export'));
   initAutoSegments(document.getElementById('btn-auto-segments'));

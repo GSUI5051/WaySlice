@@ -56,6 +56,7 @@ const lang_ko = {
   unitFth: 'ft/h',
   unitBpm: 'bpm',
   unitRpm: 'rpm',
+  unitSpm: 'spm',
   unitW: 'W',
   system: '시스템',
   light: '라이트',
@@ -208,6 +209,11 @@ const lang_ko = {
   cadence: '케이던스',
   avgCadence: '평균 케이던스',
   maxCadence: '최대 케이던스',
+  // Labels for files whose cadence field is the single-leg cycle rate (×2
+  // converted) — steps per minute, not crank rpm. English keeps Cadence.
+  cadenceStep: '케이던스',
+  avgCadenceStep: '평균 케이던스',
+  maxCadenceStep: '최대 케이던스',
   avgPower: '평균 파워',
   maxPower: '최대 파워',
   avgTemp: '평균 온도',
@@ -222,6 +228,8 @@ const lang_ko = {
   noElevationData: '고도 데이터 없음',
   noTimestampData: '시간 데이터 없음',
   routeSourceNote: '이 GPX는 기록된 트랙 포인트가 아닌 경로 포인트로 구성되어 있습니다. 시간, 심박수 등 활동 데이터는 사용할 수 없습니다.',
+  cadenceConventionNote: '이 파일은 케이던스를 한쪽 다리 주기로 기록합니다. 값은 2배로 환산되어 분당 걸음 수로 표시됩니다.',
+  cadenceConventionUnknown: '이 파일에는 보폭 데이터가 없어 케이던스 방식을 판별할 수 없습니다. 값은 기기에 기록된 그대로 표시됩니다.',
 
   // Heart Rate Zones
   hrZones: '심박 존',

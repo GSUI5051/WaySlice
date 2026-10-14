@@ -52,6 +52,7 @@ import { state } from './profile-state.js';
 import {
   OVERLAY_METRICS, SPEED_FAMILY, overlayExtremes, overlayYRange, eleYRange,
   bandScaleRange, distToX, xToDist, xvToPx, formatOverlayValue, sectorDimSteps,
+  cadenceAt,
 } from './profile-data.js';
 import { showTooltipAt, hideTooltip, resetProbeReadout } from './profile-tooltip.js';
 import { niceStep, niceStepForUnit, niceTimeStep } from '../ticks.js';
@@ -288,7 +289,9 @@ function trackSeries(track) {
     track,
     ele: pick((i) => track.points[i].ele),
     hr: pick((i) => track.points[i].hr),
-    cad: pick((i) => track.points[i].cad),
+    // The drawn cadence curve is the DISPLAY series (single-leg files ×2) —
+    // the same conversion the tooltip applies, so curve and readout agree.
+    cad: pick((i) => cadenceAt(track, track.points[i])),
     temp: pick((i) => track.points[i].temp),
     power: pick((i) => track.points[i].power),
   };

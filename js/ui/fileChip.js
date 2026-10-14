@@ -20,6 +20,7 @@
  */
 import { createHintPopover } from './hint-popover.js';
 import { routeNoteActive } from './routeNote.js';
+import { cadenceNoteActive, cadenceNoteText } from './cadenceNote.js';
 import { icon } from './icons.js';
 import { t } from '../language/language.js';
 
@@ -120,10 +121,11 @@ export function remeasureFileChip() {
 /**
  * Opens the compact popover: the three facts on their own lines —
  * left-aligned under the chip, per the shared factory's positioning. At the
- * header's emergency level the route-source warning folds in here (the
- * marker square is hidden by the level's CSS): the alarm triangle, then the
- * full notice sentence — the same two facts the marker's own popover
- * carried.
+ * header's emergency level the folded squares' sentences move in here (the
+ * squares are hidden by the level's CSS), each as its icon row plus the
+ * full sentence — the same facts the squares' own popovers carried: the
+ * route-source warning (alarm triangle, red) and the cadence-convention
+ * notice (info icon, accent).
  * @private
  */
 function openFileChipPopover() {
@@ -143,6 +145,18 @@ function openFileChipPopover() {
       noteRow.className = 'file-chip-pop-row';
       noteRow.textContent = t('routeSourceNote');
       pop.appendChild(alertRow);
+      pop.appendChild(noteRow);
+    }
+    const cadenceText = cadenceNoteActive() && headerEl?.classList.contains('is-emergency')
+      ? cadenceNoteText() : null;
+    if (cadenceText) {
+      const infoRow = document.createElement('div');
+      infoRow.className = 'file-chip-pop-row file-chip-pop-cadence';
+      infoRow.innerHTML = icon('info');
+      const noteRow = document.createElement('div');
+      noteRow.className = 'file-chip-pop-row';
+      noteRow.textContent = cadenceText;
+      pop.appendChild(infoRow);
       pop.appendChild(noteRow);
     }
   });

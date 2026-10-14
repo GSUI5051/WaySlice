@@ -8,11 +8,12 @@ import {
   secPerKmToSecPerMi,
   distanceUnit, shortDistanceUnit, elevationUnit, speedUnit, paceUnit, vamUnit,
   bpmUnit, rpmUnit, powerUnit, percentUnit, tempUnit,
+  cadenceUnit, cadenceLabelKey, cadenceLabel, avgCadenceLabel, maxCadenceLabel,
 } from '../js/units/units.js';
 import {
   formatDistance, formatDistanceShort, formatElevation,
   formatSignedElevation, formatSpeed, formatPace, formatGrade, formatVam,
-  formatBpm, formatSectorRangeBounds,
+  formatBpm, formatCadence, formatSectorRangeBounds,
 } from '../js/utils/format.js';
 
 suite('units / conversion constants', () => {
@@ -121,6 +122,27 @@ suite('units / localized labels', () => {
       assert.equal(powerUnit(), 'W', 'watts never convert');
       assert.equal(percentUnit(), '%', 'percent never converts');
       assert.equal(tempUnit(), '°F');
+    });
+  });
+
+  test('cadence labels and unit follow the track convention, track argument explicit', async () => {
+    await withLanguage('en', () => {
+      // No track / factor ≠ 2: the rpm wording everywhere.
+      assert.equal(cadenceUnit({ cadenceFactor: 1 }), 'rpm');
+      assert.equal(cadenceLabelKey({ cadenceFactor: 1 }), 'cadence');
+      assert.equal(cadenceLabel({ cadenceFactor: 1 }), 'Cadence');
+      assert.equal(avgCadenceLabel({ cadenceFactor: 1 }), 'Average Cadence');
+      assert.equal(maxCadenceLabel({ cadenceFactor: 1 }), 'Maximum Cadence');
+      assert.equal(cadenceUnit(undefined), 'rpm');
+      // A single-leg track reads as steps per minute; English keeps Cadence.
+      assert.equal(cadenceUnit({ cadenceFactor: 2 }), 'spm');
+      assert.equal(cadenceLabelKey({ cadenceFactor: 2 }), 'cadenceStep');
+      assert.equal(cadenceLabel({ cadenceFactor: 2 }), 'Cadence');
+      assert.equal(avgCadenceLabel({ cadenceFactor: 2 }), 'Average Cadence');
+      assert.equal(maxCadenceLabel({ cadenceFactor: 2 }), 'Maximum Cadence');
+      // The formatter composes the convention unit with the value.
+      assert.equal(formatCadence(110, { cadenceFactor: 2 }), '110 spm');
+      assert.equal(formatCadence(110, { cadenceFactor: 1 }), '110 rpm');
     });
   });
 

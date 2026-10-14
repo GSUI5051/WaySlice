@@ -332,6 +332,10 @@ function sectorPauseSpans(track, start, end) {
  * readings stay NaN.
  */
 function panelFitnessSeries(track, key, start, end, pauseSpans) {
+  // Cadence enters in the DISPLAY convention (single-leg files ×2) — the
+  // same factor the panel's own series applies at collection, so the chart's
+  // plotted points stay the exact array behind avgCad/maxCad.
+  const cadFactor = key === 'cad' ? (track.cadenceFactor ?? 1) : 1;
   const out = new Float64Array(track.pointCount).fill(NaN);
   const idx = [];
   const vals = [];
@@ -341,7 +345,7 @@ function panelFitnessSeries(track, key, start, end, pauseSpans) {
     const t = track.points[k].time;
     if (pauseSpans && t != null && isInsidePause(pauseSpans, t)) continue;
     idx.push(k);
-    vals.push(v);
+    vals.push(v * cadFactor);
   }
   const cleaned = cleanSpeedSeries(vals);
   for (let m = 0; m < idx.length; m++) out[idx[m]] = cleaned[m];

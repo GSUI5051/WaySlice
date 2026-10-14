@@ -32,8 +32,9 @@ import {
   gradeSeries,
 } from '../../metrics/sectorMetrics.js';
 import {
-  formatPace, formatSpeed, formatBpm, formatRpm, formatTemp, formatPower,
+  formatPace, formatSpeed, formatBpm, formatCadence, formatTemp, formatPower,
 } from '../../utils/format.js';
+import { cadenceLabelKey } from '../../units/units.js';
 
 /* colorToken drives graphics (curves, menu dots, zone bands); textToken is
    its per-theme small-text sibling (readings in the tooltip, the mobile
@@ -43,7 +44,9 @@ export const OVERLAY_METRICS = [
   { id: 'speed', colorToken: '--series-speed', textToken: '--series-speed-text', labelKey: 'legendSpeed', axis: 'speed' },
   { id: 'pace', colorToken: '--series-speed', textToken: '--series-speed-text', labelKey: 'legendPace', axis: 'pace' },
   { id: 'gap', colorToken: '--series-speed', textToken: '--series-speed-text', labelKey: 'legendGap', axis: 'gap' },
-  { id: 'cad', colorToken: '--series-cadence', textToken: '--series-cadence-text', labelKey: 'cadence', axis: 'rpm' },
+  // The cadence legend label follows the track's detected convention — the
+  // getter re-resolves per access, so menus re-render with 步频/踏频 as due.
+  { id: 'cad', colorToken: '--series-cadence', textToken: '--series-cadence-text', get labelKey() { return cadenceLabelKey(); }, axis: 'rpm' },
   { id: 'temp', colorToken: '--series-temp', textToken: '--series-temp-text', labelKey: 'legendTemp', axis: 'tempC' },
   { id: 'power', colorToken: '--series-power', textToken: '--series-power-text', labelKey: 'legendPower', axis: 'power' },
 ];
@@ -146,12 +149,25 @@ export function overlayAvailability(track, caches) {
 }
 
 /**
+ * One point's cadence in the DISPLAY convention: single-leg files (a watch
+ * writing half the step rate) are converted on read via the track's
+ * cadenceFactor; the raw TrackPoint.cad never changes. Null passes through.
+ * @param {object} track
+ * @param {{cad: number|null}} point
+ * @returns {number|null}
+ */
+export function cadenceAt(track, point) {
+  const raw = point.cad;
+  return raw == null || !Number.isFinite(raw) ? null : raw * (track.cadenceFactor ?? 1);
+}
+
+/**
  * The per-point reader for one overlay id, or null when the series has no
  * usable cache. @param {object} caches {speeds, gapSpeeds}
  */
 export function overlayValueAt(id, track, caches) {
   if (id === 'hr') return (i) => track.points[i].hr;
-  if (id === 'cad') return (i) => track.points[i].cad;
+  if (id === 'cad') return (i) => cadenceAt(track, track.points[i]);
   if (id === 'temp') return (i) => track.points[i].temp;
   if (id === 'power') return (i) => track.points[i].power;
   if (id === 'speed' || id === 'pace') return caches.speeds ? (i) => caches.speeds[i] : null;
@@ -368,7 +384,9 @@ export function sectorFitWindow(sectorStart, sectorEnd, total, minSpan) {
 }
 
 /** Overlay readout formatting, shared by the axis labels and the hover
- *  tooltip so a series never renders two different unit styles. */
+ *  tooltip so a series never renders two different unit styles. Cadence
+ *  reads the CURRENT track's convention (steps/分 vs rpm), the others are
+ *  convention-free. */
 export function formatOverlayValue(def, v) {
   if (def.axis === 'speed') return formatSpeed(v);
   if (def.axis === 'pace') return formatPace(speedToPace(v));
@@ -376,7 +394,7 @@ export function formatOverlayValue(def, v) {
   if (def.axis === 'bpm') return formatBpm(v);
   if (def.axis === 'tempC') return formatTemp(v);
   if (def.axis === 'power') return formatPower(v);
-  return formatRpm(v);
+  return formatCadence(v);
 }
 
 /**

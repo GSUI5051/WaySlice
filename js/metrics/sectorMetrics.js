@@ -266,12 +266,16 @@ export function computeSectorMetrics(track, startDist, endDist) {
   // stripped of pause seconds — a resting value says nothing about the
   // effort — before the shared 5 s sliding-window smooth. Temperature skips
   // the pause strip and every filter: an ambient reading is not an effort
-  // signal and is shown as recorded.
+  // signal and is shown as recorded. Cadence is converted to the display
+  // convention here — the one multiplication the whole metrics layer needs
+  // (mean, max, ±3σ and the 5-point window all commute with a constant
+  // factor); single-leg files thus report the true step rate.
+  const cadFactor = track.cadenceFactor ?? 1;
   const hrSamples = [], cadSamples = [], powerSamples = [], tempSamples = [];
   for (let k = start.i; k <= end.i; k++) {
     const p = points[k];
     if (p.hr != null && Number.isFinite(p.hr)) hrSamples.push({ v: p.hr, t: p.time });
-    if (p.cad != null && Number.isFinite(p.cad)) cadSamples.push({ v: p.cad, t: p.time });
+    if (p.cad != null && Number.isFinite(p.cad)) cadSamples.push({ v: p.cad * cadFactor, t: p.time });
     if (p.power != null && Number.isFinite(p.power)) powerSamples.push({ v: p.power, t: p.time });
     if (p.temp != null && Number.isFinite(p.temp)) tempSamples.push({ v: p.temp, t: p.time });
   }

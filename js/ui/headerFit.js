@@ -17,9 +17,10 @@
  *             second trigger wearing the group's primary chrome;
  *   minimum   everything — Settings included — folds into a single
  *             all-actions trigger;
- *   emergency the route-source notice square folds away too: the warning
- *             lives on inside the chip's compact popover (ui/fileChip.js),
- *             the last visible furniture past the single trigger.
+ *   emergency the route-source and cadence notice squares fold away too:
+ *             their sentences live on inside the chip's compact popover
+ *             (ui/fileChip.js), the last visible furniture past the single
+ *             trigger.
  *
  * None of the six points is keyed to a width or a pointer type — including
  * where the name hides and where the labels drop, the two folds a fixed

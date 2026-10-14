@@ -286,6 +286,19 @@ suite('metrics / fitness (heart rate, cadence)', () => {
     assert.equal(m.avgCad, 90);
   });
 
+  test('cadenceFactor 2 converts the cadence statistics at collection', () => {
+    // A single-leg file's factor multiplies the samples once — mean, max,
+    // the ±3σ gate and the 5-point window all commute with the constant.
+    const track = prepared(eastTrack({ count: 5, cad: (i) => 80 + i }));
+    track.cadenceConvention = 'single';
+    track.cadenceFactor = 2;
+    const m = computeSectorMetrics(track, 0, track.totalDistance);
+    assert.equal(m.avgCad, 164);
+    assert.equal(m.maxCad, 166);
+    // The raw points keep the recorded values.
+    assert.equal(track.points[0].cad, 80);
+  });
+
   test('no hr/cad data in the track → null, not zero', () => {
     const track = prepared(eastTrack({ count: 10 }));
     const m = computeSectorMetrics(track, 0, track.totalDistance);

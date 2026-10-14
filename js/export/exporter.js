@@ -31,11 +31,11 @@ import { zoneDisplayRange } from '../metrics/heartRateZones.js';
 import { createMenu, isNarrowLayout } from '../ui/menus.js';
 import { setHeaderPanelSuppressed } from '../ui/headerFit.js';
 import { t } from '../language/language.js';
-import { getUnitSystem, metersToMiles } from '../units/units.js';
+import { getUnitSystem, metersToMiles, avgCadenceLabel, maxCadenceLabel } from '../units/units.js';
 import {
   formatDistance, formatSignedElevation, formatElevation, formatGrade,
   formatPace, formatSpeed, formatDuration, formatDateTime,
-  formatVam, formatBpm, formatRpm, formatTemp, formatPower,
+  formatVam, formatBpm, formatCadence, formatTemp, formatPower,
   formatBpmRange, formatPercent, formatSectorRangeBounds,
 } from '../utils/format.js';
 
@@ -43,6 +43,12 @@ import {
  *  (already formatted; null renders as the honest Unavailable marker). */
 function row(key, value) {
   return [t(key), value == null ? t('unavailable') : value];
+}
+
+/** @private One metric row whose label is already translated — for the
+ *  cadence rows, whose wording follows the track's detected convention. */
+function labelRow(label, value) {
+  return [label, value == null ? t('unavailable') : value];
 }
 
 /** @private The summary rows, in panel order (values pre-formatted). */
@@ -60,8 +66,11 @@ function summaryRows(m) {
   ];
 }
 
-/** @private Detail groups (i18n title key + rows), in panel order. */
-function groupRows(m) {
+/** @private Detail groups (i18n title key + rows), in panel order. The
+ *  cadence rows carry the track: label wording and unit follow the track's
+ *  detected convention, and the values arrive ALREADY converted from the
+ *  metrics layer (never multiplied a second time here). */
+function groupRows(track, m) {
   return [
     ['elevationGroup', [
       row('startElevation', opt(m.eleStart, formatElevation)),
@@ -91,8 +100,8 @@ function groupRows(m) {
     ['fitnessGroup', [
       row('avgHr', opt(m.avgHr, formatBpm)),
       row('maxHr', opt(m.maxHr, formatBpm)),
-      row('avgCadence', opt(m.avgCad, formatRpm)),
-      row('maxCadence', opt(m.maxCad, formatRpm)),
+      labelRow(avgCadenceLabel(track), opt(m.avgCad, (v) => formatCadence(v, track))),
+      labelRow(maxCadenceLabel(track), opt(m.maxCad, (v) => formatCadence(v, track))),
       row('avgPower', opt(m.avgPower, formatPower)),
       row('maxPower', opt(m.maxPower, formatPower)),
       row('avgTemp', opt(m.avgTemp, formatTemp)),
@@ -146,7 +155,7 @@ export function buildTxtExport(track, m, range) {
     `${formatSectorRangeBounds(range.start, range.end).join(' -> ')}`,
     ...summaryRows(m).map(([label, value]) => `${label}\t${value}`),
   ];
-  for (const [titleKey, rows] of groupRows(m)) {
+  for (const [titleKey, rows] of groupRows(track, m)) {
     lines.push(t(titleKey), ...rows.map(([label, value]) => `${label}\t${value}`));
   }
   const hr = hrZoneGroup(track, range.start, range.end);
@@ -177,7 +186,7 @@ export function buildMdExport(track, m, range) {
     [`${formatSectorRangeBounds(range.start, range.end).join(' -> ')}`],
     [`# ${t('allMetrics')}`, ...table(summaryRows(m))],
   ];
-  for (const [titleKey, rows] of groupRows(m)) {
+  for (const [titleKey, rows] of groupRows(track, m)) {
     blocks.push([`# ${t(titleKey)}`, ...table(rows)]);
   }
   const hr = hrZoneGroup(track, range.start, range.end);
@@ -222,7 +231,7 @@ export function buildCsvExport(track, m, range) {
     [formatSectorRangeBounds(range.start, range.end).join(' -> ')],
     ...summaryRows(m),
   ];
-  for (const [titleKey, groupMRows] of groupRows(m)) {
+  for (const [titleKey, groupMRows] of groupRows(track, m)) {
     rows.push([t(titleKey)], ...groupMRows);
   }
   const hr = hrZoneGroup(track, range.start, range.end);
@@ -275,8 +284,11 @@ function xmlEscape(text) {
     .replaceAll('"', '&quot;');
 }
 
-/** @private One <trkpt> block, mirroring the structure of an imported track. */
-function trkptXml(point) {
+/** @private One <trkpt> block, mirroring the structure of an imported track.
+ *  Cadence is written in the DISPLAY convention (cadenceFactor 2 = single-leg
+ *  file): the exported file must carry the same numbers the page shows — one
+ *  convention everywhere, never a points-vs-summary split. */
+function trkptXml(point, cadFactor = 1) {
   const parts = [
     `      <trkpt lat="${point.lat}" lon="${point.lon}">`,
   ];
@@ -287,7 +299,7 @@ function trkptXml(point) {
     extensions.push('        <extensions>', `          <gpxtpx:TrackPointExtension xmlns:gpxtpx="${TPX_NS}">`);
     if (point.temp != null) extensions.push(`            <gpxtpx:atemp>${point.temp}</gpxtpx:atemp>`);
     if (point.hr != null) extensions.push(`            <gpxtpx:hr>${point.hr}</gpxtpx:hr>`);
-    if (point.cad != null) extensions.push(`            <gpxtpx:cad>${point.cad}</gpxtpx:cad>`);
+    if (point.cad != null) extensions.push(`            <gpxtpx:cad>${point.cad * cadFactor}</gpxtpx:cad>`);
     if (point.power != null) extensions.push(`            <gpxtpx:power>${point.power}</gpxtpx:power>`);
     extensions.push('          </gpxtpx:TrackPointExtension>', '        </extensions>');
   }
@@ -323,7 +335,7 @@ export function buildGpxExport(track, range) {
     `  <trk>`,
     `    <name>${xmlEscape(track.name)}</name>`,
     `    <trkseg>`,
-    ...pts.map(trkptXml),
+    ...pts.map((p) => trkptXml(p, track.cadenceFactor ?? 1)),
     `    </trkseg>`,
     `  </trk>`,
     `</gpx>`,

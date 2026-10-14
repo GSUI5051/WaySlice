@@ -360,6 +360,26 @@ suite('dual-variable / panel parity (the honesty contract)', () => {
     assert.closeTo(s.avg, panel.avgCad, 1e-9);
   });
 
+  test('cadenceFactor 2: chart column and panel stats both read the converted series', () => {
+    // A single-leg track stamps factor 2 — the chart's plotted points must
+    // be the exact array behind the panel's doubled avgCad/maxCad, never a
+    // raw-value twin.
+    const cad = (i) => (i % 4 === 0 ? 0 : 80);
+    const track = makeTrack(MOVE(30), { cad });
+    track.cadenceConvention = 'single';
+    track.cadenceFactor = 2;
+    const s = columnStats(buildAnalysisSamples(track).cad);
+    const panel = computeTrackStats(track);
+    assert.equal(s.count, 31);
+    assert.closeTo(s.max, panel.maxCad, 1e-9);
+    assert.closeTo(s.avg, panel.avgCad, 1e-9);
+    // Exactly twice the same track's raw series — the constant factor
+    // commutes with the whole pause-strip + smoothing pipeline.
+    const rawTrack = makeTrack(MOVE(30), { cad });
+    const raw = columnStats(buildAnalysisSamples(rawTrack).cad);
+    assert.closeTo(s.avg, raw.avg * 2, 1e-9);
+  });
+
   test('power points match avgPower/maxPower — 0 W coasting counts', () => {
     const power = (i) => (i % 3 === 0 ? 0 : 150);
     const track = makeTrack(MOVE(30), { power });

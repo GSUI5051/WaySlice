@@ -250,6 +250,35 @@ suite('profile / the sampling draw path is gone', () => {
   });
 });
 
+suite('profile / cadence convention on the read paths', () => {
+  // The track fixture carries raw cadence plus the stamped convention; the
+  // pickers apply the factor, so chart, tooltip and axis strip all read the
+  // same converted series without touching TrackPoint.cad.
+  function cadTrack(factor) {
+    const points = [{ cad: 55 }, { cad: null }, { cad: 60 }, { cad: NaN }, { cad: 50 }];
+    return factor === undefined ? { points } : { points, cadenceFactor: factor };
+  }
+
+  test('overlayValueAt cad applies the factor; null/NaN pass through raw', () => {
+    const read = profileData.overlayValueAt('cad', cadTrack(2), {});
+    assert.equal(read(0), 110);
+    assert.equal(read(1), null);
+    assert.equal(read(2), 120);
+    assert.equal(read(3), null);
+    // Factor 1 (double / unknown / absent): identity.
+    const raw = profileData.overlayValueAt('cad', cadTrack(1), {});
+    assert.equal(raw(0), 55);
+    const absent = profileData.overlayValueAt('cad', cadTrack(undefined), {});
+    assert.equal(absent(0), 55);
+  });
+
+  test('cadenceAt converts a single point, null-safe', () => {
+    assert.equal(profileData.cadenceAt(cadTrack(2), { cad: 55 }), 110);
+    assert.equal(profileData.cadenceAt(cadTrack(1), { cad: 55 }), 55);
+    assert.equal(profileData.cadenceAt(cadTrack(2), { cad: null }), null);
+  });
+});
+
 suite('profile / chart scale ranges (full-resolution, uPlot inputs)', () => {
   const hrTrack = {
     pointCount: 3,

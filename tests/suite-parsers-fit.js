@@ -13,6 +13,9 @@ import { parseTCX } from '../js/parsers/tcx.js';
 import { detectFormat, parseTrackFile } from '../js/parsers/index.js';
 import { ParseError, PARSE_ERROR_KEYS } from '../js/parsers/parseError.js';
 import { prepareTrack } from '../js/geo/track.js';
+import { runParseJob } from '../js/workers/parseJob.js';
+import { detectCadenceConvention } from '../js/parsers/cadenceConvention.js';
+import { computeSectorMetrics } from '../js/metrics/sectorMetrics.js';
 
 const FIT_FIXTURE_URL = './fixtures/telemetry-mini.fit';
 const TCX_FIXTURE_URL = './fixtures/telemetry-mini.tcx';
@@ -170,5 +173,70 @@ suite('parsers / fit', () => {
     const format = detectFormat('telemetry-mini.fit', buffer);
     const { points } = await parseTrackFile(buffer, format);
     assert.equal(points.length, 59);
+  });
+});
+
+suite('parsers / cadence convention', () => {
+  // The three generated cadence fixtures walk a straight line at constant
+  // speed (0.917 m/s), step length (0.5 m) and cadence, so the k ratio is
+  // constant: 55 @ 0.5 m gives k=2 (single-leg), 110 gives k=1 (double-step).
+  // Constant cadence also means the converted point reading equals the
+  // sector average (110 steps/min), which is what locks the profile and
+  // panel readout paths together.
+
+  test('single-leg fixture: judged single, factor 2, averages convert ×2', async () => {
+    const buffer = await fetchSample('./fixtures/telemetry-cad-single.fit');
+    if (!buffer) return;
+    const track = await runParseJob(buffer, 'telemetry-cad-single.fit');
+    assert.equal(track.cadenceConvention, 'single');
+    assert.equal(track.cadenceFactor, 2);
+    assert.equal(track.hasCad, true);
+    // Raw TrackPoint.cad stays the recorded value — conversion happens on read.
+    assert.equal(track.points[0].cad, 55);
+    const m = computeSectorMetrics(track, 0, track.totalDistance);
+    assert.closeTo(m.avgCad, 110, 1e-9);
+    assert.closeTo(m.maxCad, 110, 1e-9);
+  });
+
+  test('double-step fixture: judged double, factor 1, raw values display', async () => {
+    const buffer = await fetchSample('./fixtures/telemetry-cad-double.fit');
+    if (!buffer) return;
+    const track = await runParseJob(buffer, 'telemetry-cad-double.fit');
+    assert.equal(track.cadenceConvention, 'double');
+    assert.equal(track.cadenceFactor, 1);
+    const m = computeSectorMetrics(track, 0, track.totalDistance);
+    assert.closeTo(m.avgCad, 110, 1e-9);
+    assert.closeTo(m.maxCad, 110, 1e-9);
+  });
+
+  test('short fixture: below the 30-sample floor degrades to unknown, raw values', async () => {
+    const buffer = await fetchSample('./fixtures/telemetry-cad-short.fit');
+    if (!buffer) return;
+    const track = await runParseJob(buffer, 'telemetry-cad-short.fit');
+    assert.equal(track.cadenceConvention, 'unknown');
+    assert.equal(track.cadenceFactor, 1);
+    const m = computeSectorMetrics(track, 0, track.totalDistance);
+    assert.closeTo(m.avgCad, 55, 1e-9);
+  });
+
+  test('detection unit: band agreement decides, degenerate input stays unknown', () => {
+    // k = v×60 / (step/1000) / cadence: 1 m/s × 60 / 1 m / 30 = k 2 → single.
+    const single = Array.from({ length: 40 }, () => ({ speed: 1, cadence: 30, step_length: 1000 }));
+    assert.deepEqual(detectCadenceConvention(single), { convention: 'single', factor: 2 });
+    // 2 m/s × 60 / 1 m / 120 = k 1 → double, factor 1.
+    const double = Array.from({ length: 40 }, () => ({ speed: 2, cadence: 120, step_length: 1000 }));
+    assert.deepEqual(detectCadenceConvention(double), { convention: 'double', factor: 1 });
+    // Garmin files carry only enhanced_speed — same verdict through the fallback.
+    const enhanced = Array.from({ length: 40 }, () => ({ enhanced_speed: 1, cadence: 30, step_length: 1000 }));
+    assert.deepEqual(detectCadenceConvention(enhanced), { convention: 'single', factor: 2 });
+    // Standing still / missing fields never count toward the sample floor.
+    assert.deepEqual(detectCadenceConvention(single.slice(0, 29)), { convention: 'unknown', factor: 1 });
+    const still = Array.from({ length: 40 }, () => ({ speed: 0.2, cadence: 30, step_length: 1000 }));
+    assert.deepEqual(detectCadenceConvention(still), { convention: 'unknown', factor: 1 });
+    // Scattered k values agree with neither band → unknown.
+    const scatter = Array.from({ length: 40 }, (_, i) => ({
+      speed: 1, cadence: 30, step_length: i % 2 ? 500 : 8000,
+    }));
+    assert.deepEqual(detectCadenceConvention(scatter), { convention: 'unknown', factor: 1 });
   });
 });

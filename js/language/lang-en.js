@@ -59,6 +59,7 @@ const lang_en = {
   unitFth: 'ft/h',
   unitBpm: 'bpm',
   unitRpm: 'rpm',
+  unitSpm: 'spm',
   unitW: 'W',
   system: 'System',
   light: 'Light',
@@ -211,6 +212,11 @@ const lang_en = {
   cadence: 'Cadence',
   avgCadence: 'Average Cadence',
   maxCadence: 'Maximum Cadence',
+  // Labels for files whose cadence field is the single-leg cycle rate (×2
+  // converted) — steps per minute, not crank rpm. English keeps Cadence.
+  cadenceStep: 'Cadence',
+  avgCadenceStep: 'Average Cadence',
+  maxCadenceStep: 'Maximum Cadence',
   avgPower: 'Average Power',
   maxPower: 'Maximum Power',
   avgTemp: 'Average Temperature',
@@ -225,6 +231,8 @@ const lang_en = {
   noElevationData: 'No elevation data',
   noTimestampData: 'No timestamp data',
   routeSourceNote: 'This GPX contains route points rather than recorded track points. Time, heart rate, and other activity data are unavailable.',
+  cadenceConventionNote: 'This file records cadence as single-leg cycles. Values are converted (×2) and shown as steps per minute.',
+  cadenceConventionUnknown: 'This file lacks step-length data, so the cadence convention cannot be determined. Values are shown as recorded by the device.',
 
   // Heart Rate Zones
   hrZones: 'Heart Rate Zones',

@@ -151,6 +151,11 @@
 .file-chip-popover .file-chip-pop-alert { color: var(--series-hr); }
 .file-chip-popover .file-chip-pop-alert .icon { width: 16px; height: 16px; }
 
+/* The cadence notice folded in beside it: the (i) wears the accent color of
+   the square it replaces (js/ui/cadenceNote.js), same ink size. */
+.file-chip-popover .file-chip-pop-cadence { color: var(--accent); }
+.file-chip-popover .file-chip-pop-cadence .icon { width: 16px; height: 16px; }
+
 /* The route-source notice — a lone warning square shown only for degraded
    route GPX files (js/ui/routeNote.js), shaped after the chip's compact
    info button so the pair reads as one family. The triangle wears the
@@ -182,6 +187,15 @@
 }
 
 .route-note:hover { color: var(--series-hr-text); }
+
+/* The cadence-convention notice shares the route note's pill (same class)
+   but speaks information, not alarm: the (i) icon wears the accent color in
+   both themes (js/ui/cadenceNote.js — single-leg files converted ×2, or the
+   convention undetermined and raw values shown). At the emergency level it
+   folds away like the route note, its sentence moving into the chip's
+   compact popover (.file-chip-pop-cadence above). */
+.cadence-note { color: var(--accent); }
+.cadence-note:hover { color: var(--accent-strong); }
 
 /* Coarse-pointer hit-area extension: the 32px square's 30px padding box
    gains 7px of transparent margin per side to 44px, visually unchanged;
@@ -314,6 +328,9 @@ html[data-theme="dark"] #app-header.is-icons #btn-github .gh-mark.gh-dark { disp
    to go. Its warning lives on inside the chip's compact popover (built in
    ui/fileChip.js when this class is present), wearing the same alarm red. */
 #app-header.is-emergency > #route-note { display: none; }
+/* The cadence notice steps aside with it: the emergency header keeps only
+   the single trigger as furniture, exactly as before this square existed. */
+#app-header.is-emergency > #cadence-note { display: none; }
 
 .header-more { position: relative; display: inline-flex; flex: none; }
 .header-more[hidden],

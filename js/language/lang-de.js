@@ -60,6 +60,7 @@ const lang_de = {
   unitFth: 'ft/h',
   unitBpm: 'bpm',
   unitRpm: 'U/min',
+  unitSpm: 'spm',
   unitW: 'W',
   system: 'System',
   light: 'Hell',
@@ -212,6 +213,11 @@ const lang_de = {
   cadence: 'Trittfrequenz',
   avgCadence: 'Durchschnittliche Trittfrequenz',
   maxCadence: 'Maximale Trittfrequenz',
+  // Labels for files whose cadence field is the single-leg cycle rate (×2
+  // converted) — steps per minute, not crank rpm. English keeps Cadence.
+  cadenceStep: 'Trittfrequenz',
+  avgCadenceStep: 'Durchschnittliche Trittfrequenz',
+  maxCadenceStep: 'Maximale Trittfrequenz',
   avgPower: 'Durchschnittliche Leistung',
   maxPower: 'Maximale Leistung',
   avgTemp: 'Durchschnittstemperatur',
@@ -226,6 +232,8 @@ const lang_de = {
   noElevationData: 'Keine Höhendaten',
   noTimestampData: 'Keine Zeitstempeldaten',
   routeSourceNote: 'Dieses GPX enthält Routenpunkte statt aufgezeichneter Trackpunkte. Zeit, Herzfrequenz und andere Aktivitätsdaten sind nicht verfügbar.',
+  cadenceConventionNote: 'Diese Datei zeichnet die Kadenz als Einbein-Zyklen auf. Die Werte werden (×2) umgerechnet und als Schritte pro Minute angezeigt.',
+  cadenceConventionUnknown: 'Dieser Datei fehlen Schrittlängendaten, daher lässt sich die Kadenz-Konvention nicht bestimmen. Die Werte werden wie vom Gerät aufgezeichnet angezeigt.',
 
   // Heart Rate Zones
   hrZones: 'Herzfrequenz-Zonen',

@@ -24,7 +24,8 @@ import {
   MPH_PER_MPS,
   secPerKmToSecPerMi,
   bpmUnit,
-  rpmUnit,
+  cadenceUnit,
+  cadenceLabelKey,
   powerUnit,
   tempUnit,
   percentUnit,
@@ -33,7 +34,7 @@ import {
   paceUnit,
 } from '../../units/units.js';
 import {
-  formatBpm, formatRpm, formatPower, formatTemp,
+  formatBpm, formatCadence, formatPower, formatTemp,
   formatGrade, formatElevation, formatSpeed, formatPace,
 } from '../../utils/format.js';
 
@@ -79,8 +80,12 @@ export const METRICS = [
     unit: powerUnit, format: formatPower, toDisplay: identity, fromDisplay: identity,
   },
   {
-    id: 'cad', labelKey: 'cadence',
-    unit: rpmUnit, format: formatRpm, toDisplay: identity, fromDisplay: identity,
+    // Label and unit follow the CURRENT track's cadence convention: single-leg
+    // files read 步频 / spm, everything else 踏频 / rpm. The getter re-resolves
+    // per access, so re-renders pick up the right wording with no extra wiring.
+    id: 'cad',
+    get labelKey() { return cadenceLabelKey(); },
+    unit: cadenceUnit, format: formatCadence, toDisplay: identity, fromDisplay: identity,
   },
   {
     id: 'temp', labelKey: 'legendTemp',

@@ -14,6 +14,7 @@
 import FitParser from '../../vendor/fit-parser/fit-parser.js';
 import { ParseError, PARSE_ERROR_KEYS } from './parseError.js';
 import { fillElevationGaps } from './eleGaps.js';
+import { detectCadenceConvention } from './cadenceConvention.js';
 
 /** @type {FitParser | null}  Lazy singleton — the instance holds no per-file state. */
 let fitParser = null;
@@ -54,7 +55,9 @@ export async function parseFIT(buffer) {
     throw new ParseError(PARSE_ERROR_KEYS.noTrack, 'fit-parser: no record with a position');
   }
   fillElevationGaps(points);
-  return { points, waypoints: [] };
+  // Cadence convention comes from the RAW records (step_length never
+  // survives the TrackPoint mapping); only the FIT path can judge it.
+  return { points, waypoints: [], cadence: detectCadenceConvention(records) };
 }
 
 /**

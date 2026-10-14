@@ -41,6 +41,7 @@ import {
   vamUnit,
   bpmUnit,
   rpmUnit,
+  cadenceUnit,
   powerUnit,
   percentUnit,
   tempUnit,
@@ -206,6 +207,19 @@ export function formatPercent(value) {
 export function formatRpm(rpm) {
   if (!Number.isFinite(rpm)) return '—';
   return `${nf({ maximumFractionDigits: 0 }).format(rpm)} ${rpmUnit()}`;
+}
+
+/**
+ * Cadence in the CURRENT track's display convention: steps per minute on
+ * single-leg (×2) files, rpm otherwise. The track argument may be omitted —
+ * the loaded track decides (see units.cadenceUnit). Every cadence READOUT
+ * goes through this; formatRpm above stays for convention-free callers.
+ * @param {number} value
+ * @param {import('../types.js').Track} [track]
+ */
+export function formatCadence(value, track) {
+  if (!Number.isFinite(value)) return '—';
+  return `${nf({ maximumFractionDigits: 0 }).format(value)} ${cadenceUnit(track)}`;
 }
 
 /**
