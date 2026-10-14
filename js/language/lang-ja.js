@@ -248,6 +248,27 @@ const lang_ja = {
   hrZoneErrorLthr: '乳酸閾値は安静時心拍と最大心拍数の間にしてください。',
   hrZoneErrorOrder: 'ゾーンの下限(bpm)はゾーン 1 からゾーン 5 へ厳密に増加させてください(LTHR モードではゾーン 5 が乳酸閾値から始まります)。',
 
+  // Elevation correction (Track data drawer group)
+  trackData: 'トラックデータ',
+  eleIntro: '欠落した標高を補完、または記録された標高を Mapterhorn の地形タイルからサンプリングした値で置き換えます。要求されるのはトラックが通るタイルだけで、トラック自体がブラウザの外に出ることはありません。',
+  eleFill: '欠落した標高を補完',
+  eleReplace: '標高を DEM に置き換え',
+  eleReplaceWarn: '記録された標高は DEM の値に置き換えられます。デバイスの記録とは異なる場合があります。元の値は保持され、いつでも戻せます。',
+  eleConfirmReplace: '置き換える',
+  eleCancel: 'キャンセル',
+  eleRestore: '元の標高に戻す',
+  eleNeedTrack: '先にトラックを読み込んでください。',
+  eleProgress: '地形タイルを取得中… {done} / {total}',
+  eleResultFill: '欠落していた標高 {n} 点を補完しました。',
+  eleResultReplace: '{n} 点の標高を DEM に置き換えました。',
+  eleResultFailed: '{n} 点はサンプリングできず、以前の値のままです。',
+  eleFailedAll: '標高をサンプリングできませんでした — 何も変更されていません。',
+  eleNothingToFill: '欠落した標高はありません — 補完するものがありません。',
+  eleCancelled: 'キャンセルされました — 何も変更されていません。',
+  eleRestored: '元の標高に戻しました。',
+  eleErrorNote: '地形タイルを取得できませんでした。接続を確認してもう一度お試しください。',
+  eleAttributionLabel: '地形データ',
+
   // Track info
   pointsCount: '{n} ポイント',
   sourceFile: 'ソースファイル:',

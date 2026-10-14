@@ -17,6 +17,15 @@ export const CHANGELOG_EN = {
   lede: 'What changed in the analyzer, day by day.',
   sections: [
     {
+      h: '2026-10-14',
+      ps: [
+        'Settings gains a Track data group with an elevation correction. It can fill the elevations that a track is missing. It can replace every recorded elevation with values from terrain data and restore the originals at any time.',
+        'The values come from Mapterhorn, an open collection of terrain data. The correction downloads only the tiles that your track touches, and the track itself never leaves the browser. The corrected values feed every number you already see. That includes the profile, climb and descent, grades, 3D and effort distance, GAP, VAM and VDM, the sectors and the exports.',
+        'Before it replaces the recorded elevations, the correction asks you to confirm. The warning says that the terrain values can differ from the values that the device recorded. You can stop a correction while it downloads. Points that the correction cannot sample keep their previous value. They never turn into a fake number.',
+        'The privacy statement and the story page now describe the terrain tiles from Mapterhorn.',
+      ],
+    },
+    {
       h: '2026-10-13',
       ps: [
         'The changelog now uses plainer words. Each entry describes what changed on screen, and entries with no visible change are gone.',

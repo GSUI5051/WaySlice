@@ -252,6 +252,27 @@ const lang_de = {
   hrZoneErrorLthr: 'Die Schwelle muss zwischen der Ruhe- und der maximalen Herzfrequenz liegen.',
   hrZoneErrorOrder: 'Die bpm-Untergrenzen müssen von Zone 1 bis Zone 5 streng ansteigen (im Schwelle-Modus beginnt Zone 5 an der Schwelle).',
 
+  // Elevation correction (Track data drawer group)
+  trackData: 'Trackdaten',
+  eleIntro: 'Fehlende Höhen ergänzen oder aufgezeichnete Höhen durch Werte aus Mapterhorn-Geländekacheln ersetzen. Nur die Kacheln, die deine Strecke berührt, werden angefordert; die Strecke selbst verlässt deinen Browser nie.',
+  eleFill: 'Fehlende Höhen ergänzen',
+  eleReplace: 'Höhen durch DEM ersetzen',
+  eleReplaceWarn: 'Die aufgezeichneten Höhen werden durch DEM-Werte ersetzt, die von den Aufzeichnungen deines Geräts abweichen können. Die Originale bleiben erhalten und lassen sich wiederherstellen.',
+  eleConfirmReplace: 'Ersetzen',
+  eleCancel: 'Abbrechen',
+  eleRestore: 'Original-Höhen wiederherstellen',
+  eleNeedTrack: 'Lade zuerst einen Track.',
+  eleProgress: 'Geländekacheln werden geladen… {done} / {total}',
+  eleResultFill: '{n} fehlende Höhen ergänzt.',
+  eleResultReplace: '{n} Höhen durch DEM ersetzt.',
+  eleResultFailed: '{n} Punkte konnten nicht abgetastet werden und behalten ihren bisherigen Wert.',
+  eleFailedAll: 'Es konnte keine Höhe abgetastet werden — nichts wurde geändert.',
+  eleNothingToFill: 'Keine fehlenden Höhen — nichts zu ergänzen.',
+  eleCancelled: 'Abgebrochen — nichts wurde geändert.',
+  eleRestored: 'Original-Höhen wiederhergestellt.',
+  eleErrorNote: 'Die Geländekacheln konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut.',
+  eleAttributionLabel: 'Geländedaten',
+
   // Track info
   pointsCount: '{n} Trackpunkte',
   sourceFile: 'Quelldatei:',

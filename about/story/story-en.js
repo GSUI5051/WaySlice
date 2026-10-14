@@ -88,7 +88,9 @@ export const STORY_EN = {
       ps: [
         'The analyzer itself needs no server, nothing needs to be uploaded, and there is no need to collect user data.',
         'Everything happens in your own browser: File → Browser → Parse → Analyze → Render. All settings live in your own browser too.',
-        'The only network-dependent feature is loading map tiles from the map providers\' servers.',
+        'The map loads its tiles from the map providers\' servers.',
+        'One download is optional: the elevation correction in Settings → Track data, while it runs, fetches the terrain tiles a track touches from Mapterhorn, an open terrain-data collection, to fill missing elevations or replace recorded ones.',
+        'Both are plain tile requests, like image loading on any page. Your track, your files and your settings never leave your own browser.',
       ],
     },
     {

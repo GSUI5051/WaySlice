@@ -215,8 +215,9 @@ Después abre <http://localhost:8080> y suelta un archivo GPX/FIT/TCX/KML/KMZ.
 ## Privacidad
 
 - Tu traza se procesa **solo** en tu navegador: analizar → calcular → dibujar, todo en local.
-- Las únicas peticiones de red son las **teselas cartográficas** del mapa base que elijas. Los datos de
-  tu traza nunca se transmiten y no hay estadísticas de uso.
+- Las únicas peticiones de red son las **teselas cartográficas** del mapa base que elijas y —solo si
+  ejecutas una corrección de altitud— las pocas **teselas de terreno** (Mapterhorn) que toca tu traza.
+  Los datos de tu traza nunca se transmiten y no hay estadísticas de uso.
 - El tema, el idioma, el mapa base, las unidades y el estado de la superposición viaria se guardan solo en el `localStorage` de tu
   dispositivo.
 - Este texto también está disponible en la app: **Acerca de → Privacy** en `Ajustes`

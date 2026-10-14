@@ -255,6 +255,27 @@ const lang_es = {
   hrZoneErrorLthr: 'El umbral debe estar comprendido entre la frecuencia cardíaca en reposo y la máxima.',
   hrZoneErrorOrder: 'Los límites en ppm de las zonas deben aumentar de forma estricta de la zona 1 a la zona 5 (en el modo Umbral, la zona 5 comienza en el umbral).',
 
+  // Elevation correction (Track data drawer group)
+  trackData: 'Datos de la traza',
+  eleIntro: 'Completa las altitudes que faltan o sustituye las registradas por valores muestreados de las teselas de terreno de Mapterhorn. Solo se piden las teselas que toca tu traza; la traza nunca sale de tu navegador.',
+  eleFill: 'Completar altitudes que faltan',
+  eleReplace: 'Sustituir altitudes por el MDE',
+  eleReplaceWarn: 'Las altitudes registradas se sustituirán por valores del MDE, que pueden diferir de lo que registró tu dispositivo. Los originales se conservan y pueden restaurarse.',
+  eleConfirmReplace: 'Sustituir',
+  eleCancel: 'Cancelar',
+  eleRestore: 'Restaurar altitudes originales',
+  eleNeedTrack: 'Carga primero una traza.',
+  eleProgress: 'Descargando teselas de terreno… {done} / {total}',
+  eleResultFill: 'Se completaron {n} altitudes que faltaban.',
+  eleResultReplace: 'Se sustituyeron {n} altitudes por el MDE.',
+  eleResultFailed: '{n} puntos no pudieron muestrearse y conservan su valor anterior.',
+  eleFailedAll: 'No se pudo muestrear ninguna altitud — no se cambió nada.',
+  eleNothingToFill: 'No faltan altitudes — nada que completar.',
+  eleCancelled: 'Cancelado — no se cambió nada.',
+  eleRestored: 'Altitudes originales restauradas.',
+  eleErrorNote: 'No se pudieron descargar las teselas de terreno. Comprueba la conexión e inténtalo de nuevo.',
+  eleAttributionLabel: 'Datos de terreno',
+
   // Track info
   pointsCount: '{n} puntos de traza',
   sourceFile: 'Archivo de origen:',

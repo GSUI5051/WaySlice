@@ -74,6 +74,16 @@
  * @property {'track'|'route'} [sourceType]    'route' when the points are GPX route points
  *                                             (degraded source: hasTime/hasHr/… are false by
  *                                             construction); 'track' otherwise.
+ * @property {(number|null)[]|null} [eleOriginal] The file's original elevations, captured
+ *                                             once before the first DEM correction and kept
+ *                                             until Restore empties it (null = nothing
+ *                                             corrected). The effective elevations always
+ *                                             live in `points[i].ele` — every existing
+ *                                             consumer reads them there.
+ * @property {'fill'|'replace'|null} [eleSource] The elevation source currently applied:
+ *                                             'fill' (DEM filled only the missing values),
+ *                                             'replace' (DEM replaced every sampled point),
+ *                                             null/absent (the original recording).
  */
 
 /**

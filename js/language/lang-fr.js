@@ -250,6 +250,27 @@ const lang_fr = {
   hrZoneErrorLthr: 'Le seuil lactique doit se situer entre la fréquence de repos et la fréquence maximale.',
   hrZoneErrorOrder: 'Les bornes inférieures en bpm des zones doivent augmenter strictement de la zone 1 à la zone 5 (en mode LTHR, la zone 5 commence au seuil).',
 
+  // Elevation correction (Track data drawer group)
+  trackData: 'Données de la trace',
+  eleIntro: 'Complète les altitudes manquantes ou remplace les altitudes enregistrées par des valeurs échantillonnées sur les tuiles de terrain Mapterhorn. Seules les tuiles traversées par votre trace sont demandées ; la trace elle-même ne quitte jamais votre navigateur.',
+  eleFill: 'Compléter les altitudes manquantes',
+  eleReplace: 'Remplacer les altitudes par le MNT',
+  eleReplaceWarn: 'Les altitudes enregistrées seront remplacées par des valeurs du MNT, qui peuvent différer de ce que votre appareil a enregistré. Les valeurs d’origine sont conservées et peuvent être restaurées.',
+  eleConfirmReplace: 'Remplacer',
+  eleCancel: 'Annuler',
+  eleRestore: 'Restaurer les altitudes d’origine',
+  eleNeedTrack: 'Chargez d’abord une trace.',
+  eleProgress: 'Récupération des tuiles de terrain… {done} / {total}',
+  eleResultFill: '{n} altitudes manquantes complétées.',
+  eleResultReplace: '{n} altitudes remplacées par le MNT.',
+  eleResultFailed: '{n} points n’ont pas pu être échantillonnés et conservent leur valeur précédente.',
+  eleFailedAll: 'Aucune altitude n’a pu être échantillonnée — rien n’a été modifié.',
+  eleNothingToFill: 'Aucune altitude manquante — rien à compléter.',
+  eleCancelled: 'Annulé — rien n’a été modifié.',
+  eleRestored: 'Altitudes d’origine restaurées.',
+  eleErrorNote: 'Les tuiles de terrain n’ont pas pu être récupérées. Vérifiez la connexion puis réessayez.',
+  eleAttributionLabel: 'Données de terrain',
+
   // Track info
   pointsCount: '{n} points',
   sourceFile: 'Fichier source :',

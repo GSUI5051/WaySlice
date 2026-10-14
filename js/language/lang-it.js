@@ -253,6 +253,27 @@ const lang_it = {
   hrZoneErrorLthr: 'La soglia deve trovarsi tra la frequenza cardiaca a riposo e quella massima.',
   hrZoneErrorOrder: 'I limiti in bpm delle zone devono crescere rigorosamente dalla zona 1 alla zona 5 (in modalità Soglia la zona 5 inizia alla soglia).',
 
+  // Elevation correction (Track data drawer group)
+  trackData: 'Dati della traccia',
+  eleIntro: 'Completa le altitudini mancanti o sostituisce quelle registrate con valori campionati dalle tessere di terreno Mapterhorn. Vengono richieste solo le tessere toccate dalla traccia; la traccia non lascia mai il tuo browser.',
+  eleFill: 'Completa le altitudini mancanti',
+  eleReplace: 'Sostituisci le altitudini dal DEM',
+  eleReplaceWarn: 'Le altitudini registrate saranno sostituite da valori del DEM, che possono differire da quelli registrati dal tuo dispositivo. Gli originali vengono conservati e possono essere ripristinati.',
+  eleConfirmReplace: 'Sostituisci',
+  eleCancel: 'Annulla',
+  eleRestore: 'Ripristina le altitudini originali',
+  eleNeedTrack: 'Prima carica una traccia.',
+  eleProgress: 'Scarico delle tessere di terreno… {done} / {total}',
+  eleResultFill: 'Completate {n} altitudini mancanti.',
+  eleResultReplace: 'Sostituite {n} altitudini dal DEM.',
+  eleResultFailed: '{n} punti non hanno potuto essere campionati e mantengono il valore precedente.',
+  eleFailedAll: 'Nessuna altitudine campionabile — nulla è stato modificato.',
+  eleNothingToFill: 'Nessuna altitudine mancante — nulla da completare.',
+  eleCancelled: 'Annullato — nulla è stato modificato.',
+  eleRestored: 'Altitudini originali ripristinate.',
+  eleErrorNote: 'Le tessere di terreno non possono essere scaricate. Controlla la connessione e riprova.',
+  eleAttributionLabel: 'Dati del terreno',
+
   // Track info
   pointsCount: '{n} punti della traccia',
   sourceFile: 'File di origine:',

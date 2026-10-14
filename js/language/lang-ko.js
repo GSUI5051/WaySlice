@@ -248,6 +248,27 @@ const lang_ko = {
   hrZoneErrorLthr: '젖산 역치는 안정 심박수와 최대 심박수 사이여야 합니다.',
   hrZoneErrorOrder: '존의 bpm 하한은 존 1에서 존 5로 엄격하게 증가해야 합니다(LTHR 모드에서는 존 5가 젖산 역치에서 시작합니다).',
 
+  // Elevation correction (Track data drawer group)
+  trackData: '트랙 데이터',
+  eleIntro: '누락된 고도를 채우거나 기록된 고도를 Mapterhorn 지형 타일에서 샘플링한 값으로 교체합니다. 요청되는 것은 트랙이 지나는 타일뿐이며, 트랙 자체는 브라우저를 떠나지 않습니다.',
+  eleFill: '누락된 고도 채우기',
+  eleReplace: '고도를 DEM으로 교체',
+  eleReplaceWarn: '기록된 고도는 DEM 값으로 교체되며, 기기가 기록한 값과 다를 수 있습니다. 원본은 보존되며 언제든 복원할 수 있습니다.',
+  eleConfirmReplace: '교체',
+  eleCancel: '취소',
+  eleRestore: '원래 고도 복원',
+  eleNeedTrack: '먼저 트랙을 불러오세요.',
+  eleProgress: '지형 타일 가져오는 중… {done} / {total}',
+  eleResultFill: '누락된 고도 {n}개를 채웠습니다.',
+  eleResultReplace: '고도 {n}개를 DEM으로 교체했습니다.',
+  eleResultFailed: '{n}개 지점은 샘플링하지 못해 이전 값을 유지합니다.',
+  eleFailedAll: '고도를 샘플링하지 못했습니다 — 아무것도 변경되지 않았습니다.',
+  eleNothingToFill: '누락된 고도가 없습니다 — 채울 것이 없습니다.',
+  eleCancelled: '취소됨 — 아무것도 변경되지 않았습니다.',
+  eleRestored: '원래 고도로 복원했습니다.',
+  eleErrorNote: '지형 타일을 가져오지 못했습니다. 연결을 확인하고 다시 시도하세요.',
+  eleAttributionLabel: '지형 데이터',
+
   // Track info
   pointsCount: '포인트 {n}개',
   sourceFile: '소스 파일:',

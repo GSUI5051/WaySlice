@@ -19,7 +19,7 @@ WaySlice (https://wayslice.com/) is built around the sector: the whole track tel
 - [WaySlice web app](https://wayslice.com/): the analyzer itself, opens ready to use — no installation
 - [Source code (GitHub)](https://github.com/GSUI5051/WaySlice): repository, docs and issue tracker
 - [Story](https://wayslice.com/about/story/story.html): why an outdoor activity is worth reading like telemetry
-- [Privacy](https://wayslice.com/about/privacy/privacy.html): what the app sends over the network (map tiles only)
+- [Privacy](https://wayslice.com/about/privacy/privacy.html): what the app sends over the network (map tiles, plus terrain tiles only when you run an elevation correction)
 - [Changelog](https://wayslice.com/about/changelog/changelog.html): what changed, day by day
 
 ## Citation

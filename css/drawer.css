@@ -142,3 +142,28 @@
 }
 
 .drawer-acc[data-open] > .drawer-acc-body > .drawer-acc-inner { visibility: visible; }
+
+/* Elevation correction ("Track data" group): small note lines between the
+   action rows, and the two-button confirm/cancel pairs. Notes keep the
+   drawer's row rhythm; .ele-warn leans on the danger hue (recorded data at
+   stake), .ele-ok on success. */
+.ele-fix { display: flex; flex-direction: column; padding-block: 4px 2px; }
+
+.ele-note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--foreground-muted);
+  padding: 6px 10px 7px;
+}
+
+.ele-note.ele-warn { color: var(--danger); }
+.ele-note.ele-ok { color: var(--success); }
+
+.ele-actions {
+  display: flex;
+  gap: 8px;
+  padding: 4px 10px 6px;
+}
+
+.ele-attrib { color: var(--foreground-faint); }
+.ele-attrib a { color: var(--foreground-muted); }

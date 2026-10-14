@@ -216,8 +216,9 @@ Poi apri <http://localhost:8080> e trascina un file GPX/FIT/TCX/KML/KMZ.
 
 - La tua traccia viene elaborata **solo** nel tuo browser: parsing → analisi → rendering, tutto in
   locale.
-- Le uniche richieste di rete sono i **tile cartografici** della mappa di base che scegli. I dati della
-  tua traccia non vengono mai trasmessi e non ci sono statistiche d'uso.
+- Le uniche richieste di rete sono i **tile cartografici** della mappa di base che scegli e — solo se
+  avvii una correzione delle altitudini — le poche **tessere di terreno** (Mapterhorn) toccate dalla
+  traccia. I dati della tua traccia non vengono mai trasmessi e non ci sono statistiche d'uso.
 - Tema, lingua, mappa di base, unità e lo stato della sovrapposizione stradale sono salvati solo nel `localStorage` del tuo dispositivo.
 - Questo testo è disponibile anche nell'app: **Informazioni → Privacy** in `Impostazioni`
   (bottone a ingranaggio dell'intestazione).

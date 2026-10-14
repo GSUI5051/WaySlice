@@ -249,7 +249,28 @@ const lang_en = {
   hrZoneErrorLthr: 'The lactate threshold must lie between the resting and the maximum heart rate.',
   hrZoneErrorOrder: 'The zones’ bpm lower bounds must increase strictly from Zone 1 to Zone 5 (in LTHR mode Zone 5 begins at the threshold).',
 
-  // Track info
+  // Elevation correction (Track data drawer group)
+  trackData: 'Track data',
+  eleIntro: 'Fill missing or replace recorded elevations with values sampled from Mapterhorn terrain tiles. Only the tiles your track touches are requested; the track itself never leaves this browser.',
+  eleFill: 'Fill missing elevations',
+  eleReplace: 'Replace elevations from DEM',
+  eleReplaceWarn: 'Recorded elevations will be replaced by DEM values, which can differ from what your device recorded. The originals are kept and can be restored.',
+  eleConfirmReplace: 'Replace',
+  eleCancel: 'Cancel',
+  eleRestore: 'Restore original elevations',
+  eleNeedTrack: 'Load a track first.',
+  eleProgress: 'Fetching terrain tiles… {done} / {total}',
+  eleResultFill: 'Filled {n} missing elevations.',
+  eleResultReplace: 'Replaced {n} elevations from DEM.',
+  eleResultFailed: '{n} points could not be sampled and keep their previous value.',
+  eleFailedAll: 'No elevation could be sampled — nothing was changed.',
+  eleNothingToFill: 'No missing elevations — nothing to fill.',
+  eleCancelled: 'Cancelled — nothing was changed.',
+  eleRestored: 'Original elevations restored.',
+  eleErrorNote: 'The terrain tiles could not be fetched. Check the connection and try again.',
+  eleAttributionLabel: 'Terrain data',
+
+
   pointsCount: '{n} points',
   sourceFile: 'Source File:',
 };

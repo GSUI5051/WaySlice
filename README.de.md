@@ -217,7 +217,8 @@ Dann öffne <http://localhost:8080> und ziehe eine GPX-/FIT-/TCX-/KML-/KMZ-Datei
 ## Datenschutz
 
 - Dein Track wird **nur** in deinem Browser verarbeitet: parsen → analysieren → rendern, alles lokal.
-- Die einzigen Netzwerkanfragen sind **Kartenkacheln** der Basiskarte deiner Wahl. Deine Trackdaten
+- Die einzigen Netzwerkanfragen sind **Kartenkacheln** der Basiskarte deiner Wahl — und nur bei einer
+  Höhenkorrektur die wenigen **Geländekacheln** (Mapterhorn), die dein Track berührt. Deine Trackdaten
   werden nie übertragen, und es gibt keine Nutzungsstatistik.
 - Design, Sprache, Basiskarte, Einheiten und der Straßenoverlay-Schalter werden nur im `localStorage` deines Geräts gespeichert.
 - Diese Erklärung gibt es auch in der App: **Über → Privacy** in der `Einstellungen`-Seitenleiste

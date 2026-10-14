@@ -28,10 +28,11 @@ export const PRIVACY_EN = {
       ],
     },
     {
-      h: 'The only network-dependent feature: the map',
+      h: 'Network-dependent features: the map, and optional terrain tiles',
       ps: [
-        'The only network-dependent feature is the map. Basemap tiles are downloaded from the map providers\' servers: OpenStreetMap, OpenTopoMap, CyclOSM, Thunderforest, Mapy, Stadia, OpenFreeMap, EOX and Esri. On a satellite basemap, the optional road-network overlay additionally loads vector road tiles from OpenFreeMap.',
-        'The map request is the only web request, like image loading on any page. Your track, your files and your settings never leave your own browser.',
+        'The map downloads basemap tiles from the map providers\' servers: OpenStreetMap, OpenTopoMap, CyclOSM, Thunderforest, Mapy, Stadia, OpenFreeMap, EOX and Esri. On a satellite basemap, the optional road-network overlay additionally loads vector road tiles from OpenFreeMap.',
+        'The optional elevation correction (Settings → Track data) samples terrain tiles from Mapterhorn (mapterhorn.com) to fill missing elevations or replace recorded ones. It requests only the few tiles the track actually touches — never the whole track, and never the track file itself. Tile addresses alone can still tell the server which area you are looking at, so using the feature adds that one location disclosure; leaving it unused sends nothing.',
+        'These tile requests are ordinary web requests, like image loading on any page. Your track, your files and your settings are never uploaded anywhere.',
       ],
     },
     {

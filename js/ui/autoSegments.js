@@ -83,6 +83,12 @@ export function initAutoSegments(autoSegmentsButton) {
   document.addEventListener('click', handleChevronTaps);
   trackStore.subscribe((track) => {
     button.hidden = !track;
+    // An elevation correction re-publishes the same points; an open sheet
+    // still shows the old elevation stats, so re-render it in place (the
+    // same live-refresh the language/unit switches below perform).
+    if (track && document.getElementById('sheet').open && bodyEl.querySelector('.seg-list')) {
+      render(track);
+    }
   });
 }
 

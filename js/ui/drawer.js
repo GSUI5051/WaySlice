@@ -25,6 +25,7 @@ import {
 } from './optionLists.js';
 import { openHeartZonesDialog } from './heartZonesDialog.js';
 import { openStoryDialog } from './storyDialog.js';
+import { elevationContent } from './elevationSettings.js';
 import {
   loadHeartRateSettings,
 } from '../metrics/heartRateSettings.js';
@@ -98,6 +99,7 @@ function renderSections() {
     accordionSection('units', 'units', () =>
       renderOptionList(buildUnitItems(), (value) => { pickUnit(value); renderSections(); })),
     accordionSection('heart-rate', 'hrZones', heartRateContent),
+    accordionSection('track-data', 'trackData', elevationContent),
     accordionSection('about', 'aboutSection', aboutContent),
   );
   if (refocusValue) {

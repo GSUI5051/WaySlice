@@ -216,8 +216,9 @@ Ouvrez ensuite <http://localhost:8080> et déposez un fichier GPX/FIT/TCX/KML/KM
 
 - Votre trace n'est traitée **que** dans votre navigateur : analyse → calculs → rendu, tout en
   local.
-- Les seules requêtes réseau sont les **tuiles cartographiques** du fond de carte choisi. Vos
-  données de trace ne sont jamais transmises, et il n'y a aucune statistique d'usage.
+- Les seules requêtes réseau sont les **tuiles cartographiques** du fond de carte choisi, et — uniquement
+  si vous lancez une correction d'altitude — les rares **tuiles de terrain** (Mapterhorn) que votre trace
+  traverse. Vos données de trace ne sont jamais transmises, et il n'y a aucune statistique d'usage.
 - Thème, langue, fond de carte, unités et l'état de la superposition du réseau routier sont stockés dans le `localStorage` de votre appareil
   uniquement.
 - Ce texte est également disponible dans l'app : **À propos → Privacy** dans le tiroir
