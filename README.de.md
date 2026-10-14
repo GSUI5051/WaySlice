@@ -32,6 +32,10 @@ Track → Abschnitt wählen → Abschnitt analysieren
 
 <p align="center"><a href="./screenshots/README.de.md">Weitere Screenshots</a></p>
 
+## Anwendung
+
+Öffne [https://wayslice.com](https://wayslice.com) oder [starte WaySlice lokal](#erste-schritte) und importiere deine Aktivitätsdaten.
+
 Neu bei diesen Begriffen? Starte mit dem Kapitel [Terminologie](#terminologie) — alle übrigen Kapitel
 benutzen diese Wörter genau so, wie sie dort definiert sind.
 

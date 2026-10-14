@@ -32,6 +32,10 @@ Traccia → Scegli un tratto → Analizza il tratto
 
 <p align="center"><a href="./screenshots/README.it.md">Altri screenshot</a></p>
 
+## Come si usa
+
+Apri [https://wayslice.com](https://wayslice.com) oppure [esegui WaySlice in locale](#per-iniziare) e importa i dati della tua attività.
+
 Prima volta con questi termini? Parti dalla sezione [Terminologia](#terminologia) — tutte le altre
 sezioni usano queste parole esattamente con il significato definito lì.
 

@@ -30,6 +30,10 @@ Track → Select Sector → Analyze Sector
 
 <p align="center"><a href="./screenshots/README.md">More screenshots</a></p>
 
+## How to use
+
+Click [https://wayslice.com](https://wayslice.com) or [local deploy](#getting-started), import your activity data.
+
 New to the terms? Start with the [Terminology](#terminology) section — every other section uses
 those words exactly as defined there.
 

@@ -17,7 +17,9 @@
 </p>
 
 WaySlice는 오픈 소스 순수 프런트엔드 GPX/FIT/TCX/KML/KMZ 트랙 분석기입니다.
+
 전체 트랙 통계로는 알 수 없습니다. 알고 싶은 것은 그 긴 오르막이 얼마나 걸렸는지, 테크니컬한 내리막을 얼마나 과감히 내려갔는지, 레이스 마지막 5 km에서 페이스가 무너졌는지입니다.
+
 WaySlice는 임의의 구간을 잘라내어 레이싱 텔레메트리나 항공 QAR(퀵 액세스 레코더) 데이터를 읽듯 따로 분석하게 해 줍니다:
 
 ```text
@@ -27,6 +29,10 @@ WaySlice는 임의의 구간을 잘라내어 레이싱 텔레메트리나 항공
 <p align="center"><img src="./screenshots/overview.jpg" alt="image"></p>
 
 <p align="center"><a href="./screenshots/README.ko.md">스크린샷 더 보기</a></p>
+
+## 사용 방법
+
+[https://wayslice.com](https://wayslice.com)에 접속하거나 [로컬에서 실행](#시작하기)한 뒤 활동 데이터를 가져오세요.
 
 용어가 낯설다면 [용어집](#용어집)부터 읽어 보세요. 이 문서의 용어는 모두 거기서 정의한 의미로 쓰입니다.
 

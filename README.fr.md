@@ -33,6 +33,10 @@ Trace → Choisir un secteur → Analyser le secteur
 
 <p align="center"><a href="./screenshots/README.fr.md">Plus de captures d’écran</a></p>
 
+## Utilisation
+
+Ouvrez [https://wayslice.com](https://wayslice.com) ou [déployez WaySlice en local](#prise-en-main), puis importez vos données d'activité.
+
 Nouveau sur le vocabulaire ? Commencez par la section [Terminologie](#terminologie) — toutes les
 autres sections emploient ces mots exactement au sens défini ici.
 
