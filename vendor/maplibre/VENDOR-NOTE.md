@@ -1,8 +1,8 @@
 # Vendored: MapLibre GL JS
 
-- Library: MapLibre GL JS, **version 6.13.0** (pinned single version)
-- Source: official npm release package `maplibre-gl@6.13.0`
-  (`https://registry.npmjs.org/maplibre-gl/-/maplibre-gl-6.13.0.tgz`)
+- Library: MapLibre GL JS, **version 6.15.0** (pinned single version)
+- Source: official npm release package `maplibre-gl@6.15.0`
+  (`https://registry.npmjs.org/maplibre-gl/-/maplibre-gl-6.15.0.tgz`)
 - License: **BSD-3-Clause** — copyright MapLibre contributors; the license
   text ships in the npm package and is published at
   <https://github.com/maplibre/maplibre-gl-js/blob/main/LICENSE.txt>.

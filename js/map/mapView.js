@@ -945,31 +945,12 @@ export function setWaypointsVisible(visible) {
   else { clearWaypointBridge(); for (const marker of layers.waypoints) marker.remove(); }
 }
 
-/** True when the OS asked for reduced motion: camera flights become the
- *  one-step jump (CSS already freezes its own transitions in base.css, but
- *  MapLibre's camera easing runs in JS and needs this explicit gate). */
-function prefersReducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-/** fitBounds that honors prefers-reduced-motion: under the preference the
- *  camera jumps straight to the fitted view (same cameraForBounds + jumpTo
- *  path as the de-animated initial fit) instead of flying there. */
-function fitBoundsRespectingMotion(bounds) {
-  if (prefersReducedMotion()) {
-    // cameraForBounds is the exact camera fitBounds would animate to.
-    const cam = map.cameraForBounds(bounds, { padding: 28 });
-    if (cam) {
-      map.jumpTo(cam);
-      return;
-    }
-  }
-  map.fitBounds(bounds, { padding: 28 });
-}
-
 /** Fits the viewport to the whole track. Pass `{ animate: false }` for the
- * initial fit after a track parse — the camera jumps to the fitted view in
- * one step instead of flying there. */
+ *  initial fit after a track parse — the camera jumps to the fitted view in
+ *  one step instead of flying there. Explicit fits fly; under
+ *  prefers-reduced-motion MapLibre itself (since 6.14, #8730) lands them
+ *  instantly at the exact fit camera, so no local motion gate is needed
+ *  (CSS transitions freeze separately in base.css). */
 export function fitTrack(opts) {
   if (!track || !map || !map.getContainer().isConnected) return;
   try {
@@ -985,7 +966,7 @@ export function fitTrack(opts) {
         return;
       }
     }
-    fitBoundsRespectingMotion(bounds);
+    map.fitBounds(bounds, { padding: 28 });
   } catch (error) {
     // A transient zero-size layout should not invalidate an already parsed
     // track; a later resize or explicit fit will retry.
@@ -1033,7 +1014,7 @@ export function fitSector() {
         if (p.lon > maxLon) maxLon = p.lon;
       }
     }
-    fitBoundsRespectingMotion([[minLon, minLat], [maxLon, maxLat]]);
+    map.fitBounds([[minLon, minLat], [maxLon, maxLat]], { padding: 28 });
   } catch (error) {
     console.warn('[WaySlice] map fit deferred:', error);
   }
