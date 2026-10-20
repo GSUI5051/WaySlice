@@ -32,6 +32,8 @@ WaySlice があれば、任意のセクターを切り出して、モーター�
 
 ## 使い方
 
+紹介動画：[WaySlice Explainer](https://youtu.be/yBy7z0QS8CA)
+
 [https://wayslice.com](https://wayslice.com) を開く、または[ローカルで起動](#はじめに)して、アクティビティデータをインポートしてください。
 
 用語に不慣れな場合は、まず[用語集](#用語集)へ。本文中の用語はすべて、そこで定義した意味で使います。

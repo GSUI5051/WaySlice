@@ -34,6 +34,8 @@ Traccia → Scegli un tratto → Analizza il tratto
 
 ## Come si usa
 
+Video introduttivo: [WaySlice Explainer](https://youtu.be/yBy7z0QS8CA)
+
 Apri [https://wayslice.com](https://wayslice.com) oppure [esegui WaySlice in locale](#per-iniziare) e importa i dati della tua attività.
 
 Prima volta con questi termini? Parti dalla sezione [Terminologia](#terminologia) — tutte le altre

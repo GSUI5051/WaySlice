@@ -35,6 +35,8 @@ Trace → Choisir un secteur → Analyser le secteur
 
 ## Utilisation
 
+Vidéo de présentation : [WaySlice Explainer](https://youtu.be/yBy7z0QS8CA)
+
 Ouvrez [https://wayslice.com](https://wayslice.com) ou [déployez WaySlice en local](#prise-en-main), puis importez vos données d'activité.
 
 Nouveau sur le vocabulaire ? Commencez par la section [Terminologie](#terminologie) — toutes les

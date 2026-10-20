@@ -32,6 +32,8 @@ WaySlice는 임의의 구간을 잘라내어 레이싱 텔레메트리나 항공
 
 ## 사용 방법
 
+소개 영상: [WaySlice Explainer](https://youtu.be/yBy7z0QS8CA)
+
 [https://wayslice.com](https://wayslice.com)에 접속하거나 [로컬에서 실행](#시작하기)한 뒤 활동 데이터를 가져오세요.
 
 용어가 낯설다면 [용어집](#용어집)부터 읽어 보세요. 이 문서의 용어는 모두 거기서 정의한 의미로 쓰입니다.

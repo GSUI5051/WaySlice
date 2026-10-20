@@ -34,6 +34,8 @@ Track → Abschnitt wählen → Abschnitt analysieren
 
 ## Anwendung
 
+Einführungsvideo: [WaySlice Explainer](https://youtu.be/yBy7z0QS8CA)
+
 Öffne [https://wayslice.com](https://wayslice.com) oder [starte WaySlice lokal](#erste-schritte) und importiere deine Aktivitätsdaten.
 
 Neu bei diesen Begriffen? Starte mit dem Kapitel [Terminologie](#terminologie) — alle übrigen Kapitel

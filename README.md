@@ -32,6 +32,8 @@ Track → Select Sector → Analyze Sector
 
 ## How to use
 
+Intro video: [WaySlice Explainer](https://youtu.be/yBy7z0QS8CA)
+
 Click [https://wayslice.com](https://wayslice.com) or [local deploy](#getting-started), import your activity data.
 
 New to the terms? Start with the [Terminology](#terminology) section — every other section uses

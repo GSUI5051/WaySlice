@@ -35,6 +35,8 @@ Traza → Elegir un tramo → Analizar el tramo
 
 ## Cómo se usa
 
+Vídeo de introducción: [WaySlice Explainer](https://youtu.be/yBy7z0QS8CA)
+
 Abre [https://wayslice.com](https://wayslice.com) o [ejecuta WaySlice en local](#primeros-pasos) e importa tus datos de actividad.
 
 ¿Primer contacto con los términos? Empieza por la sección de [Terminología](#terminología) — todas las
