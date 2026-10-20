@@ -1,23 +1,42 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import { calculateCRC, readRecord } from './binary.js';
 import { mapDataIntoLap, mapDataIntoSession } from './helper.js';
 export { FitBaseType, FitEncoder } from './fit-encoder.js';
 export { getFitCoursePointId, getFitGarminProductDisplayName, getFitGarminProductName, getFitManufacturerName, getFitSportId, getFitSportName, getFitSubSportId, getFitSubSportName, } from './profile-lookup.js';
 export { FitMessageReaderError, fitTimestampToUnixMilliseconds, getFitBaseTypeId, readFitMessages, readFitStringField, readFitUnsignedField, } from './raw-message-reader.js';
+function hasFitHeader(blob, start) {
+    const headerLength = blob[start];
+    return blob.length - start >= headerLength
+        && (headerLength === 12 || headerLength === 14)
+        && blob[start + 8] === 0x2E
+        && blob[start + 9] === 0x46
+        && blob[start + 10] === 0x49
+        && blob[start + 11] === 0x54;
+}
 export default class FitParser {
     constructor(options = {}) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c, _d, _e;
         this.options = {
             force: options.force != null ? options.force : true,
+            strict: (_a = options.strict) !== null && _a !== void 0 ? _a : false,
             speedUnit: options.speedUnit || 'm/s',
             lengthUnit: options.lengthUnit || 'm',
             temperatureUnit: options.temperatureUnit || 'celsius',
             elapsedRecordField: options.elapsedRecordField || false,
             pressureUnit: options.pressureUnit || 'bar',
             mode: options.mode || 'list',
-            includeRawDeveloperFields: (_a = options.includeRawDeveloperFields) !== null && _a !== void 0 ? _a : false,
-            includeRawMessages: (_b = options.includeRawMessages) !== null && _b !== void 0 ? _b : false,
-            includeUnmappedMessages: (_c = options.includeUnmappedMessages) !== null && _c !== void 0 ? _c : false,
-            rawMessagesOnly: (_d = options.rawMessagesOnly) !== null && _d !== void 0 ? _d : false,
+            includeRawDeveloperFields: (_b = options.includeRawDeveloperFields) !== null && _b !== void 0 ? _b : false,
+            includeRawMessages: (_c = options.includeRawMessages) !== null && _c !== void 0 ? _c : false,
+            includeUnmappedMessages: (_d = options.includeUnmappedMessages) !== null && _d !== void 0 ? _d : false,
+            rawMessagesOnly: (_e = options.rawMessagesOnly) !== null && _e !== void 0 ? _e : false,
         };
     }
     parseAsync(content) {
@@ -32,7 +51,81 @@ export default class FitParser {
             });
         });
     }
+    /**
+     * Parses FIT files in input order with independent decoder state. Uses the
+     * same force and strict policies as parseAsync; strict mode rejects trailing
+     * bytes, while the default ignores a non-FIT suffix after parsed files.
+     * Rejects with an Error when any file cannot be parsed.
+     */
+    parseFilesAsync(content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const blob = content instanceof ArrayBuffer
+                ? new Uint8Array(content)
+                : new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
+            const results = [];
+            let start = 0;
+            do {
+                const remaining = blob.length - start;
+                const headerLength = blob[start];
+                if (results.length > 0 && !this.options.strict && !hasFitHeader(blob, start)) {
+                    break;
+                }
+                if (remaining < 12) {
+                    throw new Error('File to small to be a FIT file');
+                }
+                if (headerLength !== 12 && headerLength !== 14) {
+                    throw new Error('Incorrect header size');
+                }
+                if (remaining < headerLength) {
+                    throw new Error('File to small to be a FIT file');
+                }
+                if (blob[start + 8] !== 0x2E
+                    || blob[start + 9] !== 0x46
+                    || blob[start + 10] !== 0x49
+                    || blob[start + 11] !== 0x54) {
+                    throw new Error('Missing \'.FIT\' in header');
+                }
+                const dataLength = new DataView(blob.buffer, blob.byteOffset + start, remaining)
+                    .getUint32(4, true);
+                const crcStart = start + headerLength + dataLength;
+                // File completeness and CRC checks belong to the shared parser below,
+                // preserving the same validation policy and error order in every API.
+                let end = Math.min(crcStart + 2, blob.length);
+                // Missing CRC bytes can also precede the next file. Check only the
+                // declared boundary and its one-byte CRC variant; never scan activity
+                // payloads for a guessed file boundary.
+                if (this.options.force && !this.options.strict) {
+                    if (hasFitHeader(blob, crcStart)) {
+                        end = crcStart;
+                    }
+                    else if (hasFitHeader(blob, crcStart + 1)) {
+                        end = crcStart + 1;
+                    }
+                }
+                try {
+                    results.push(yield new Promise((resolve, reject) => {
+                        this.parseFile(blob.slice(start, end).buffer, (error, data) => {
+                            if (error) {
+                                reject(error);
+                            }
+                            else if (data) {
+                                resolve(data);
+                            }
+                        });
+                    }));
+                }
+                catch (error) {
+                    throw error instanceof Error ? error : new Error(String(error));
+                }
+                start = end;
+            } while (start < blob.length);
+            return results;
+        });
+    }
     parse(content, callback) {
+        this.parseFile(content, callback);
+    }
+    parseFile(content, callback) {
         var _a, _b, _c;
         const blob = content instanceof ArrayBuffer
             ? new Uint8Array(content)
@@ -75,8 +168,12 @@ export default class FitParser {
             callback('File data exceeds input length', undefined);
             return;
         }
-        if (!this.options.force && crcStart + 2 > blob.length) {
+        if ((!this.options.force || this.options.strict) && crcStart + 2 > blob.length) {
             callback('File CRC missing', undefined);
+            return;
+        }
+        if (this.options.strict && crcStart + 2 < blob.length) {
+            callback('Unexpected bytes after FIT file', undefined);
             return;
         }
         if (!this.options.force) {
@@ -92,6 +189,7 @@ export default class FitParser {
             protocolVersion,
         };
         const messages = {};
+        const batteries = [];
         let sessions = [];
         let laps = [];
         const records = [];
@@ -141,6 +239,10 @@ export default class FitParser {
         let pausedTime = 0;
         while (loopIndex < crcStart) {
             const { globalMessageNumber, littleEndian, message, messageType, nextIndex, compressedTimestamp, rawFields: recordRawFields, rawDeveloperFields: recordRawDeveloperFields, unmappedFields: recordUnmappedFields, unmappedDeveloperFields: recordUnmappedDeveloperFields, } = readRecord(blob, messageTypes, developerFields, loopIndex, this.options, startDate, pausedTime, dataView, decoderState, crcStart);
+            if (this.options.strict
+                && (!Number.isInteger(nextIndex) || nextIndex <= loopIndex || nextIndex > crcStart)) {
+                throw new Error('Invalid FIT record bounds');
+            }
             loopIndex = nextIndex;
             if (globalMessageNumber !== undefined) {
                 const messageIndex = (_a = messageCountsByGlobalNumber.get(globalMessageNumber)) !== null && _a !== void 0 ? _a : 0;
@@ -191,6 +293,9 @@ export default class FitParser {
                 ((_b = messages[messageType]) !== null && _b !== void 0 ? _b : (messages[messageType] = [])).push(message);
             }
             switch (messageType) {
+                case 'battery':
+                    batteries.push(message);
+                    break;
                 case 'lap':
                     laps.push(message);
                     break;
@@ -335,6 +440,7 @@ export default class FitParser {
         fitObj.time_in_zone = time_in_zone;
         fitObj.activity_metrics = activity_metrics;
         fitObj.user_metrics = user_metrics;
+        fitObj.batteries = batteries;
         fitObj.messages = messages;
         if (rawDeveloperFields) {
             fitObj.raw_developer_fields = rawDeveloperFields;

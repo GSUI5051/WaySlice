@@ -1,6 +1,7 @@
 import { Buffer } from './buffer-shim.js';
 import { FIT } from './fit.js';
 import { getFitMessage, getFitMessageBaseType } from './messages.js';
+import { getFitBaseTypeId } from './raw-message-reader.js';
 const CompressedLocalMsgNumMask = 0x60;
 const CompressedHeaderMask = 0x80;
 const CompressedTimestampMask = 0x1F;
@@ -16,6 +17,12 @@ function retainsRawMessage(options, globalMessageNumber) {
     return options.includeRawMessages === true
         || (Array.isArray(options.includeRawMessages)
             && options.includeRawMessages.includes(globalMessageNumber));
+}
+function getFitBaseType(baseType) {
+    var _a;
+    // Some producers omit the endian flag. The definition's architecture still
+    // determines byte order; retain the original type byte for raw consumers.
+    return (_a = FIT.types.fit_base_type[baseType]) !== null && _a !== void 0 ? _a : (getFitBaseTypeId(baseType) === null ? undefined : FIT.types.fit_base_type[baseType | 0x80]);
 }
 function baseTypeSize(type) {
     switch (type) {
@@ -65,7 +72,7 @@ export function addEndian(littleEndian, bytes) {
 }
 function readData(blob, dataView, fDef, startIndex) {
     var _a, _b;
-    const rawType = (_b = (_a = fDef.rawType) !== null && _a !== void 0 ? _a : FIT.types.fit_base_type[fDef.baseTypeNo]) !== null && _b !== void 0 ? _b : fDef.type;
+    const rawType = (_b = (_a = fDef.rawType) !== null && _a !== void 0 ? _a : getFitBaseType(fDef.baseTypeNo)) !== null && _b !== void 0 ? _b : fDef.type;
     if (rawType === 'string') {
         const temp = [];
         for (let i = 0; i < fDef.size; i++) {
@@ -255,18 +262,18 @@ function isInvalidBaseTypeValue(data, baseTypeNo) {
     if (Array.isArray(data)) {
         return false;
     }
-    const baseType = FIT.types.fit_base_type[baseTypeNo];
+    const baseType = getFitBaseType(baseTypeNo);
     return typeof baseType === 'string' ? isInvalidValue(data, baseType) : false;
 }
 function formatFieldValue(data, fDef, options, fields) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const field = fDef.name;
     const scale = (_a = fDef.scale) !== null && _a !== void 0 ? _a : null;
     const offset = (_b = fDef.offset) !== null && _b !== void 0 ? _b : 0;
     if (Array.isArray(data)
         && !String(fDef.type).endsWith('_array')
         && fDef.type !== 'exercise_category_array') {
-        const rawType = (_c = fDef.rawType) !== null && _c !== void 0 ? _c : FIT.types.fit_base_type[fDef.baseTypeNo];
+        const rawType = (_d = (_c = fDef.rawType) !== null && _c !== void 0 ? _c : getFitBaseType(fDef.baseTypeNo)) !== null && _d !== void 0 ? _d : fDef.type;
         return data.map((item) => {
             if (isInvalidValue(item, rawType)) {
                 return null;
@@ -305,6 +312,7 @@ function applyOptions(data, field, options, fields) {
         case 'enhanced_speed':
         case 'vertical_speed':
         case 'avg_speed':
+        case 'avg_grade_adjusted_speed':
         case 'max_speed':
         case 'speed1s':
         case 'ball_speed':
@@ -373,7 +381,7 @@ function resolveDeveloperFieldDefinition(developerFieldDef, littleEndian, develo
     const baseType = typeof describedBaseType === 'number'
         ? describedBaseType
         : Number((_b = Object.entries(FIT.types.fit_base_type).find(([, typeName]) => typeName === describedBaseType)) === null || _b === void 0 ? void 0 : _b[0]);
-    const type = FIT.types.fit_base_type[baseType];
+    const type = getFitBaseType(baseType);
     if (!Number.isInteger(baseType) || type === undefined) {
         developerFieldDef.resolvedFieldDef = undefined;
         developerFieldDef.resolvedFrom = undefined;
@@ -416,6 +424,8 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
     const recordHeader = blob[startIndex];
     let localMessageType = recordHeader & 15;
     const isCompressedTimestamp = (recordHeader & CompressedHeaderMask) === CompressedHeaderMask;
+    const reservedHeaderBit = !isCompressedTimestamp && (recordHeader & 0x10) !== 0;
+    const strictHeaders = options.strict || retainsRawMessages(options);
     if (isCompressedTimestamp) {
         // compressed timestamp
         localMessageType = (recordHeader & CompressedLocalMsgNumMask) >> 5;
@@ -423,15 +433,16 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
     else if ((recordHeader & 64) === 64) {
         // is definition message
         // startIndex + 1 is reserved
-        if (retainsRawMessages(options) && startIndex + 6 > dataEnd) {
+        const requireCompleteDefinition = strictHeaders || reservedHeaderBit;
+        if (requireCompleteDefinition && startIndex + 6 > dataEnd) {
             throw new Error('Invalid FIT definition bounds');
         }
         const hasDeveloperData = (recordHeader & 32) === 32;
         const lEnd = blob[startIndex + 2] === 0;
         const numberOfFields = blob[startIndex + 5];
         const nativeDefinitionsEnd = startIndex + 6 + numberOfFields * 3;
-        if (retainsRawMessages(options)
-            && ((recordHeader & 16) !== 0
+        if (requireCompleteDefinition
+            && ((strictHeaders && reservedHeaderBit)
                 || blob[startIndex + 1] !== 0
                 || blob[startIndex + 2] > 1
                 || nativeDefinitionsEnd > dataEnd
@@ -443,7 +454,7 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
             : 0;
         const definitionEnd = nativeDefinitionsEnd
             + (hasDeveloperData ? 1 + numberOfDeveloperDataFields * 3 : 0);
-        if (retainsRawMessages(options) && definitionEnd > dataEnd) {
+        if (requireCompleteDefinition && definitionEnd > dataEnd) {
             throw new Error('Invalid FIT developer definition bounds');
         }
         const mTypeDef = {
@@ -456,6 +467,13 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
             fieldDefs: [],
             developerFieldDefs: [],
             rawData: [],
+            // A later data header may use the reserved bit with an ordinary
+            // definition. Do not extend legacy partial-record recovery to that case.
+            completeDefinition: startIndex + 6 <= dataEnd
+                && blob[startIndex + 1] === 0
+                && blob[startIndex + 2] <= 1
+                && definitionEnd <= dataEnd,
+            reservedHeaderBit,
         };
         const message = getFitMessage(mTypeDef.globalMessageNumber);
         for (let i = 0; i < numberOfFields; i++) {
@@ -463,11 +481,16 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
             const baseType = blob[fDefIndex + 2];
             const fieldNumber = blob[fDefIndex];
             const fieldSize = blob[fDefIndex + 1];
-            const wireType = FIT.types.fit_base_type[baseType];
+            const wireType = getFitBaseType(baseType);
             const { field, type, baseType: profileBaseType, array, scale, offset, units, } = message.getAttributes(blob[fDefIndex]);
-            const profileCompatible = areProfileBaseTypesCompatible(profileBaseType, wireType);
+            // Narrow producer interoperability case: only the shared, non-sentinel
+            // temperature range is decoded below. All original bytes remain unmapped.
+            const unsignedTemperature = mTypeDef.globalMessageNumber === 20
+                && fieldNumber === 13 && fieldSize === 1
+                && profileBaseType === 'sint8' && wireType === 'uint8';
+            const profileCompatible = unsignedTemperature || areProfileBaseTypesCompatible(profileBaseType, wireType);
             const fDef = {
-                type: profileCompatible ? type : wireType,
+                type: profileCompatible ? type : wireType !== null && wireType !== void 0 ? wireType : '',
                 rawType: wireType,
                 fDefNo: fieldNumber,
                 size: fieldSize,
@@ -503,12 +526,19 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
             nextIndex: hasDeveloperData ? nextIndexWithDeveloperData : nextIndex,
         };
     }
-    if (!isCompressedTimestamp && (recordHeader & 0x30) !== 0) {
+    // Some existing producer files set bit 4 without changing the record layout.
+    // Recover only that bit in ordinary decoding; bit 5 and strict/raw parsing
+    // retain their previous rejection policy. Never rewrite the source bytes.
+    if (!isCompressedTimestamp && ((recordHeader & 0x20) !== 0 || (strictHeaders && reservedHeaderBit))) {
         throw new Error('Invalid FIT data record header');
     }
     const messageType = messageTypes[localMessageType];
     if (!messageType) {
         throw new Error('FIT data record has no local definition');
+    }
+    const reservedHeaderCompatibility = reservedHeaderBit || messageType.reservedHeaderBit;
+    if (reservedHeaderCompatibility && !messageType.completeDefinition) {
+        throw new Error('Invalid FIT definition for reserved header compatibility');
     }
     let messageSize = 0;
     let readDataFromIndex = startIndex + 1;
@@ -524,7 +554,7 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
     const rawDeveloperFields = includeRawDeveloperFields || includeRawMessage ? [] : undefined;
     const unmappedFields = options.includeUnmappedMessages ? [] : undefined;
     const unmappedDeveloperFields = options.includeUnmappedMessages ? [] : undefined;
-    if (retainsRawMessages(options)) {
+    if (strictHeaders || reservedHeaderCompatibility) {
         const nativeSize = messageType.fieldDefs.reduce((total, field, index) => (total + (isCompressedTimestamp && index === 0 && field.fDefNo === 253 ? 0 : field.size)), 0);
         const developerSize = developerFieldDefs.reduce((total, field) => total + field.size, 0);
         if (startIndex + 1 + nativeSize + developerSize > dataEnd) {
@@ -539,7 +569,11 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
             rawData[i] = InvalidFieldData;
             continue;
         }
-        if ((rawFields || (unmappedFields && !isOutputFieldName(fDef.name)))
+        const unsignedTemperature = messageType.globalMessageNumber === 20
+            && fDef.fDefNo === 13 && fDef.size === 1
+            && fDef.type === 'sint8' && fDef.rawType === 'uint8';
+        const preserveNative = !isOutputFieldName(fDef.name) || unsignedTemperature;
+        if ((rawFields || (unmappedFields && preserveNative))
             && readDataFromIndex + fDef.size <= dataEnd) {
             const rawField = {
                 fieldDefinitionNumber: fDef.fDefNo,
@@ -547,11 +581,13 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
                 rawValue: Array.from(blob.subarray(readDataFromIndex, readDataFromIndex + fDef.size)),
             };
             rawFields === null || rawFields === void 0 ? void 0 : rawFields.push(rawField);
-            if (!isOutputFieldName(fDef.name)) {
+            if (preserveNative) {
                 unmappedFields === null || unmappedFields === void 0 ? void 0 : unmappedFields.push(rawField);
             }
         }
-        const data = readData(blob, dataView, fDef, readDataFromIndex);
+        const data = unsignedTemperature && blob[readDataFromIndex] >= 127
+            ? InvalidFieldData
+            : readData(blob, dataView, fDef, readDataFromIndex);
         if (data !== InvalidFieldData
             && !isInvalidValue(data, fDef.type)
             && !isInvalidBaseTypeValue(data, fDef.baseTypeNo)) {
@@ -573,20 +609,21 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
     for (let i = 0; i < developerFieldDefs.length; i++) {
         const developerFieldDef = developerFieldDefs[i];
         const rawDataIndex = messageType.fieldDefs.length + i;
-        let rawDeveloperField;
-        if ((rawDeveloperFields
-            || (unmappedDeveloperFields && developerFieldDef.resolvedFieldDef === undefined))
+        // Resolve before deciding whether raw retention is needed. A resolved
+        // description can still have no usable output name, including after cache use.
+        const fDef = resolveDeveloperFieldDefinition(developerFieldDef, messageType.littleEndian, developerFields, options);
+        const preserveDeveloper = !fDef || !isOutputFieldName(fDef.name);
+        if ((rawDeveloperFields || (unmappedDeveloperFields && preserveDeveloper))
             && readDataFromIndex + developerFieldDef.size <= dataEnd) {
-            rawDeveloperField = {
+            const rawDeveloperField = {
                 developerDataIndex: developerFieldDef.developerDataIndex,
                 fieldDefinitionNumber: developerFieldDef.fieldDefinitionNumber,
                 rawValue: Array.from(blob.subarray(readDataFromIndex, readDataFromIndex + developerFieldDef.size)),
             };
             rawDeveloperFields === null || rawDeveloperFields === void 0 ? void 0 : rawDeveloperFields.push(rawDeveloperField);
-        }
-        const fDef = resolveDeveloperFieldDefinition(developerFieldDef, messageType.littleEndian, developerFields, options);
-        if (!fDef && rawDeveloperField) {
-            unmappedDeveloperFields === null || unmappedDeveloperFields === void 0 ? void 0 : unmappedDeveloperFields.push(rawDeveloperField);
+            if (preserveDeveloper) {
+                unmappedDeveloperFields === null || unmappedDeveloperFields === void 0 ? void 0 : unmappedDeveloperFields.push(rawDeveloperField);
+            }
         }
         if (fDef) {
             const data = readData(blob, dataView, fDef, readDataFromIndex);
@@ -652,7 +689,7 @@ export function readRecord(blob, messageTypes, developerFields, startIndex, opti
     if (isCompressedTimestamp) {
         const previousTimestamp = decoderState.lastTimestamp;
         if (previousTimestamp === undefined) {
-            if (!options.force) {
+            if (!options.force || options.strict) {
                 throw new Error('Compressed timestamp requires a previous timestamp');
             }
         }

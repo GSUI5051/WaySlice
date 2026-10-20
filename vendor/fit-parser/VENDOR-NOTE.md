@@ -1,7 +1,7 @@
 # Vendored: fit-file-parser
 
 Source: <https://github.com/jimmykane/fit-parser> — npm package
-[`fit-file-parser`](https://www.npmjs.com/package/fit-file-parser), version **6.1.2**.
+[`fit-file-parser`](https://www.npmjs.com/package/fit-file-parser), version **6.2.3**.
 License: MIT (see `LICENSE`). The `package.json` is kept for version provenance.
 
 ## What is vendored
@@ -42,7 +42,7 @@ import { Buffer } from './buffer-shim.js';
 because the app has no build step and no import map. `buffer-shim.js` implements
 the single upstream call shape (`Buffer.from(bytes).toString('utf-8')`, string-field
 decoding) on top of `TextEncoder`/`TextDecoder` — still the only real `Buffer`
-use in 6.1.2 (`ArrayBuffer` mentions elsewhere are the type, not the module).
+use in 6.2.3 (`ArrayBuffer` mentions elsewhere are the type, not the module).
 See the file header for upgrade notes.
 
 ## Notes for the WaySlice adapter (`js/parsers/fit.js`)
@@ -61,3 +61,11 @@ See the file header for upgrade notes.
 - 5.0.2 → 6.1.2 was verified output-identical on `tests/fixtures/telemetry-mini.fit`
   (records/laps/sessions byte-for-byte); the 6.x releases only add opt-in raw
   output modes and new sport/sub-sport ids.
+- 6.1.2 → 6.2.3 verified on all four `telemetry-*.fit` fixtures, `sample/telemetry.fit`
+  and the Edge810 sample with the adapter's options: `records` byte-identical, zero
+  changed or removed values. Additive only: a new top-level `batteries` array,
+  `nec_/swc_` bounding-box fields on laps, and `battery` messages in the raw map;
+  plus producer-compat fixes (omitted endian flag, reserved header bit, uint8
+  temperature field) that trigger only on files 6.1.2 misread. The new dist files
+  `fit_types.js`/`types.js`/`type_generator.js` are unreferenced by the vendored
+  entry points and skipped.
